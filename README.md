@@ -1,6 +1,6 @@
 # 🔔 NotifySync
 
-![Version](https://img.shields.io/badge/Version-2.0.1-blue?style=flat-square)
+![Version](https://img.shields.io/badge/Version-2.0.2-blue?style=flat-square)
 ![Jellyfin](https://img.shields.io/badge/Jellyfin-10.11.5%2B-purple?style=flat-square)
 ![Framework](https://img.shields.io/badge/.NET-9.0-512bd4?style=flat-square)
 

@@ -1,4 +1,4 @@
-/* NOTIFYSYNC V2.0 - NETFLIX EDITION (Hero, Filters, Pills, Hover Cards) */
+/* NOTIFYSYNC V2.0.2 - STABLE DROPDOWN (Header persistence, Play Arrow) */
 (function () {
     let currentData = null;
     let groupedData = null;
@@ -83,9 +83,6 @@
             .dropdown-item:hover .item-actions{opacity:1}
             .mark-one-btn{cursor:pointer;font-size:16px;color:#aaa; padding: 5px;}.mark-one-btn:hover{color:#fff;}
 
-            /* SWIPE */
-            .swipe-bg{position:absolute;top:0;left:0;bottom:0;width:0;background:var(--ns-red);z-index:0;display:flex;align-items:center;padding-left:20px;opacity:0;transition:opacity .2s}
-            
             /* UTILS */
             .play-overlay{position:absolute;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .2s;}
             .progress-bg{position:absolute;bottom:0;left:0;right:0;height:2px;background:rgba(255,255,255,.3)}.progress-fill{height:100%;background:var(--ns-red)}
@@ -99,14 +96,13 @@
     };
 
     const playHoverSound = (itemId) => {
-        if (localStorage.getItem(SOUND_KEY) === 'true') return; // Muted
+        if (localStorage.getItem(SOUND_KEY) === 'true') return;
         if (hoverTimeout) clearTimeout(hoverTimeout);
         if (hoverAudio) { hoverAudio.pause(); hoverAudio = null; }
 
         hoverTimeout = setTimeout(async () => {
             const client = window.ApiClient;
             try {
-                // Check for theme songs
                 const songs = await client.getThemeSongs(client.getCurrentUserId(), itemId);
                 if (songs && songs.Items.length > 0) {
                     const songId = songs.Items[0].Id;
@@ -114,12 +110,11 @@
                     hoverAudio = new Audio(url);
                     hoverAudio.volume = 0.0;
                     await hoverAudio.play();
-                    // Fade in
                     let vol = 0;
                     const fade = setInterval(() => { vol += 0.05; if (vol >= 0.3) { vol = 0.3; clearInterval(fade); } hoverAudio.volume = vol; }, 200);
                 }
             } catch (e) { }
-        }, 800); // 800ms delay before playing
+        }, 800);
     };
 
     const stopHoverSound = () => {
@@ -127,7 +122,6 @@
         if (hoverAudio) {
             const a = hoverAudio;
             hoverAudio = null;
-            // Fade out
             let vol = a.volume;
             const fade = setInterval(() => { vol -= 0.05; if (vol <= 0) { a.pause(); clearInterval(fade); } else a.volume = vol; }, 100);
         }
@@ -139,8 +133,6 @@
 
     const getRemoteLastSeenDate = async (uid) => { try { const r = await fetch(`/NotifySync/LastSeen/${uid}?t=` + Date.now()); if (r.ok) return await r.text(); } catch (e) { } return "2000-01-01T00:00:00.000Z"; };
     const setRemoteLastSeenDate = async (uid, dateStr) => { try { await fetch(`/NotifySync/LastSeen/${uid}?date=${encodeURIComponent(dateStr)}`, { method: 'POST' }); } catch (e) { } };
-
-    // Logic: Is New if created < 48 hours ago
     const isNew = (d) => (new Date() - new Date(d)) < (48 * 3600 * 1000);
 
     const processGrouping = (items) => {
@@ -154,7 +146,10 @@
         return r;
     };
 
-    const renderHeader = (drop) => {
+    // Initialize Header and List Container ONCE
+    const initDropdown = (drop) => {
+        if (drop.querySelector('.dropdown-header')) return; // Already init
+
         const isMuted = localStorage.getItem(SOUND_KEY) === 'true';
         let h = `<div class="dropdown-header" style="display:flex;justify-content:space-between;padding:15px;background:#000;">
                     <span style="font-weight:bold;font-size:16px;">Notifications</span>
@@ -164,24 +159,55 @@
                     </div>
                  </div>
                  <div class="filter-bar">
-                    <div class="filter-pill ${activeFilter === 'All' ? 'active' : ''}" data-f="All">${T.filterAll}</div>
-                    <div class="filter-pill ${activeFilter === 'Movie' ? 'active' : ''}" data-f="Movie">${T.filterMovies}</div>
-                    <div class="filter-pill ${activeFilter === 'Episode' ? 'active' : ''}" data-f="Episode">${T.filterSeries}</div>
+                    <div class="filter-pill active" data-f="All">${T.filterAll}</div>
+                    <div class="filter-pill" data-f="Movie">${T.filterMovies}</div>
+                    <div class="filter-pill" data-f="Episode">${T.filterSeries}</div>
                  </div>
                  <div class="list-container"></div>`;
         drop.innerHTML = h;
+
+        // Attach static events
+        drop.querySelectorAll('.filter-pill').forEach(pill => {
+            pill.onclick = (e) => {
+                e.stopPropagation();
+                // Update active class immediately
+                drop.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
+                e.target.classList.add('active');
+
+                activeFilter = e.target.getAttribute('data-f');
+                updateList(drop); // Refresh list
+            };
+        });
+
+        drop.querySelector('.mute-btn').onclick = (e) => {
+            e.stopPropagation();
+            const m = localStorage.getItem(SOUND_KEY) === 'true';
+            localStorage.setItem(SOUND_KEY, !m);
+            // Update Icon
+            const btn = e.target;
+            btn.innerText = !m ? 'volume_off' : 'volume_up';
+        };
+
+        drop.querySelector('.mark-all-btn').onclick = async (e) => {
+            e.stopPropagation();
+            if (groupedData && groupedData[0]) {
+                await setRemoteLastSeenDate(window.ApiClient.getCurrentUserId(), groupedData[0].DateCreated);
+                showToast(T.markAll);
+                fetchData();
+            }
+        };
     };
 
-    const buildDropdownHTML = () => {
-        const drop = document.querySelector('#notification-dropdown'); if (!drop) return;
-        renderHeader(drop);
+    const updateList = (drop) => {
         const container = drop.querySelector('.list-container');
+        if (!container) return;
+
+        container.innerHTML = ''; // Start clean
 
         if (!groupedData || groupedData.length === 0) {
             container.innerHTML = `<div style="padding:40px;text-align:center;color:#666;">${T.empty}</div>`; return;
         }
 
-        // FILTER LOGIC
         let filtered = groupedData;
         if (activeFilter !== 'All') {
             filtered = groupedData.filter(i => (activeFilter === 'Movie' ? i.Type === 'Movie' : (i.Type === 'Episode' || i.IsGroup)));
@@ -194,23 +220,17 @@
         const client = window.ApiClient;
         let html = '';
 
-        // HERO ITEM (First item of filtered list)
+        // HERO
         const hero = filtered[0];
         if (hero) {
             let heroImg = hero.BackdropImageTags && hero.BackdropImageTags.length > 0 ? client.getUrl(`Items/${hero.Id}/Images/Backdrop/0?quality=60&maxWidth=600`) : client.getUrl(`Items/${hero.SeriesId || hero.Id}/Images/Primary?quality=60&maxWidth=400`);
-            // If group, use Series ID for backdrop
-            if (hero.IsGroup && hero.SeriesId) {
-                // Try to get series backdrop
-                heroImg = client.getUrl(`Items/${hero.SeriesId}/Images/Backdrop/0?quality=60&maxWidth=600`);
-            }
+            if (hero.IsGroup && hero.SeriesId) heroImg = client.getUrl(`Items/${hero.SeriesId}/Images/Backdrop/0?quality=60&maxWidth=600`);
 
             let heroTitle = hero.SeriesName || hero.Name;
             if (hero.IsGroup) heroTitle = hero.SeriesName;
 
             let heroMeta = '';
             if (hero.ProductionYear) heroMeta += `<span>${hero.ProductionYear}</span>`;
-            if (hero.CommunityRating) heroMeta += `<span class="match-score">${Math.round(hero.CommunityRating * 10)}% Match</span>`;
-            if (hero.Type === 'Movie' && hero.RunTimeTicks) heroMeta += `<span>${Math.round(hero.RunTimeTicks / 600000000)} min</span>`;
 
             html += `
             <div class="hero-section" onclick="window.location.hash='#!/details?id=${hero.IsGroup ? hero.SeriesId : hero.Id}'">
@@ -227,7 +247,7 @@
             </div>`;
         }
 
-        // REST OF ITEMS
+        // LIST
         filtered.slice(1).forEach((item, index) => {
             let imgUrl = client.getUrl(`Items/${item.Id}/Images/Primary?fillHeight=112&fillWidth=180&quality=90`);
             if (item.IsGroup) imgUrl = client.getUrl(`Items/${item.SeriesId}/Images/Primary?fillHeight=112&fillWidth=180&quality=90`);
@@ -235,7 +255,6 @@
             let title = item.IsGroup ? item.SeriesName : (item.SeriesName ? item.SeriesName : item.Name);
             let subtitle = item.IsGroup ? `${item.GroupCount} ${T.newEps}` : (item.SeriesName ? item.Name : '');
 
-            // Metadata
             let year = item.ProductionYear || '';
             let rating = item.CommunityRating ? `<span class="match-score">${Math.round(item.CommunityRating * 10)}%</span>` : '';
             if (item.IsGroup) subtitle += (item.IndexNumber ? `. S${item.ParentIndexNumber || 1}` : '');
@@ -250,73 +269,34 @@
             <div class="dropdown-item" id="notif-item-${item.Id}" style="animation-delay:${index * 0.05}s">
                 <div class="thumb-wrapper">
                     <img src="${imgUrl}" class="dropdown-thumb">
-                    <div class="play-overlay"><span class="material-icons" style="color:#fff;">play_circle</span></div>
+                    <div class="play-overlay"><span class="material-icons" style="color:#fff;">play_arrow</span></div>
                     ${progressHtml}
                 </div>
                 <div class="dropdown-info">
                     <div class="dropdown-title">${title}</div>
-                    <div class="metadata-line">
-                        ${rating}
-                        <span>${year}</span>
-                        ${item.IsGroup ? '<span class="rating-badge">TV-MA</span>' : ''}
-                    </div>
+                    <div class="metadata-line">${rating}<span>${year}</span></div>
                     ${subtitle ? `<div class="dropdown-subtitle">${subtitle}</div>` : ''}
                 </div>
-                <div class="item-actions">
-                    <span class="material-icons mark-one-btn">visibility</span>
-                </div>
+                <div class="item-actions"><span class="material-icons mark-one-btn">visibility</span></div>
             </div>`;
         });
 
-        container.insertAdjacentHTML('beforeend', html);
+        container.innerHTML = html;
 
-        // Events
+        // Re-attach list events
         container.querySelectorAll('.dropdown-item').forEach(el => {
-            // Animation class trigger
             requestAnimationFrame(() => el.classList.add('animate-in'));
-
-            // Sound
             el.addEventListener('mouseenter', () => playHoverSound(el.id.replace('notif-item-', '')));
             el.addEventListener('mouseleave', () => stopHoverSound());
 
-            // Click
             el.onclick = (e) => {
-                if (e.target.closest('.mark-one-btn')) {
-                    // Mark as read
-                    // Implementation of mark one...
-                    // For now simply notify
-                    return;
-                }
+                if (e.target.closest('.mark-one-btn')) return; // handled separately if needed
                 const id = el.id.replace('notif-item-', '');
                 window.location.hash = `#!/details?id=${id}`;
                 drop.style.display = 'none';
             };
         });
-
-        // Setup Headers events
-        drop.querySelectorAll('.filter-pill').forEach(pill => {
-            pill.onclick = (e) => {
-                e.stopPropagation();
-                activeFilter = e.target.getAttribute('data-f');
-                buildDropdownHTML();
-            };
-        });
-
-        const muteBtn = drop.querySelector('.mute-btn');
-        if (muteBtn) muteBtn.onclick = (e) => {
-            e.stopPropagation();
-            const m = localStorage.getItem(SOUND_KEY) === 'true';
-            localStorage.setItem(SOUND_KEY, !m);
-            renderHeader(drop);
-            buildDropdownHTML(); // re-render to update icon
-        };
-
-        const markAllBtn = drop.querySelector('.mark-all-btn');
-        if (markAllBtn) markAllBtn.onclick = async (e) => {
-            e.stopPropagation();
-            if (groupedData[0]) { await setRemoteLastSeenDate(window.ApiClient.getCurrentUserId(), groupedData[0].DateCreated); showToast(T.markAll); fetchData(); }
-        }
-    };
+    }
 
     const checkUnread = async (items) => {
         const client = window.ApiClient; if (!client) return;
@@ -342,7 +322,6 @@
         try {
             const client = window.ApiClient; if (!client) { isFetching = false; return; }
             const userId = client.getCurrentUserId();
-
             if (!pluginConfig) { try { pluginConfig = await client.getPluginConfiguration(PLUGIN_ID); } catch (e) { pluginConfig = { MaxItems: 10 }; } }
 
             const res = await client.getItems(userId, {
@@ -353,9 +332,13 @@
             currentData = res.Items;
             await checkUnread(currentData);
             groupedData = processGrouping(currentData);
-            // Don't auto rebuild if closed, only if open? 
-            // For now, if open, rebuild
-            if (document.querySelector('#notification-dropdown').style.display === 'block') buildDropdownHTML();
+
+            if (document.querySelector('#notification-dropdown').style.display === 'block') {
+                // Update content but don't rebuild header if safe
+                const drop = document.querySelector('#notification-dropdown');
+                initDropdown(drop);
+                updateList(drop);
+            }
         } catch (e) { } finally { isFetching = false; }
     };
 
@@ -371,13 +354,22 @@
         let drop = document.querySelector('#notification-dropdown');
         if (!drop) {
             drop = document.createElement('div'); drop.id = 'notification-dropdown'; document.body.appendChild(drop);
-            document.addEventListener('click', e => { if (drop.style.display === 'block' && !drop.contains(e.target) && !bell.contains(e.target)) drop.style.display = 'none'; });
+            document.addEventListener('click', e => {
+                // Only close if click is OUTSIDE drop and OUTSIDE bell
+                if (drop.style.display === 'block' && !drop.contains(e.target) && !bell.contains(e.target)) {
+                    drop.style.display = 'none';
+                }
+            });
         }
 
         bell.onclick = (e) => {
             e.preventDefault(); e.stopPropagation();
             if (drop.style.display === 'block') { drop.style.display = 'none'; }
-            else { drop.style.display = 'block'; buildDropdownHTML(); }
+            else {
+                drop.style.display = 'block';
+                initDropdown(drop);
+                updateList(drop);
+            }
         };
         fetchData();
         setInterval(fetchData, 60000);

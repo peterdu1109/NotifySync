@@ -90,12 +90,26 @@ namespace NotifySync
             if (!(item is MediaBrowser.Controller.Entities.Movies.Movie) && !(item is MediaBrowser.Controller.Entities.TV.Episode)) return;
 
             // Check Library Config (Admin selection)
-            var config = Plugin.Instance.Configuration;
+            // Check Library Config (Admin selection)
+            var config = Plugin.Instance!.Configuration;
             if (config.EnabledLibraries != null && config.EnabledLibraries.Any())
             {
-                // Verify if item's root folder is in enabled libraries
-                // For simplicity, we assume if config is set, we check. If null/empty, allow all.
-                // Finding the Library ID can be tricky, typically item.GetParent() eventually hits a CollectionFolder.
+                // Recursive check for Library Root
+                bool isAllowed = false;
+                var current = item;
+                while (current != null)
+                {
+                    if (config.EnabledLibraries.Contains(current.Id.ToString()) || 
+                        config.EnabledLibraries.Contains(current.Id.ToString("N"))) // Handles GUID format diffs
+                    {
+                        isAllowed = true;
+                        break;
+                    }
+                    current = current.GetParent();
+                    if (current is MediaBrowser.Controller.Entities.AggregateFolder) break; // Optimization: Stop at root
+                }
+                
+                if (!isAllowed) return; // Not in enabled libraries
             }
 
             var notif = new NotificationItem

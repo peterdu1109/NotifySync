@@ -4,7 +4,7 @@
     <title>NotifySync Configuration</title>
 </head>
 <body>
-    <div data-role="page" class="page type-interior pluginConfigurationPage" data-require="emby-button,emby-input">
+    <div data-role="page" class="page type-interior pluginConfigurationPage" data-require="emby-button,emby-input,emby-checkbox">
         <div data-role="content">
             <div class="content-primary">
                 <form id="notifySyncConfigForm">
@@ -18,6 +18,14 @@
                             <label class="inputLabel inputLabelUnfocused" for="maxItems">Nombre d'éléments à afficher</label>
                             <input is="emby-input" type="number" id="maxItems" name="maxItems" min="1" max="50" step="1" />
                             <div class="fieldDescription">Définit combien de films/épisodes récents apparaissent dans le menu déroulant (Défaut: 5).</div>
+                        </div>
+
+                        <div class="inputContainer">
+                            <h3 class="sectionTitle">Bibliothèques Actives</h3>
+                            <div class="fieldDescription">Cochez les médiathèques que vous souhaitez surveiller. Si aucune n'est cochée, tout est surveillé.</div>
+                            <div id="libraryCheckboxes" style="margin-top:10px; display: flex; flex-direction: column; gap: 5px;">
+                                <!-- Checkboxes will be injected here -->
+                            </div>
                         </div>
 
                         <div>
@@ -36,6 +44,21 @@
                 loadConfiguration: function (page) {
                     ApiClient.getPluginConfiguration(NotifySyncConfigurationPage.pluginId).then(function (config) {
                         page.querySelector('#maxItems').value = config.MaxItems || 5;
+
+                        // Load Libraries
+                        ApiClient.getVirtualFolders().then(function (folders) {
+                             var container = page.querySelector('#libraryCheckboxes');
+                             container.innerHTML = '';
+                             var enabledLibs = config.EnabledLibraries || [];
+                             
+                             folders.forEach(function(folder) {
+                                 var isChecked = enabledLibs.indexOf(folder.ItemId) !== -1;
+                                 var html = '<label style="display:flex; align-items:center;">' +
+                                            '<input is="emby-checkbox" type="checkbox" name="enabledLibs" value="' + folder.ItemId + '" ' + (isChecked ? 'checked' : '') + ' />' +
+                                            '<span style="margin-left:10px;">' + folder.Name + '</span></label>';
+                                 container.insertAdjacentHTML('beforeend', html);
+                             });
+                        });
                     });
                 }
             };
@@ -44,6 +67,14 @@
                 e.preventDefault();
                 ApiClient.getPluginConfiguration(NotifySyncConfigurationPage.pluginId).then(function (config) {
                     config.MaxItems = parseInt(document.querySelector('#maxItems').value) || 5;
+                    
+                    // Capture Checkboxes
+                    var selected = [];
+                    document.querySelectorAll('input[name="enabledLibs"]:checked').forEach(function(cb) {
+                        selected.push(cb.value);
+                    });
+                    config.EnabledLibraries = selected;
+
                     ApiClient.updatePluginConfiguration(NotifySyncConfigurationPage.pluginId, config).then(function (result) {
                         Dashboard.processPluginConfigurationUpdateResult(result);
                     });

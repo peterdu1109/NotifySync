@@ -1602,7 +1602,7 @@
     "C:\\Users\\peter\\.nuget\\packages\\": {}
   },
   "project": {
-    "version": "2.0.0",
+    "version": "2.0.1",
     "restore": {
       "projectUniqueName": "C:\\Users\\peter\\Documents\\GitHub\\NotifySync\\NotifySync.csproj",
       "projectName": "NotifySync",

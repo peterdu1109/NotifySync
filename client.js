@@ -250,7 +250,7 @@
             <div class="dropdown-item" id="notif-item-${item.Id}" style="animation-delay:${index * 0.05}s">
                 <div class="thumb-wrapper">
                     <img src="${imgUrl}" class="dropdown-thumb">
-                    <div class="play-overlay"><span class="material-icons" style="color:#fff;">play_circle_filled</span></div>
+                    <div class="play-overlay"><span class="material-icons" style="color:#fff;">play_circle</span></div>
                     ${progressHtml}
                 </div>
                 <div class="dropdown-info">
@@ -296,13 +296,15 @@
         // Setup Headers events
         drop.querySelectorAll('.filter-pill').forEach(pill => {
             pill.onclick = (e) => {
+                e.stopPropagation();
                 activeFilter = e.target.getAttribute('data-f');
                 buildDropdownHTML();
             };
         });
 
         const muteBtn = drop.querySelector('.mute-btn');
-        if (muteBtn) muteBtn.onclick = () => {
+        if (muteBtn) muteBtn.onclick = (e) => {
+            e.stopPropagation();
             const m = localStorage.getItem(SOUND_KEY) === 'true';
             localStorage.setItem(SOUND_KEY, !m);
             renderHeader(drop);
@@ -310,7 +312,8 @@
         };
 
         const markAllBtn = drop.querySelector('.mark-all-btn');
-        if (markAllBtn) markAllBtn.onclick = async () => {
+        if (markAllBtn) markAllBtn.onclick = async (e) => {
+            e.stopPropagation();
             if (groupedData[0]) { await setRemoteLastSeenDate(window.ApiClient.getCurrentUserId(), groupedData[0].DateCreated); showToast(T.markAll); fetchData(); }
         }
     };

@@ -1,20 +1,20 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\eliem\\Documents\\NotifySync\\NotifySync.csproj": {}
+    "C:\\Users\\peter\\Documents\\GitHub\\NotifySync\\NotifySync.csproj": {}
   },
   "projects": {
-    "C:\\Users\\eliem\\Documents\\NotifySync\\NotifySync.csproj": {
-      "version": "1.0.0",
+    "C:\\Users\\peter\\Documents\\GitHub\\NotifySync\\NotifySync.csproj": {
+      "version": "2.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\eliem\\Documents\\NotifySync\\NotifySync.csproj",
+        "projectUniqueName": "C:\\Users\\peter\\Documents\\GitHub\\NotifySync\\NotifySync.csproj",
         "projectName": "NotifySync",
-        "projectPath": "C:\\Users\\eliem\\Documents\\NotifySync\\NotifySync.csproj",
-        "packagesPath": "C:\\Users\\eliem\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\eliem\\Documents\\NotifySync\\obj\\",
+        "projectPath": "C:\\Users\\peter\\Documents\\GitHub\\NotifySync\\NotifySync.csproj",
+        "packagesPath": "C:\\Users\\peter\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\peter\\Documents\\GitHub\\NotifySync\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "C:\\Users\\eliem\\AppData\\Roaming\\NuGet\\NuGet.Config"
+          "C:\\Users\\peter\\AppData\\Roaming\\NuGet\\NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net9.0"
@@ -72,7 +72,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.307/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.308/PortableRuntimeIdentifierGraph.json"
         }
       }
     }

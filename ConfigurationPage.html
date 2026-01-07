@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>NotifySync Configuration</title>
+</head>
+<body>
+    <div data-role="page" class="page type-interior pluginConfigurationPage" data-require="emby-button,emby-input">
+        <div data-role="content">
+            <div class="content-primary">
+                <form id="notifySyncConfigForm">
+                    <div class="verticalSection">
+                        <div class="sectionTitleContainer">
+                            <h2 class="sectionTitle">Configuration de la Cloche</h2>
+                            <p>Configurez le comportement du plugin NotifySync.</p>
+                        </div>
+
+                        <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="maxItems">Nombre d'éléments à afficher</label>
+                            <input is="emby-input" type="number" id="maxItems" name="maxItems" min="1" max="50" step="1" />
+                            <div class="fieldDescription">Définit combien de films/épisodes récents apparaissent dans le menu déroulant (Défaut: 5).</div>
+                        </div>
+
+                        <div>
+                            <button is="emby-button" type="submit" class="raised button-submit block">
+                                <span>Sauvegarder</span>
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <script type="text/javascript">
+            var NotifySyncConfigurationPage = {
+                pluginId: "95655672-2342-4321-8291-321312312312", // Doit matcher le GUID dans Plugin.cs
+                loadConfiguration: function (page) {
+                    ApiClient.getPluginConfiguration(NotifySyncConfigurationPage.pluginId).then(function (config) {
+                        page.querySelector('#maxItems').value = config.MaxItems || 5;
+                    });
+                }
+            };
+
+            document.querySelector('#notifySyncConfigForm').addEventListener('submit', function (e) {
+                e.preventDefault();
+                ApiClient.getPluginConfiguration(NotifySyncConfigurationPage.pluginId).then(function (config) {
+                    config.MaxItems = parseInt(document.querySelector('#maxItems').value) || 5;
+                    ApiClient.updatePluginConfiguration(NotifySyncConfigurationPage.pluginId, config).then(function (result) {
+                        Dashboard.processPluginConfigurationUpdateResult(result);
+                    });
+                });
+            });
+
+            document.addEventListener('pageshow', function (e) {
+                if (e.detail.className && e.detail.className.indexOf('pluginConfigurationPage') != -1) {
+                    NotifySyncConfigurationPage.loadConfiguration(e.target);
+                }
+            });
+        </script>
+    </div>
+</body>
+</html>

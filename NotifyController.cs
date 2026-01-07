@@ -37,13 +37,16 @@ namespace NotifySync
         [ResponseCache(Duration = 60)] // Cache for 60 seconds
         public ActionResult GetData()
         {
-            // LAZY INIT
+            // LAZY INIT (Singleton)
             if (NotificationManager.Instance == null)
             {
-                new NotificationManager(_libraryManager, _logger, _fileSystem);
-                // Optional: Force first scan if empty? 
-                // NotificationManager loads json. If json empty (first run), we might want to scan?
-                // For now, rely on events + JSON.
+                lock (_configLock) // Use existing lock
+                {
+                    if (NotificationManager.Instance == null)
+                    {
+                        new NotificationManager(_libraryManager, _logger, _fileSystem);
+                    }
+                }
             }
             
             if (NotificationManager.Instance == null) return Ok(new List<object>());

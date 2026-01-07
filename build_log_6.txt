@@ -1,0 +1,13 @@
+  Identification des projets à restaurer...
+C:\Users\peter\Documents\GitHub\NotifySync\NotifySync.csproj : error NU1202: Le package Jellyfin.Controller 10.11.5 n'est pas compatible avec net8.0 (.NETCoreApp,Version=v8.0). Le package Jellyfin.Controller 10.11.5 prend en charge : net9.0 (.NETCoreApp,Version=v9.0)
+C:\Users\peter\Documents\GitHub\NotifySync\NotifySync.csproj : error NU1202: Le package Jellyfin.Model 10.11.5 n'est pas compatible avec net8.0 (.NETCoreApp,Version=v8.0). Le package Jellyfin.Model 10.11.5 prend en charge : net9.0 (.NETCoreApp,Version=v9.0)
+  Échec de la restauration de C:\Users\peter\Documents\GitHub\NotifySync\NotifySync.csproj (en 356 ms).
+
+ÉCHEC de la build.
+
+C:\Users\peter\Documents\GitHub\NotifySync\NotifySync.csproj : error NU1202: Le package Jellyfin.Controller 10.11.5 n'est pas compatible avec net8.0 (.NETCoreApp,Version=v8.0). Le package Jellyfin.Controller 10.11.5 prend en charge : net9.0 (.NETCoreApp,Version=v9.0)
+C:\Users\peter\Documents\GitHub\NotifySync\NotifySync.csproj : error NU1202: Le package Jellyfin.Model 10.11.5 n'est pas compatible avec net8.0 (.NETCoreApp,Version=v8.0). Le package Jellyfin.Model 10.11.5 prend en charge : net9.0 (.NETCoreApp,Version=v9.0)
+    0 Avertissement(s)
+    2 Erreur(s)
+
+Temps écoulé 00:00:01.32

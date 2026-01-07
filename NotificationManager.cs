@@ -8,11 +8,10 @@ using System.Threading;
 using System.Threading.Tasks;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Library;
-using MediaBrowser.Controller.Plugins;
-using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.IO;
 using Microsoft.Extensions.Logging;
 using MediaBrowser.Common.Plugins;
+using MediaBrowser.Controller.Plugins;
 
 namespace NotifySync
 {
@@ -28,14 +27,14 @@ namespace NotifySync
         private List<NotificationItem> _notifications = new List<NotificationItem>();
         private readonly object _lock = new object();
 
-        public static NotificationManager Instance { get; private set; }
+        public static NotificationManager? Instance { get; private set; }
 
         public NotificationManager(ILibraryManager libraryManager, ILogger<NotificationManager> logger, IFileSystem fileSystem)
         {
             _libraryManager = libraryManager;
             _logger = logger;
             _fileSystem = fileSystem;
-            _jsonPath = Path.Combine(Plugin.Instance.DataFolderPath, "notifications.json");
+            _jsonPath = Path.Combine(Plugin.Instance!.DataFolderPath, "notifications.json");
             Instance = this;
             
             _cleanupTimer = new Timer(CleanupRoutine, null, TimeSpan.FromMinutes(10), TimeSpan.FromHours(1));
@@ -44,8 +43,7 @@ namespace NotifySync
             _libraryManager.ItemRemoved += OnItemRemoved;
         }
 
-        // RunAsync removed as we init in Ctor
-        // public Task RunAsync() ...
+        // RunAsync removed.
 
         private void LoadNotifications()
         {

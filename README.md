@@ -1,38 +1,72 @@
-=== NotifySync ===
-Version: 1.0.0
-Auteur: [Votre Nom/Pseudo]
-Framework: .NET 9.0
-Compatibilité: Jellyfin 10.11.5+
+# 🔔 NotifySync
 
-NotifySync est un plugin complet pour Jellyfin qui ajoute un centre de notifications interactif (une cloche) dans l'en-tête de l'interface utilisateur. Il permet aux utilisateurs de voir rapidement les derniers ajouts médias sans quitter leur page actuelle.
+![Version](https://img.shields.io/badge/Version-1.0.0-blue?style=flat-square)
+![Jellyfin](https://img.shields.io/badge/Jellyfin-10.11.5%2B-purple?style=flat-square)
+![Framework](https://img.shields.io/badge/.NET-9.0-512bd4?style=flat-square)
 
-== Fonctionnalités Principales ==
+**NotifySync** est un plugin complet pour Jellyfin qui intègre un centre de notifications interactif et moderne directement dans l'en-tête de votre interface utilisateur. Ne ratez plus jamais les derniers ajouts de votre bibliothèque !
 
-1. Centre de Notification Intégré :
-   - Ajout automatique d'une icône "Cloche" dans la barre de navigation supérieure.
-   - Badge rouge indiquant le nombre de nouveaux éléments non vus.
-   - Dropdown (menu déroulant) moderne avec effet de flou (Glassmorphism).
+---
 
-2. Gestion Intelligente des Médias :
-   - Regroupement des épisodes : Si plusieurs épisodes d'une même série sont ajoutés, ils sont regroupés en une seule ligne (ex: "3 nouveaux épisodes").
-   - Distinction visuelle claire entre FILMS et SÉRIES via des badges dédiés.
-   - Indicateur "NOUVEAU" clignotant pour les ajouts de moins de 48h.
-   - Barre de progression affichée sur les médias en cours de lecture.
+## ✨ Fonctionnalités Principales
 
-3. Interactions Utilisateur (UX) :
-   - "Swipe to Mark Read" (Mobile) : Glissez une notification vers la droite sur mobile pour la marquer comme vue.
-   - Raccourci Clavier : Appuyez sur la touche 'N' pour ouvrir/fermer les notifications.
-   - Lecture Directe : Bouton de lecture (Play) sur la jaquette pour lancer le média immédiatement.
-   - "Tout marquer comme vu" : Un bouton pour vider la liste des notifications.
+### 🛎️ Centre de Notification Intégré
+*   **Intégration transparente** : Ajoute une icône "Cloche" dans la barre de navigation.
+*   **Indicateur visuel** : Badge rouge dynamique affichant le nombre d'éléments non vus.
+*   **Design Moderne** : Interface soignée avec effet de flou (*Glassmorphism*).
 
-4. Synchronisation & Backend :
-   - Suivi "Dernier Vu" par utilisateur : Le plugin mémorise quel utilisateur a vu quel contenu via une API dédiée.
-   - Persistance : Les données sont sauvegardées dans la configuration du plugin (fichier XML) côté serveur.
-   - Notifications Sonores : Option pour activer/désactiver un son lors de l'arrivée d'une nouvelle notification (stocké en local).
+### 🧠 Gestion Intelligente des Médias
+*   **Regroupement** : Les épisodes d'une même série ajouté simultanément sont regroupés (ex: "3 nouveaux épisodes").
+*   **Distinction Films/Séries** : Badges dédiés pour identifier rapidement le type de contenu.
+*   **Indicateur "Nouveau"** : Badge clignotant pour les médias ajoutés il y a moins de 48h.
+*   **Suivi de lecture** : Barre de progression visible pour les médias en cours.
 
-5. Performance :
-   - Chargement "Skeleton" : Affichage d'un squelette de chargement pendant la récupération des données pour une interface fluide.
-   - Optimisation réseau : Les requêtes sont mises en cache et le script gère les tentatives de reconnexion automatique (Retry Logic).
+### 🎮 Expérience Utilisateur (UX)
+*   **Mobile Friendly** : Glissez vers la droite (*Swipe*) pour marquer une notification comme vue sur mobile.
+*   **Raccourcis** : Touche `N` pour ouvrir/fermer le panneau rapidement.
+*   **Lecture Directe** : Lancez la lecture immédiatement depuis la notification.
+*   **Tout marquer comme vu** : Un bouton unique pour nettoyer votre liste.
+*   **Notifications Sonores** : Feedback audio optionnel lors de l'arrivée de nouveaux médias.
 
-== Configuration ==
-Une page de configuration est disponible dans le Tableau de bord > Extensions > NotifySync pour définir le nombre maximum d'éléments à afficher dans le menu (Défaut : 5).
+### ⚙️ Performance & Synchronisation
+*   **Par utilisateur** : Le statut "Vu" est synchronisé et propre à chaque utilisateur.
+*   **Optimisé** : Chargement asynchrone avec effet "Skeleton" pour une fluidité maximale.
+
+---
+
+## 🚀 Installation
+
+1.  Téléchargez la dernière version (`.dll`) depuis la page des [Releases](https://github.com/peterdu1109/NotifySync/releases).
+2.  Copiez le fichier `NotifySync.dll` dans le dossier `plugins` de votre serveur Jellyfin.
+3.  Redémarrez votre serveur Jellyfin.
+4.  L'icône de notification devrait apparaître dans la barre supérieure !
+
+---
+
+## 🛠️ Configuration
+
+Une page de configuration est disponible dans votre Tableau de Bord Jellyfin :
+`Tableau de bord > Extensions > NotifySync`
+
+Vous pouvez y configurer :
+*   Le nombre maximum d'éléments à afficher dans le menu (Défaut : 5).
+*   L'activation des notifications sonores.
+
+---
+
+## 🏗️ Développement
+
+Ce projet est construit avec **.NET 9.0**.
+
+### Pré-requis
+*   .NET 9.0 SDK
+*   Jellyfin 10.11.5+ (Binaries for reference)
+
+### Compilation
+```bash
+dotnet build --configuration Release
+```
+
+---
+
+*Créé avec ❤️ pour la communauté Jellyfin.*

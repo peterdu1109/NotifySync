@@ -9,6 +9,7 @@ namespace NotifySync.Configuration
     {
         // Ce paramètre sera lu dynamiquement par le JS maintenant
         public int MaxItems { get; set; } = 5;
+        public List<string> EnabledLibraries { get; set; } = new List<string>();
 
         [XmlIgnore]
         public Dictionary<string, string> UserLastSeen { get; set; } = new Dictionary<string, string>();

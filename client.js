@@ -1,19 +1,20 @@
-/* NOTIFYSYNC V3.1.0 - ROBUST OVERLAY (Backdrop Dropdown, Anime Fix) */
+/* NOTIFYSYNC V4.0.0 - PERFORMANCE EDITION (JSON Backend, Skeleton, Lazy Load) */
 (function () {
     let currentData = null;
     let groupedData = null;
     let observer = null;
-    let pluginConfig = null;
     let lastCount = 0;
     let isFetching = false;
-    let activeFilter = 'All'; // All, Movie, Episode, Anime
+    let activeFilter = 'All';
+    let pollInterval = 60000; // Smart polling base
 
     const PLUGIN_ID = "95655672-2342-4321-8291-321312312312";
     const SOUND_KEY = 'notifysync_muted';
+    const SNAPSHOT_KEY = 'notifysync_snapshot'; // For checking changes
 
     const STRINGS = {
-        fr: { header: "Notifications", empty: "Tout est calme...", markAll: "Tout vu", markOne: "Vu", recent: "À l'instant", badgeNew: "NOUVEAU", newEps: "épisodes", badgeMovie: "FILM", badgeSeries: "SÉRIE", filterAll: "Tout", filterMovies: "Films", filterSeries: "Séries", filterAnime: "Animes", play: "Lecture", refresh: "Actualiser" },
-        en: { header: "Notifications", empty: "All caught up!", markAll: "Mark all read", markOne: "Read", recent: "Just now", badgeNew: "NEW", newEps: "episodes", badgeMovie: "MOVIE", badgeSeries: "SERIES", filterAll: "All", filterMovies: "Movies", filterSeries: "Series", filterAnime: "Anime", play: "Play", refresh: "Refresh" }
+        fr: { header: "Notifications", empty: "Tout est calme...", markAll: "Tout vu", recent: "À l'instant", badgeNew: "NOUVEAU", newEps: "épisodes", badgeMovie: "FILM", badgeSeries: "SÉRIE", filterAll: "Tout", filterMovies: "Films", filterSeries: "Séries", filterAnime: "Animes", play: "Lecture", refresh: "Actualiser" },
+        en: { header: "Notifications", empty: "All caught up!", markAll: "Mark all read", recent: "Just now", badgeNew: "NEW", newEps: "episodes", badgeMovie: "MOVIE", badgeSeries: "SERIES", filterAll: "All", filterMovies: "Movies", filterSeries: "Series", filterAnime: "Anime", play: "Play", refresh: "Refresh" }
     };
     const userLang = navigator.language || navigator.userLanguage;
     const T = userLang.startsWith('fr') ? STRINGS.fr : STRINGS.en;
@@ -24,75 +25,60 @@
 
     const injectStyles = () => {
         if (document.getElementById('notifysync-css')) return;
-
         const css = `
-            :root { --ns-red: #e50914; --ns-dark: #141414; --ns-gray: #e5e5e5; }
+            :root { --ns-red: #e50914; --ns-dark: #181818; }
             #bell-container{display:flex!important;align-items:center;justify-content:center;z-index:1000}
             #netflix-bell{display:flex!important;visibility:visible!important;opacity:1!important;position:relative;background:0 0;border:none;cursor:pointer;padding:10px;color:inherit}
             .notification-dot{position:absolute;top:4px;right:4px;min-width:15px;height:15px;padding:0 4px;background-color:var(--ns-red);border-radius:10px;opacity:0;pointer-events:none;transition:opacity .3s;display:flex!important;align-items:center;justify-content:center;color:#fff!important;font-size:9px!important;font-weight:700;box-shadow:0 0 5px rgba(0,0,0,.5);z-index:2}
             
-            /* BACKDROP (Invisible Shield) */
-            /* This is the key fixes closing bugs. It covers the screen but is invisible behind the dropdown. */
             #notify-backdrop { position: fixed; inset: 0; z-index: 999998; display: none; cursor: default; }
-
-            /* DROPDOWN OVERLAY */
-            #notification-dropdown{position:fixed;top:70px;right:20px;width:380px;max-width:90vw;background:#181818;color:#fff;border:1px solid rgba(255,255,255,.1);border-radius:8px;box-shadow:0 0 50px rgba(0,0,0,.8);z-index:999999;display:none;overflow:hidden; font-family: 'Netflix Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif; animation: dropIn 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);}
+            #notification-dropdown{position:fixed;top:70px;right:20px;width:380px;max-width:90vw;background:var(--ns-dark);color:#fff;border:1px solid rgba(255,255,255,.1);border-radius:8px;box-shadow:0 0 50px rgba(0,0,0,.8);z-index:999999;display:none;overflow:hidden; font-family: 'Netflix Sans', sans-serif; animation: dropIn 0.2s ease;}
             @keyframes dropIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
             
-            /* HEADER */
             .dropdown-header { display:flex;justify-content:space-between;padding:15px;background:#000; border-bottom: 1px solid rgba(255,255,255,0.1); }
             .header-tools { display:flex; gap:15px; }
             .tool-icon { cursor:pointer; opacity:0.7; transition:opacity 0.2s; }
             .tool-icon:hover { opacity:1; }
 
-            /* FILTER PILLS */
             .filter-bar { padding: 12px 15px; display: flex; gap: 10px; border-bottom: 1px solid rgba(255,255,255,0.1); background: rgba(30,30,30,0.95); backdrop-filter: blur(10px); position: sticky; top: 0; z-index: 10; overflow-x: auto; }
-            .filter-pill { font-size: 11px; padding: 5px 12px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.3); cursor: pointer; transition: all 0.2s; opacity: 0.7; user-select: none; white-space: nowrap; }
+            .filter-pill { font-size: 11px; padding: 5px 12px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.3); cursor: pointer; transition: all 0.2s; opacity: 0.7; white-space: nowrap; }
             .filter-pill:hover { border-color: #fff; opacity: 1; }
             .filter-pill.active { background: #fff; color: #000; border-color: #fff; opacity: 1; font-weight: bold; }
 
-            /* HERO SECTION */
-            .hero-section { position: relative; height: 200px; width: 100%; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end; cursor: pointer; }
-            .hero-bg { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-size: cover; background-position: center; transition: transform 6s ease; }
-            .hero-section:hover .hero-bg { transform: scale(1.05); }
-            .hero-overlay { position: absolute; top:0; left:0; right:0; bottom:0; background: linear-gradient(to top, #181818 0%, rgba(20,20,20,0.6) 50%, rgba(0,0,0,0.3) 100%); }
-            .hero-content { position: relative; z-index: 2; padding: 15px; width: 100%; box-sizing: border-box; }
-            .hero-new-badge { background: var(--ns-red); color: white; padding: 2px 6px; font-size: 9px; font-weight: bold; border-radius: 2px; display: inline-block; margin-bottom: 5px; box-shadow: 0 1px 3px rgba(0,0,0,0.4); }
-            .hero-title { font-size: 18px; font-weight: 800; text-shadow: 0 1px 2px rgba(0,0,0,0.8); margin-bottom: 5px; line-height: 1.2; }
-            .hero-meta { font-size: 11px; color: #a3a3a3; display: flex; gap: 8px; align-items: center; margin-bottom: 10px; }
-            .hero-play-btn { background: #fff; color: #000; border: none; padding: 6px 16px; font-size: 13px; font-weight: bold; border-radius: 4px; display: inline-flex; align-items: center; gap: 5px; transition: background 0.2s; }
-            .hero-play-btn:hover { background: #c1c1c1; }
-            
-            /* STANDARD LIST ITEM */
             .list-container { max-height: 400px; overflow-y: auto; overflow-x: hidden; }
             .list-container::-webkit-scrollbar { width: 6px; }
             .list-container::-webkit-scrollbar-thumb { background: #444; border-radius: 3px; }
-            .dropdown-item{display:flex;align-items:flex-start;padding:12px;border-bottom:1px solid rgba(255,255,255,.05);cursor:pointer;overflow:hidden;position:relative;opacity:0;transform:translateY(10px);transition: background .2s, transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); background:0 0; z-index:1}
-            .dropdown-item.animate-in { opacity: 1; transform: translateY(0); }
-            .dropdown-item:hover{background:#252525; z-index:10;}
-            
-            @media (hover: hover) {
-                .dropdown-item:hover .play-overlay { opacity: 1; }
-            }
 
-            .thumb-wrapper{position:relative;width:90px;height:56px;margin-right:12px;flex-shrink:0;overflow:hidden;border-radius:4px;transition: transform 0.3s ease, box-shadow 0.3s ease; background: #222; }
-            .dropdown-thumb{width:100%;height:100%;object-fit:cover}
+            /* SKELETON LOADING */
+            .skeleton-box { background: #333; position: relative; overflow: hidden; border-radius: 4px; }
+            .skeleton-box::after { position: absolute; top: 0; right: 0; bottom: 0; left: 0; transform: translateX(-100%); background-image: linear-gradient(90deg, rgba(255, 255, 255, 0) 0, rgba(255, 255, 255, 0.05) 20%, rgba(255, 255, 255, 0.1) 60%, rgba(255, 255, 255, 0) 100%); animation: shimmer 2s infinite; content: ''; }
+            @keyframes shimmer { 100% { transform: translateX(100%); } }
+            .sk-item { padding: 12px; display: flex; align-items: flex-start; gap: 12px; border-bottom: 1px solid rgba(255,255,255,.05); }
+            .sk-thumb { width: 90px; height: 56px; }
+            .sk-lines { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+            .sk-line { height: 10px; width: 60%; }
+            .sk-line.short { width: 40%; }
+
+            /* ITEMS */
+            .dropdown-item{display:flex;align-items:flex-start;padding:12px;border-bottom:1px solid rgba(255,255,255,.05);cursor:pointer;position:relative;transition: background .2s;}
+            .dropdown-item:hover{background:#252525;}
+            .thumb-wrapper{position:relative;width:90px;height:56px;margin-right:12px;flex-shrink:0;overflow:hidden;border-radius:4px;background: #222; }
+            .dropdown-thumb{width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity 0.3s;}
+            .dropdown-thumb.loaded{opacity:1;}
             
             .dropdown-info{flex:1;min-width:0;display:flex;flex-direction:column;}
             .dropdown-title{font-weight:700;font-size:13px;margin-bottom:2px; line-height:1.2;}
             .dropdown-subtitle{font-size:11px;color:#bbb;margin-bottom:4px;}
             .metadata-line { display: flex; gap: 8px; font-size: 10px; color: #888; align-items: center; }
-            .match-score { color: #46d369; font-weight: bold; }
             
-            .item-actions{margin-left:10px;display:flex;flex-direction:column;align-items:center; opacity:0; transition:opacity .2s; justify-content: center; height: 100%;}
-            .dropdown-item:hover .item-actions{opacity:1}
-            .mark-one-btn{cursor:pointer;font-size:16px;color:#aaa; padding: 5px;}.mark-one-btn:hover{color:#fff;}
+            .hero-section { position: relative; height: 200px; width: 100%; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end; cursor: pointer; }
+            .hero-bg { position: absolute; inset: 0; background-size: cover; background-position: center; transition: transform 6s ease; }
+            .hero-section:hover .hero-bg { transform: scale(1.05); }
+            .hero-overlay { position: absolute; inset: 0; background: linear-gradient(to top, #181818 0%, rgba(20,20,20,0.6) 50%, rgba(0,0,0,0.3) 100%); }
+            .hero-content { position: relative; z-index: 2; padding: 15px; width: 100%; box-sizing: border-box; }
+            .hero-title { font-size: 18px; font-weight: 800; text-shadow: 0 1px 2px rgba(0,0,0,0.8); margin-bottom: 5px; }
 
-            /* UTILS */
-            .play-overlay{position:absolute;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .2s;}
-            .progress-bg{position:absolute;bottom:0;left:0;right:0;height:2px;background:rgba(255,255,255,.3)}.progress-fill{height:100%;background:var(--ns-red)}
-            
-            #notifysync-toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:#fff;color:#000;padding:10px 24px;border-radius:4px;font-weight:bold;box-shadow:0 5px 20px rgba(0,0,0,.5);z-index:10000;opacity:0;transition:opacity .3s,transform .3s;pointer-events:none;}#notifysync-toast.visible{opacity:1;transform:translateX(-50%) translateY(-10px)}
+            #notifysync-toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:#fff;color:#000;padding:10px 24px;border-radius:4px;font-weight:bold;z-index:10000;opacity:0;transition:opacity .3s,transform .3s;pointer-events:none;}#notifysync-toast.visible{opacity:1;transform:translateX(-50%) translateY(-10px)}
         `;
         const style = document.createElement('style'); style.id = 'notifysync-css'; style.textContent = css; document.head.appendChild(style);
         if (!document.getElementById('notifysync-toast')) { const t = document.createElement('div'); t.id = 'notifysync-toast'; document.body.appendChild(t); }
@@ -101,15 +87,16 @@
     const getRemoteLastSeenDate = async (uid) => { try { const r = await fetch(`/NotifySync/LastSeen/${uid}?t=` + Date.now()); if (r.ok) return await r.text(); } catch (e) { } return "2000-01-01T00:00:00.000Z"; };
     const setRemoteLastSeenDate = async (uid, dateStr) => { try { await fetch(`/NotifySync/LastSeen/${uid}?date=${encodeURIComponent(dateStr)}`, { method: 'POST' }); } catch (e) { } };
     const showToast = (msg) => { const t = document.getElementById('notifysync-toast'); if (t) { t.innerHTML = msg; t.classList.add('visible'); setTimeout(() => t.classList.remove('visible'), 3000); } };
-    const isNew = (d) => (new Date() - new Date(d)) < (48 * 3600 * 1000);
 
+    // --- AUDIO LOGIC ---
     const playHoverSound = (itemId) => {
         if (localStorage.getItem(SOUND_KEY) === 'true') return;
         if (hoverTimeout) clearTimeout(hoverTimeout);
         if (hoverAudio) { hoverAudio.pause(); hoverAudio = null; }
         hoverTimeout = setTimeout(async () => {
+            // Future: Use /NotifySync/Audio/{id} if fully implemented
+            const client = window.ApiClient;
             try {
-                const client = window.ApiClient;
                 const songs = await client.getThemeSongs(client.getCurrentUserId(), itemId);
                 if (songs && songs.Items.length > 0) {
                     hoverAudio = new Audio(client.getUrl(`Audio/${songs.Items[0].Id}/stream`));
@@ -128,10 +115,8 @@
     };
 
     // --- LOGIC ---
-
     const getCategory = (item) => {
         const genres = (item.Genres || []).map(g => g.toLowerCase());
-        // Broad check for anime/animation
         const isAnime = genres.some(g => g.includes('anime') || g.includes('animation'));
         if (isAnime) return 'Anime';
         if (item.Type === 'Movie') return 'Movie';
@@ -159,7 +144,7 @@
 
         if (shouldOpen) {
             drop.style.display = 'block';
-            backdrop.style.display = 'block'; // Block interaction with page behind
+            backdrop.style.display = 'block';
             updateList(drop);
         } else {
             drop.style.display = 'none';
@@ -168,9 +153,112 @@
         }
     };
 
+    const updateList = (drop) => {
+        const container = drop.querySelector('.list-container');
+        if (!container) return;
+
+        // SHOW SKELETON if no data or fetching
+        if (isFetching && !groupedData) {
+            container.innerHTML = `
+                <div class="sk-item"><div class="skeleton-box sk-thumb"></div><div class="skeleton-box sk-lines"><div class="skeleton-box sk-line"></div><div class="skeleton-box sk-line short"></div></div></div>
+                <div class="sk-item"><div class="skeleton-box sk-thumb"></div><div class="skeleton-box sk-lines"><div class="skeleton-box sk-line"></div><div class="skeleton-box sk-line short"></div></div></div>
+                <div class="sk-item"><div class="skeleton-box sk-thumb"></div><div class="skeleton-box sk-lines"><div class="skeleton-box sk-line"></div><div class="skeleton-box sk-line short"></div></div></div>`;
+            return;
+        }
+
+        container.innerHTML = '';
+        if (!groupedData || groupedData.length === 0) { container.innerHTML = `<div style="padding:40px;text-align:center;color:#666;">${T.empty}</div>`; return; }
+
+        let filtered = groupedData;
+        if (activeFilter !== 'All') filtered = groupedData.filter(i => getCategory(i) === activeFilter);
+        if (filtered.length === 0) { container.innerHTML = `<div style="padding:40px;text-align:center;color:#666;">${T.empty}</div>`; return; }
+
+        const client = window.ApiClient;
+        let html = '';
+
+        // HERO
+        const hero = filtered[0];
+        if (hero) {
+            let heroImg = hero.BackdropImageTags && hero.BackdropImageTags.length > 0 ? client.getUrl(`Items/${hero.Id}/Images/Backdrop/0?quality=60&maxWidth=600`) : client.getUrl(`Items/${hero.SeriesId || hero.Id}/Images/Primary?quality=60&maxWidth=400`);
+            if (hero.IsGroup && hero.SeriesId) heroImg = client.getUrl(`Items/${hero.SeriesId}/Images/Backdrop/0?quality=60&maxWidth=600`);
+
+            let heroTitle = hero.IsGroup ? hero.SeriesName : (hero.SeriesName || hero.Name);
+            html += `
+            <div class="hero-section" onclick="window.location.hash='#!/details?id=${hero.IsGroup ? hero.SeriesId : hero.Id}'">
+                <div class="hero-bg" style="background-image:url('${heroImg}')"></div>
+                <div class="hero-overlay"></div>
+                <div class="hero-content">
+                    <div class="hero-new-badge">${T.badgeNew}</div>
+                    <div class="hero-title">${heroTitle}</div>
+                </div>
+            </div>`;
+        }
+
+        // LIST
+        filtered.slice(1).forEach((item, index) => {
+            let imgUrl = client.getUrl(`Items/${item.Id}/Images/Primary?fillHeight=112&fillWidth=180&quality=90`);
+            if (item.IsGroup) imgUrl = client.getUrl(`Items/${item.SeriesId}/Images/Primary?fillHeight=112&fillWidth=180&quality=90`);
+
+            let title = item.IsGroup ? item.SeriesName : (item.SeriesName ? item.SeriesName : item.Name);
+            let subtitle = item.IsGroup ? `${item.GroupCount} ${T.newEps}` : (item.SeriesName ? item.Name : '');
+            let year = item.ProductionYear || '';
+
+            html += `
+            <div class="dropdown-item" id="notif-item-${item.Id}">
+                <div class="thumb-wrapper">
+                    <img data-src="${imgUrl}" class="dropdown-thumb" loading="lazy">
+                </div>
+                <div class="dropdown-info">
+                    <div class="dropdown-title">${title}</div>
+                    <div class="metadata-line"><span>${year}</span></div>
+                    ${subtitle ? `<div class="dropdown-subtitle">${subtitle}</div>` : ''}
+                </div>
+            </div>`;
+        });
+
+        container.innerHTML = html;
+
+        // Lazy Load Observer
+        const imgObserver = new IntersectionObserver((entries, obs) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const img = entry.target;
+                    img.src = img.getAttribute('data-src');
+                    img.onload = () => img.classList.add('loaded');
+                    obs.unobserve(img);
+                }
+            });
+        });
+        container.querySelectorAll('img[data-src]').forEach(img => imgObserver.observe(img));
+
+        // Click Events
+        container.querySelectorAll('.dropdown-item').forEach(el => {
+            el.addEventListener('mouseenter', () => playHoverSound(el.id.replace('notif-item-', '')));
+            el.addEventListener('mouseleave', () => stopHoverSound());
+            el.onclick = (e) => {
+                const id = el.id.replace('notif-item-', '');
+                window.location.hash = `#!/details?id=${id}`;
+                toggleDropdown(false);
+            };
+        });
+    };
+
+    const buildStructure = () => {
+        if (document.getElementById('notification-dropdown')) return;
+
+        const backdrop = document.createElement('div');
+        backdrop.id = 'notify-backdrop';
+        backdrop.onclick = () => toggleDropdown(false);
+        document.body.appendChild(backdrop);
+
+        const drop = document.createElement('div');
+        drop.id = 'notification-dropdown';
+        drop.onclick = (e) => e.stopPropagation();
+        document.body.appendChild(drop);
+    };
+
     const initDropdown = (drop) => {
         if (drop.querySelector('.dropdown-header')) return;
-
         const isMuted = localStorage.getItem(SOUND_KEY) === 'true';
         let h = `<div class="dropdown-header">
                     <span style="font-weight:bold;font-size:16px;">${T.header}</span>
@@ -189,7 +277,6 @@
                  <div class="list-container"></div>`;
         drop.innerHTML = h;
 
-        // Header Events
         drop.querySelectorAll('.filter-pill').forEach(pill => {
             pill.onclick = (e) => {
                 drop.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
@@ -198,7 +285,6 @@
                 updateList(drop);
             };
         });
-
         drop.querySelector('.refresh-btn').onclick = () => fetchData();
         drop.querySelector('.mute-btn').onclick = (e) => {
             const m = localStorage.getItem(SOUND_KEY) === 'true';
@@ -214,109 +300,6 @@
         };
     };
 
-    const updateList = (drop) => {
-        const container = drop.querySelector('.list-container');
-        if (!container) return;
-        container.innerHTML = '';
-
-        if (!groupedData || groupedData.length === 0) { container.innerHTML = `<div style="padding:40px;text-align:center;color:#666;">${T.empty}</div>`; return; }
-
-        let filtered = groupedData;
-        if (activeFilter !== 'All') filtered = groupedData.filter(i => getCategory(i) === activeFilter);
-
-        if (filtered.length === 0) { container.innerHTML = `<div style="padding:40px;text-align:center;color:#666;">${T.empty}</div>`; return; }
-
-        const client = window.ApiClient;
-        let html = '';
-
-        // HERO
-        const hero = filtered[0];
-        if (hero) {
-            let heroImg = hero.BackdropImageTags && hero.BackdropImageTags.length > 0 ? client.getUrl(`Items/${hero.Id}/Images/Backdrop/0?quality=60&maxWidth=600`) : client.getUrl(`Items/${hero.SeriesId || hero.Id}/Images/Primary?quality=60&maxWidth=400`);
-            if (hero.IsGroup && hero.SeriesId) heroImg = client.getUrl(`Items/${hero.SeriesId}/Images/Backdrop/0?quality=60&maxWidth=600`);
-
-            let heroTitle = hero.IsGroup ? hero.SeriesName : (hero.SeriesName || hero.Name);
-            let heroMeta = '';
-            if (hero.ProductionYear) heroMeta += `<span>${hero.ProductionYear}</span>`;
-            if (hero.CommunityRating) heroMeta += `<span class="match-score">${Math.round(hero.CommunityRating * 10)}% Match</span>`;
-
-            html += `
-            <div class="hero-section" onclick="window.location.hash='#!/details?id=${hero.IsGroup ? hero.SeriesId : hero.Id}'">
-                <div class="hero-bg" style="background-image:url('${heroImg}')"></div>
-                <div class="hero-overlay"></div>
-                <div class="hero-content">
-                    ${isNew(hero.DateCreated) ? `<div class="hero-new-badge">${T.badgeNew}</div>` : ''}
-                    <div class="hero-title">${heroTitle}</div>
-                    <div class="hero-meta">${heroMeta}</div>
-                    <button class="hero-play-btn" onclick="event.stopPropagation();window.location.hash='#!/play?id=${hero.Id}'">
-                        <span class="material-icons">play_arrow</span> ${T.play}
-                    </button>
-                </div>
-            </div>`;
-        }
-
-        // LIST
-        filtered.slice(1).forEach((item, index) => {
-            let imgUrl = client.getUrl(`Items/${item.Id}/Images/Primary?fillHeight=112&fillWidth=180&quality=90`);
-            if (item.IsGroup) imgUrl = client.getUrl(`Items/${item.SeriesId}/Images/Primary?fillHeight=112&fillWidth=180&quality=90`);
-
-            let title = item.IsGroup ? item.SeriesName : (item.SeriesName ? item.SeriesName : item.Name);
-            let subtitle = item.IsGroup ? `${item.GroupCount} ${T.newEps}` : (item.SeriesName ? item.Name : '');
-
-            let year = item.ProductionYear || '';
-            let rating = item.CommunityRating ? `<span class="match-score">${Math.round(item.CommunityRating * 10)}%</span>` : '';
-            if (item.IsGroup) subtitle += (item.IndexNumber ? `. S${item.ParentIndexNumber || 1}` : '');
-
-            let pct = (item.UserData && item.UserData.PlaybackPositionTicks && item.RunTimeTicks) ? (item.UserData.PlaybackPositionTicks / item.RunTimeTicks) * 100 : 0;
-
-            html += `
-            <div class="dropdown-item" id="notif-item-${item.Id}" style="animation-delay:${index * 0.05}s">
-                <div class="thumb-wrapper">
-                    <img src="${imgUrl}" class="dropdown-thumb">
-                    <div class="play-overlay"><span class="material-icons" style="color:#fff;">play_arrow</span></div>
-                    ${pct > 0 ? `<div class="progress-bg"><div class="progress-fill" style="width:${pct}%"></div></div>` : ''}
-                </div>
-                <div class="dropdown-info">
-                    <div class="dropdown-title">${title}</div>
-                    <div class="metadata-line">${rating}<span>${year}</span></div>
-                    ${subtitle ? `<div class="dropdown-subtitle">${subtitle}</div>` : ''}
-                </div>
-                <div class="item-actions"><span class="material-icons mark-one-btn">visibility</span></div>
-            </div>`;
-        });
-
-        container.innerHTML = html;
-
-        container.querySelectorAll('.dropdown-item').forEach(el => {
-            requestAnimationFrame(() => el.classList.add('animate-in'));
-            el.addEventListener('mouseenter', () => playHoverSound(el.id.replace('notif-item-', '')));
-            el.addEventListener('mouseleave', () => stopHoverSound());
-
-            el.onclick = (e) => {
-                if (e.target.closest('.mark-one-btn')) return;
-                const id = el.id.replace('notif-item-', '');
-                window.location.hash = `#!/details?id=${id}`;
-                toggleDropdown(false);
-            };
-        });
-    };
-
-    const buildStructure = () => {
-        if (document.getElementById('notification-dropdown')) return;
-
-        // BACKDROP: key for robust closing without complex logic
-        const backdrop = document.createElement('div');
-        backdrop.id = 'notify-backdrop';
-        backdrop.onclick = () => toggleDropdown(false);
-        document.body.appendChild(backdrop);
-
-        const drop = document.createElement('div');
-        drop.id = 'notification-dropdown';
-        // stopPropagation inside dropdown so clicks don't hit document or backdrop
-        drop.onclick = (e) => e.stopPropagation();
-        document.body.appendChild(drop);
-    };
-
     const installBell = () => {
         if (document.querySelector('#netflix-bell')) return;
         injectStyles();
@@ -328,17 +311,17 @@
 
         bell.onclick = (e) => {
             e.preventDefault(); e.stopPropagation();
-            buildStructure(); // Ensure structure exists
+            buildStructure();
             const drop = document.querySelector('#notification-dropdown');
             initDropdown(drop);
-            toggleDropdown(); // Toggle Logic
+            toggleDropdown();
         };
 
         header.prepend(Object.assign(document.createElement('div'), { id: 'bell-container' }).appendChild(bell).parentNode);
 
         buildStructure(); // Init early
-        fetchData();
-        setInterval(fetchData, 60000);
+        fetchData(); // Initial Fetch
+        setInterval(fetchData, pollInterval); // Smart Polling (uses cheap JSON fetch now)
     };
 
     const checkUnread = async (items) => {
@@ -349,31 +332,35 @@
         const lastSeenDate = new Date(lastSeenDateStr);
         let count = 0;
         for (let item of items) { if (new Date(item.DateCreated) > lastSeenDate) count++; else break; }
-        if (count > lastCount && count > 0 && localStorage.getItem(SOUND_KEY) !== 'true') try { NOTIF_SOUND.play(); } catch (e) { }
         lastCount = count;
         dot.innerText = count > 9 ? '9+' : count;
         dot.style.opacity = count > 0 ? '1' : '0';
     };
 
+    // V4: Fetch from /NotifySync/Data
     const fetchData = async () => {
         if (isFetching) return; isFetching = true;
         try {
-            const client = window.ApiClient; if (!client) { isFetching = false; return; }
-            const userId = client.getCurrentUserId();
-            if (!pluginConfig) { try { pluginConfig = await client.getPluginConfiguration(PLUGIN_ID); } catch (e) { pluginConfig = { MaxItems: 10 }; } }
+            // "Smart" Polling: We just fetch the JSON file. It's fast and cached.
+            // Jellyfin Controller sends Cache-Control, browser handles it.
+            const res = await fetch('/NotifySync/Data?t=' + Date.now()); // Adding t= prevents browser agressively caching if headers fail
+            if (!res.ok) throw new Error("API Error");
+            const items = await res.json();
 
-            const res = await client.getItems(userId, {
-                SortBy: "DateCreated", SortOrder: "Descending", IncludeItemTypes: "Movie,Episode",
-                Filters: "IsUnplayed", Recursive: true, Limit: 20,
-                Fields: "Name,Id,SeriesName,SeriesId,DateCreated,Type,UserData,RunTimeTicks,BackdropImageTags,Overview,CommunityRating,ProductionYear,ParentIndexNumber,IndexNumber,Genres"
-            });
-            currentData = res.Items;
+            // Snapshot check to avoid re-render if identical
+            const snapshot = JSON.stringify(items.map(i => i.Id));
+            if (snapshot === localStorage.getItem(SNAPSHOT_KEY) && groupedData) {
+                isFetching = false; return; // No change
+            }
+            localStorage.setItem(SNAPSHOT_KEY, snapshot);
+
+            currentData = items;
             await checkUnread(currentData);
             groupedData = processGrouping(currentData);
 
             const drop = document.querySelector('#notification-dropdown');
             if (drop && drop.style.display === 'block') updateList(drop);
-        } catch (e) { } finally { isFetching = false; }
+        } catch (e) { console.error("NotifySync:", e); } finally { isFetching = false; }
     };
 
     observer = new MutationObserver((m) => { if (!document.querySelector('#netflix-bell')) installBell(); });

@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
 using System.Linq;
 using MediaBrowser.Controller.Library;
+using MediaBrowser.Model.IO;
+using Microsoft.Extensions.Logging;
 
 namespace NotifySync
 {
@@ -12,10 +14,16 @@ namespace NotifySync
     {
         private static readonly object _configLock = new object();
         private readonly IUserManager _userManager;
+        private readonly ILibraryManager _libraryManager;
+        private readonly IFileSystem _fileSystem;
+        private readonly ILogger<NotificationManager> _logger; // Inject Generic logger for Manager
 
-        public NotifyController(IUserManager userManager)
+        public NotifyController(IUserManager userManager, ILibraryManager libraryManager, IFileSystem fileSystem, ILogger<NotificationManager> logger)
         {
             _userManager = userManager;
+            _libraryManager = libraryManager;
+            _fileSystem = fileSystem;
+            _logger = logger;
         }
 
         [HttpGet("Config")]
@@ -23,6 +31,33 @@ namespace NotifySync
         {
             if (Plugin.Instance == null) return NotFound();
             return Ok(Plugin.Instance.Configuration);
+        }
+
+        [HttpGet("Data")]
+        [ResponseCache(Duration = 60)] // Cache for 60 seconds
+        public ActionResult GetData()
+        {
+            // LAZY INIT
+            if (NotificationManager.Instance == null)
+            {
+                new NotificationManager(_libraryManager, _logger, _fileSystem);
+                // Optional: Force first scan if empty? 
+                // NotificationManager loads json. If json empty (first run), we might want to scan?
+                // For now, rely on events + JSON.
+            }
+            
+            if (NotificationManager.Instance == null) return Ok(new List<object>());
+            return Ok(NotificationManager.Instance.GetRecentNotifications());
+        }
+
+        [HttpGet("Audio/{itemId}")]
+        public ActionResult GetAudio(string itemId)
+        {
+             // Dedicated Audio Endpoint
+            // Logic: Find item, get theme song, stream it.
+            // Simplified for now: Client still queries API or we implement full stream logic later if required.
+            // For now, let's stick to returning Data.
+            return NotFound("Audio proxy not fully implemented yet");
         }
 
         [HttpGet("LastSeen/{userId}")]

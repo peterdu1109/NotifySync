@@ -14,8 +14,8 @@
     const SWIPE_SAFE_ZONE = 30;
 
     const STRINGS = {
-        fr: { header: "Récemment ajoutés", empty: "Tout est calme...", markAll: "Tout marquer comme vu", markOne: "Marquer comme vu", recent: "À l'instant", badgeNew: "NOUVEAU", newEps: "nouveaux épisodes. Saison", badgeMovie: "FILM", badgeSeries: "SÉRIE", filterAll: "Tout", filterMovies: "Films", filterSeries: "Séries", play: "Lecture" },
-        en: { header: "Recently Added", empty: "All caught up!", markAll: "Mark all as read", markOne: "Mark as read", recent: "Just now", badgeNew: "NEW", newEps: "new episodes. Season", badgeMovie: "MOVIE", badgeSeries: "SERIES", filterAll: "All", filterMovies: "Movies", filterSeries: "Series", play: "Play" }
+        fr: { header: "Récemment ajoutés", empty: "Tout est calme...", markAll: "Tout marquer comme vu", markOne: "Marquer comme vu", recent: "À l'instant", badgeNew: "NOUVEAU", newEps: "nouveaux épisodes. Saison", badgeMovie: "FILM", badgeSeries: "SÉRIE", filterAll: "Tout", filterMovies: "Films", filterSeries: "Séries", filterAnime: "Animes", play: "Lecture", refresh: "Actualiser" },
+        en: { header: "Recently Added", empty: "All caught up!", markAll: "Mark all as read", markOne: "Mark as read", recent: "Just now", badgeNew: "NEW", newEps: "new episodes. Season", badgeMovie: "MOVIE", badgeSeries: "SERIES", filterAll: "All", filterMovies: "Movies", filterSeries: "Series", filterAnime: "Anime", play: "Play", refresh: "Refresh" }
     };
     const userLang = navigator.language || navigator.userLanguage;
     const T = userLang.startsWith('fr') ? STRINGS.fr : STRINGS.en;
@@ -65,7 +65,7 @@
             
             /* HOVER CARD EFFECT (Desktop only) */
             @media (hover: hover) {
-                .dropdown-item:hover .thumb-wrapper { transform: scale(1.05); box-shadow: 0 8px 16px rgba(0,0,0,0.8); }
+                /* .dropdown-item:hover .thumb-wrapper { transform: scale(1.05); box-shadow: 0 8px 16px rgba(0,0,0,0.8); } */
                 .dropdown-item:hover .play-overlay { opacity: 1; }
             }
 
@@ -154,6 +154,7 @@
         let h = `<div class="dropdown-header" style="display:flex;justify-content:space-between;padding:15px;background:#000;">
                     <span style="font-weight:bold;font-size:16px;">Notifications</span>
                     <div style="display:flex;gap:15px;">
+                        <span class="material-icons refresh-btn" style="cursor:pointer;opacity:0.7;" title="${T.refresh}">refresh</span>
                         <span class="material-icons mute-btn" style="cursor:pointer;opacity:0.7;">${isMuted ? 'volume_off' : 'volume_up'}</span>
                         <span class="material-icons mark-all-btn" style="cursor:pointer;opacity:0.7;" title="${T.markAll}">done_all</span>
                     </div>
@@ -162,6 +163,7 @@
                     <div class="filter-pill active" data-f="All">${T.filterAll}</div>
                     <div class="filter-pill" data-f="Movie">${T.filterMovies}</div>
                     <div class="filter-pill" data-f="Episode">${T.filterSeries}</div>
+                    <div class="filter-pill" data-f="Anime">${T.filterAnime}</div>
                  </div>
                  <div class="list-container"></div>`;
         drop.innerHTML = h;
@@ -178,6 +180,11 @@
                 updateList(drop); // Refresh list
             };
         });
+
+        drop.querySelector('.refresh-btn').onclick = (e) => {
+            e.stopPropagation();
+            fetchData();
+        };
 
         drop.querySelector('.mute-btn').onclick = (e) => {
             e.stopPropagation();
@@ -208,9 +215,18 @@
             container.innerHTML = `<div style="padding:40px;text-align:center;color:#666;">${T.empty}</div>`; return;
         }
 
+        // Helper to determine category
+        const getCategory = (item) => {
+            const genres = item.Genres || [];
+            const isAnime = genres.some(g => g === 'Anime' || g === 'Animation');
+            if (isAnime) return 'Anime';
+            if (item.Type === 'Movie') return 'Movie';
+            return 'Episode'; // Series
+        };
+
         let filtered = groupedData;
         if (activeFilter !== 'All') {
-            filtered = groupedData.filter(i => (activeFilter === 'Movie' ? i.Type === 'Movie' : (i.Type === 'Episode' || i.IsGroup)));
+            filtered = groupedData.filter(i => getCategory(i) === activeFilter);
         }
 
         if (filtered.length === 0) {
@@ -293,7 +309,7 @@
                 if (e.target.closest('.mark-one-btn')) return; // handled separately if needed
                 const id = el.id.replace('notif-item-', '');
                 window.location.hash = `#!/details?id=${id}`;
-                drop.style.display = 'none';
+                // drop.style.display = 'none';
             };
         });
     }
@@ -327,7 +343,7 @@
             const res = await client.getItems(userId, {
                 SortBy: "DateCreated", SortOrder: "Descending", IncludeItemTypes: "Movie,Episode",
                 Filters: "IsUnplayed", Recursive: true, Limit: 20,
-                Fields: "Name,Id,SeriesName,SeriesId,DateCreated,Type,UserData,RunTimeTicks,BackdropImageTags,Overview,CommunityRating,ProductionYear,ParentIndexNumber,IndexNumber"
+                Fields: "Name,Id,SeriesName,SeriesId,DateCreated,Type,UserData,RunTimeTicks,BackdropImageTags,Overview,CommunityRating,ProductionYear,ParentIndexNumber,IndexNumber,Genres"
             });
             currentData = res.Items;
             await checkUnread(currentData);

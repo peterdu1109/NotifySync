@@ -6,7 +6,7 @@
   "compilationOptions": {},
   "targets": {
     ".NETCoreApp,Version=v9.0": {
-      "NotifySync/2.0.2": {
+      "NotifySync/3.1.0": {
         "dependencies": {
           "Jellyfin.Controller": "10.11.5",
           "Jellyfin.Model": "10.11.5"
@@ -363,7 +363,7 @@
     }
   },
   "libraries": {
-    "NotifySync/2.0.2": {
+    "NotifySync/3.1.0": {
       "type": "project",
       "serviceable": false,
       "sha512": ""

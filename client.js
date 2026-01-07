@@ -1,4 +1,4 @@
-/* NOTIFYSYNC V2.0.2 - STABLE DROPDOWN (Header persistence, Play Arrow) */
+/* NOTIFYSYNC V3.1.0 - ROBUST OVERLAY (Backdrop Dropdown, Anime Fix) */
 (function () {
     let currentData = null;
     let groupedData = null;
@@ -6,20 +6,18 @@
     let pluginConfig = null;
     let lastCount = 0;
     let isFetching = false;
-    let retryDelay = 5000;
-    let activeFilter = 'All'; // All, Movie, Episode
+    let activeFilter = 'All'; // All, Movie, Episode, Anime
 
     const PLUGIN_ID = "95655672-2342-4321-8291-321312312312";
     const SOUND_KEY = 'notifysync_muted';
-    const SWIPE_SAFE_ZONE = 30;
 
     const STRINGS = {
-        fr: { header: "Récemment ajoutés", empty: "Tout est calme...", markAll: "Tout marquer comme vu", markOne: "Marquer comme vu", recent: "À l'instant", badgeNew: "NOUVEAU", newEps: "nouveaux épisodes. Saison", badgeMovie: "FILM", badgeSeries: "SÉRIE", filterAll: "Tout", filterMovies: "Films", filterSeries: "Séries", filterAnime: "Animes", play: "Lecture", refresh: "Actualiser" },
-        en: { header: "Recently Added", empty: "All caught up!", markAll: "Mark all as read", markOne: "Mark as read", recent: "Just now", badgeNew: "NEW", newEps: "new episodes. Season", badgeMovie: "MOVIE", badgeSeries: "SERIES", filterAll: "All", filterMovies: "Movies", filterSeries: "Series", filterAnime: "Anime", play: "Play", refresh: "Refresh" }
+        fr: { header: "Notifications", empty: "Tout est calme...", markAll: "Tout vu", markOne: "Vu", recent: "À l'instant", badgeNew: "NOUVEAU", newEps: "épisodes", badgeMovie: "FILM", badgeSeries: "SÉRIE", filterAll: "Tout", filterMovies: "Films", filterSeries: "Séries", filterAnime: "Animes", play: "Lecture", refresh: "Actualiser" },
+        en: { header: "Notifications", empty: "All caught up!", markAll: "Mark all read", markOne: "Read", recent: "Just now", badgeNew: "NEW", newEps: "episodes", badgeMovie: "MOVIE", badgeSeries: "SERIES", filterAll: "All", filterMovies: "Movies", filterSeries: "Series", filterAnime: "Anime", play: "Play", refresh: "Refresh" }
     };
     const userLang = navigator.language || navigator.userLanguage;
     const T = userLang.startsWith('fr') ? STRINGS.fr : STRINGS.en;
-    const NOTIF_SOUND = new Audio("data:audio/mp3;base64,//uQRAAAAWMSLwUIYAAsYkXgoQwAEaYLWfkWgAI0wWs/ItAAAG1ineAAA0gAAAB5IneAAA0gAAABzLFwAHMwcAAedxYaMPFmPkQcnhsG8G2hxtxl0q5f77+6/v/7/5/4/5/3/3+uw5MvV7M/J0/3/v///8/7///3/8///4/5/3/3/5/4/5/3/3+uw5MvV7M/J0/3/v///8/7///3/8///4/5/3/3/5/4/5/3/3+uw5MvV7M/J0/3/v///8/7///3/8///4/5/3/3/5/4/5/3/3+uw5MvV7M/J0/3/v///8/7///3/8//");
+    const NOTIF_SOUND = new Audio("data:audio/mp3;base64,//uQRAAAAWMSLwUIYAAsYkXgoQwAEaYLWfkWgAI0wWs/ItAAAG1ineAAA0gAAAB5IneAAA0gAAABzLFwAHMwcAAedxYaMPFmPkQcnhsG8G2hxtxl0q5f77+6/v/7/5/4/5/3/3+uw5MvV7M/J0/3/v///8/7///3/8///4/5/3/3/5/4/5/3/3+uw5MvV7M/J0/3/v///8/7///3/8///4/5/3/3/5/4/5/3/3+uw5MvV7M/J0/3/v///8/7///3/8///4/5/3/3/5/4/5/3/3+uw5MvV7M/J0/3/v///8/7///3/8///4/5/3/3/5/4/5/3/3+uw5MvV7M/J0/3/v///8/7///3/8//");
 
     let hoverAudio = null;
     let hoverTimeout = null;
@@ -33,17 +31,28 @@
             #netflix-bell{display:flex!important;visibility:visible!important;opacity:1!important;position:relative;background:0 0;border:none;cursor:pointer;padding:10px;color:inherit}
             .notification-dot{position:absolute;top:4px;right:4px;min-width:15px;height:15px;padding:0 4px;background-color:var(--ns-red);border-radius:10px;opacity:0;pointer-events:none;transition:opacity .3s;display:flex!important;align-items:center;justify-content:center;color:#fff!important;font-size:9px!important;font-weight:700;box-shadow:0 0 5px rgba(0,0,0,.5);z-index:2}
             
-            /* DROPDOWN CONTAINER */
-            #notification-dropdown{position:fixed;top:70px;right:20px;width:380px;max-width:90vw;background:#181818;color:#fff;border:1px solid rgba(255,255,255,.1);border-radius:8px;box-shadow:0 0 50px rgba(0,0,0,.8);z-index:999999;display:none;overflow:hidden; font-family: 'Netflix Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;}
+            /* BACKDROP (Invisible Shield) */
+            /* This is the key fixes closing bugs. It covers the screen but is invisible behind the dropdown. */
+            #notify-backdrop { position: fixed; inset: 0; z-index: 999998; display: none; cursor: default; }
+
+            /* DROPDOWN OVERLAY */
+            #notification-dropdown{position:fixed;top:70px;right:20px;width:380px;max-width:90vw;background:#181818;color:#fff;border:1px solid rgba(255,255,255,.1);border-radius:8px;box-shadow:0 0 50px rgba(0,0,0,.8);z-index:999999;display:none;overflow:hidden; font-family: 'Netflix Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif; animation: dropIn 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);}
+            @keyframes dropIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
             
+            /* HEADER */
+            .dropdown-header { display:flex;justify-content:space-between;padding:15px;background:#000; border-bottom: 1px solid rgba(255,255,255,0.1); }
+            .header-tools { display:flex; gap:15px; }
+            .tool-icon { cursor:pointer; opacity:0.7; transition:opacity 0.2s; }
+            .tool-icon:hover { opacity:1; }
+
             /* FILTER PILLS */
-            .filter-bar { padding: 12px 15px; display: flex; gap: 10px; border-bottom: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.5); backdrop-filter: blur(10px); position: sticky; top: 0; z-index: 10; }
-            .filter-pill { font-size: 11px; padding: 5px 12px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.3); cursor: pointer; transition: all 0.2s; opacity: 0.7; user-select: none; }
+            .filter-bar { padding: 12px 15px; display: flex; gap: 10px; border-bottom: 1px solid rgba(255,255,255,0.1); background: rgba(30,30,30,0.95); backdrop-filter: blur(10px); position: sticky; top: 0; z-index: 10; overflow-x: auto; }
+            .filter-pill { font-size: 11px; padding: 5px 12px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.3); cursor: pointer; transition: all 0.2s; opacity: 0.7; user-select: none; white-space: nowrap; }
             .filter-pill:hover { border-color: #fff; opacity: 1; }
             .filter-pill.active { background: #fff; color: #000; border-color: #fff; opacity: 1; font-weight: bold; }
 
             /* HERO SECTION */
-            .hero-section { position: relative; height: 220px; width: 100%; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end; cursor: pointer; }
+            .hero-section { position: relative; height: 200px; width: 100%; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end; cursor: pointer; }
             .hero-bg { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-size: cover; background-position: center; transition: transform 6s ease; }
             .hero-section:hover .hero-bg { transform: scale(1.05); }
             .hero-overlay { position: absolute; top:0; left:0; right:0; bottom:0; background: linear-gradient(to top, #181818 0%, rgba(20,20,20,0.6) 50%, rgba(0,0,0,0.3) 100%); }
@@ -51,7 +60,6 @@
             .hero-new-badge { background: var(--ns-red); color: white; padding: 2px 6px; font-size: 9px; font-weight: bold; border-radius: 2px; display: inline-block; margin-bottom: 5px; box-shadow: 0 1px 3px rgba(0,0,0,0.4); }
             .hero-title { font-size: 18px; font-weight: 800; text-shadow: 0 1px 2px rgba(0,0,0,0.8); margin-bottom: 5px; line-height: 1.2; }
             .hero-meta { font-size: 11px; color: #a3a3a3; display: flex; gap: 8px; align-items: center; margin-bottom: 10px; }
-            .hero-overview { font-size: 11px; color: #dedede; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin-bottom: 12px; line-height: 1.4; opacity: 0.9; }
             .hero-play-btn { background: #fff; color: #000; border: none; padding: 6px 16px; font-size: 13px; font-weight: bold; border-radius: 4px; display: inline-flex; align-items: center; gap: 5px; transition: background 0.2s; }
             .hero-play-btn:hover { background: #c1c1c1; }
             
@@ -63,9 +71,7 @@
             .dropdown-item.animate-in { opacity: 1; transform: translateY(0); }
             .dropdown-item:hover{background:#252525; z-index:10;}
             
-            /* HOVER CARD EFFECT (Desktop only) */
             @media (hover: hover) {
-                /* .dropdown-item:hover .thumb-wrapper { transform: scale(1.05); box-shadow: 0 8px 16px rgba(0,0,0,0.8); } */
                 .dropdown-item:hover .play-overlay { opacity: 1; }
             }
 
@@ -76,7 +82,6 @@
             .dropdown-title{font-weight:700;font-size:13px;margin-bottom:2px; line-height:1.2;}
             .dropdown-subtitle{font-size:11px;color:#bbb;margin-bottom:4px;}
             .metadata-line { display: flex; gap: 8px; font-size: 10px; color: #888; align-items: center; }
-            .rating-badge { border: 1px solid #666; padding: 0 3px; border-radius: 2px; color: #ddd; font-size: 9px; }
             .match-score { color: #46d369; font-weight: bold; }
             
             .item-actions{margin-left:10px;display:flex;flex-direction:column;align-items:center; opacity:0; transition:opacity .2s; justify-content: center; height: 100%;}
@@ -87,53 +92,51 @@
             .play-overlay{position:absolute;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .2s;}
             .progress-bg{position:absolute;bottom:0;left:0;right:0;height:2px;background:rgba(255,255,255,.3)}.progress-fill{height:100%;background:var(--ns-red)}
             
-            @keyframes shimmer{0%{background-position:-330px 0}100%{background-position:330px 0}}.skeleton-item{display:flex;padding:12px;border-bottom:1px solid rgba(255,255,255,.05)}.skeleton-thumb{width:90px;height:56px;border-radius:4px;background:#333;margin-right:12px}.skeleton-lines{flex:1;display:flex;flex-direction:column;gap:8px}.skeleton-line{height:10px;background:#333;border-radius:4px}.skeleton-shimmer{background:linear-gradient(to right,#333 0,#444 50,#333 100%);background-size:330px 100%;animation:shimmer 1.5s infinite linear}
-            
             #notifysync-toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:#fff;color:#000;padding:10px 24px;border-radius:4px;font-weight:bold;box-shadow:0 5px 20px rgba(0,0,0,.5);z-index:10000;opacity:0;transition:opacity .3s,transform .3s;pointer-events:none;}#notifysync-toast.visible{opacity:1;transform:translateX(-50%) translateY(-10px)}
         `;
         const style = document.createElement('style'); style.id = 'notifysync-css'; style.textContent = css; document.head.appendChild(style);
         if (!document.getElementById('notifysync-toast')) { const t = document.createElement('div'); t.id = 'notifysync-toast'; document.body.appendChild(t); }
     };
 
+    const getRemoteLastSeenDate = async (uid) => { try { const r = await fetch(`/NotifySync/LastSeen/${uid}?t=` + Date.now()); if (r.ok) return await r.text(); } catch (e) { } return "2000-01-01T00:00:00.000Z"; };
+    const setRemoteLastSeenDate = async (uid, dateStr) => { try { await fetch(`/NotifySync/LastSeen/${uid}?date=${encodeURIComponent(dateStr)}`, { method: 'POST' }); } catch (e) { } };
+    const showToast = (msg) => { const t = document.getElementById('notifysync-toast'); if (t) { t.innerHTML = msg; t.classList.add('visible'); setTimeout(() => t.classList.remove('visible'), 3000); } };
+    const isNew = (d) => (new Date() - new Date(d)) < (48 * 3600 * 1000);
+
     const playHoverSound = (itemId) => {
         if (localStorage.getItem(SOUND_KEY) === 'true') return;
         if (hoverTimeout) clearTimeout(hoverTimeout);
         if (hoverAudio) { hoverAudio.pause(); hoverAudio = null; }
-
         hoverTimeout = setTimeout(async () => {
-            const client = window.ApiClient;
             try {
+                const client = window.ApiClient;
                 const songs = await client.getThemeSongs(client.getCurrentUserId(), itemId);
                 if (songs && songs.Items.length > 0) {
-                    const songId = songs.Items[0].Id;
-                    const url = client.getUrl(`Audio/${songId}/stream`);
-                    hoverAudio = new Audio(url);
-                    hoverAudio.volume = 0.0;
-                    await hoverAudio.play();
-                    let vol = 0;
-                    const fade = setInterval(() => { vol += 0.05; if (vol >= 0.3) { vol = 0.3; clearInterval(fade); } hoverAudio.volume = vol; }, 200);
+                    hoverAudio = new Audio(client.getUrl(`Audio/${songs.Items[0].Id}/stream`));
+                    hoverAudio.volume = 0; hoverAudio.play();
+                    let v = 0; const f = setInterval(() => { v += 0.05; if (v >= 0.3) { v = 0.3; clearInterval(f); } hoverAudio.volume = v; }, 200);
                 }
             } catch (e) { }
         }, 800);
     };
-
     const stopHoverSound = () => {
         if (hoverTimeout) clearTimeout(hoverTimeout);
         if (hoverAudio) {
-            const a = hoverAudio;
-            hoverAudio = null;
-            let vol = a.volume;
-            const fade = setInterval(() => { vol -= 0.05; if (vol <= 0) { a.pause(); clearInterval(fade); } else a.volume = vol; }, 100);
+            let a = hoverAudio; hoverAudio = null;
+            let v = a.volume; const f = setInterval(() => { v -= 0.05; if (v <= 0) { a.pause(); clearInterval(f); } else a.volume = v; }, 100);
         }
     };
 
-    const showToast = (msg) => {
-        const t = document.getElementById('notifysync-toast'); if (t) { t.innerHTML = msg; t.classList.add('visible'); setTimeout(() => t.classList.remove('visible'), 3000); }
-    };
+    // --- LOGIC ---
 
-    const getRemoteLastSeenDate = async (uid) => { try { const r = await fetch(`/NotifySync/LastSeen/${uid}?t=` + Date.now()); if (r.ok) return await r.text(); } catch (e) { } return "2000-01-01T00:00:00.000Z"; };
-    const setRemoteLastSeenDate = async (uid, dateStr) => { try { await fetch(`/NotifySync/LastSeen/${uid}?date=${encodeURIComponent(dateStr)}`, { method: 'POST' }); } catch (e) { } };
-    const isNew = (d) => (new Date() - new Date(d)) < (48 * 3600 * 1000);
+    const getCategory = (item) => {
+        const genres = (item.Genres || []).map(g => g.toLowerCase());
+        // Broad check for anime/animation
+        const isAnime = genres.some(g => g.includes('anime') || g.includes('animation'));
+        if (isAnime) return 'Anime';
+        if (item.Type === 'Movie') return 'Movie';
+        return 'Episode';
+    };
 
     const processGrouping = (items) => {
         const g = {}; const r = [];
@@ -146,17 +149,35 @@
         return r;
     };
 
-    // Initialize Header and List Container ONCE
+    const toggleDropdown = (forceOpen = null) => {
+        const drop = document.getElementById('notification-dropdown');
+        const backdrop = document.getElementById('notify-backdrop');
+        if (!drop || !backdrop) return;
+
+        const isOpen = drop.style.display === 'block';
+        const shouldOpen = forceOpen !== null ? forceOpen : !isOpen;
+
+        if (shouldOpen) {
+            drop.style.display = 'block';
+            backdrop.style.display = 'block'; // Block interaction with page behind
+            updateList(drop);
+        } else {
+            drop.style.display = 'none';
+            backdrop.style.display = 'none';
+            stopHoverSound();
+        }
+    };
+
     const initDropdown = (drop) => {
-        if (drop.querySelector('.dropdown-header')) return; // Already init
+        if (drop.querySelector('.dropdown-header')) return;
 
         const isMuted = localStorage.getItem(SOUND_KEY) === 'true';
-        let h = `<div class="dropdown-header" style="display:flex;justify-content:space-between;padding:15px;background:#000;">
-                    <span style="font-weight:bold;font-size:16px;">Notifications</span>
-                    <div style="display:flex;gap:15px;">
-                        <span class="material-icons refresh-btn" style="cursor:pointer;opacity:0.7;" title="${T.refresh}">refresh</span>
-                        <span class="material-icons mute-btn" style="cursor:pointer;opacity:0.7;">${isMuted ? 'volume_off' : 'volume_up'}</span>
-                        <span class="material-icons mark-all-btn" style="cursor:pointer;opacity:0.7;" title="${T.markAll}">done_all</span>
+        let h = `<div class="dropdown-header">
+                    <span style="font-weight:bold;font-size:16px;">${T.header}</span>
+                    <div class="header-tools">
+                        <span class="material-icons tool-icon refresh-btn" title="${T.refresh}">refresh</span>
+                        <span class="material-icons tool-icon mute-btn">${isMuted ? 'volume_off' : 'volume_up'}</span>
+                        <span class="material-icons tool-icon mark-all-btn" title="${T.markAll}">done_all</span>
                     </div>
                  </div>
                  <div class="filter-bar">
@@ -168,35 +189,23 @@
                  <div class="list-container"></div>`;
         drop.innerHTML = h;
 
-        // Attach static events
+        // Header Events
         drop.querySelectorAll('.filter-pill').forEach(pill => {
             pill.onclick = (e) => {
-                e.stopPropagation();
-                // Update active class immediately
                 drop.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
                 e.target.classList.add('active');
-
                 activeFilter = e.target.getAttribute('data-f');
-                updateList(drop); // Refresh list
+                updateList(drop);
             };
         });
 
-        drop.querySelector('.refresh-btn').onclick = (e) => {
-            e.stopPropagation();
-            fetchData();
-        };
-
+        drop.querySelector('.refresh-btn').onclick = () => fetchData();
         drop.querySelector('.mute-btn').onclick = (e) => {
-            e.stopPropagation();
             const m = localStorage.getItem(SOUND_KEY) === 'true';
             localStorage.setItem(SOUND_KEY, !m);
-            // Update Icon
-            const btn = e.target;
-            btn.innerText = !m ? 'volume_off' : 'volume_up';
+            e.target.innerText = !m ? 'volume_off' : 'volume_up';
         };
-
-        drop.querySelector('.mark-all-btn').onclick = async (e) => {
-            e.stopPropagation();
+        drop.querySelector('.mark-all-btn').onclick = async () => {
             if (groupedData && groupedData[0]) {
                 await setRemoteLastSeenDate(window.ApiClient.getCurrentUserId(), groupedData[0].DateCreated);
                 showToast(T.markAll);
@@ -208,30 +217,14 @@
     const updateList = (drop) => {
         const container = drop.querySelector('.list-container');
         if (!container) return;
+        container.innerHTML = '';
 
-        container.innerHTML = ''; // Start clean
-
-        if (!groupedData || groupedData.length === 0) {
-            container.innerHTML = `<div style="padding:40px;text-align:center;color:#666;">${T.empty}</div>`; return;
-        }
-
-        // Helper to determine category
-        const getCategory = (item) => {
-            const genres = item.Genres || [];
-            const isAnime = genres.some(g => g === 'Anime' || g === 'Animation');
-            if (isAnime) return 'Anime';
-            if (item.Type === 'Movie') return 'Movie';
-            return 'Episode'; // Series
-        };
+        if (!groupedData || groupedData.length === 0) { container.innerHTML = `<div style="padding:40px;text-align:center;color:#666;">${T.empty}</div>`; return; }
 
         let filtered = groupedData;
-        if (activeFilter !== 'All') {
-            filtered = groupedData.filter(i => getCategory(i) === activeFilter);
-        }
+        if (activeFilter !== 'All') filtered = groupedData.filter(i => getCategory(i) === activeFilter);
 
-        if (filtered.length === 0) {
-            container.innerHTML = `<div style="padding:40px;text-align:center;color:#666;">${T.empty}</div>`; return;
-        }
+        if (filtered.length === 0) { container.innerHTML = `<div style="padding:40px;text-align:center;color:#666;">${T.empty}</div>`; return; }
 
         const client = window.ApiClient;
         let html = '';
@@ -242,11 +235,10 @@
             let heroImg = hero.BackdropImageTags && hero.BackdropImageTags.length > 0 ? client.getUrl(`Items/${hero.Id}/Images/Backdrop/0?quality=60&maxWidth=600`) : client.getUrl(`Items/${hero.SeriesId || hero.Id}/Images/Primary?quality=60&maxWidth=400`);
             if (hero.IsGroup && hero.SeriesId) heroImg = client.getUrl(`Items/${hero.SeriesId}/Images/Backdrop/0?quality=60&maxWidth=600`);
 
-            let heroTitle = hero.SeriesName || hero.Name;
-            if (hero.IsGroup) heroTitle = hero.SeriesName;
-
+            let heroTitle = hero.IsGroup ? hero.SeriesName : (hero.SeriesName || hero.Name);
             let heroMeta = '';
             if (hero.ProductionYear) heroMeta += `<span>${hero.ProductionYear}</span>`;
+            if (hero.CommunityRating) heroMeta += `<span class="match-score">${Math.round(hero.CommunityRating * 10)}% Match</span>`;
 
             html += `
             <div class="hero-section" onclick="window.location.hash='#!/details?id=${hero.IsGroup ? hero.SeriesId : hero.Id}'">
@@ -275,18 +267,14 @@
             let rating = item.CommunityRating ? `<span class="match-score">${Math.round(item.CommunityRating * 10)}%</span>` : '';
             if (item.IsGroup) subtitle += (item.IndexNumber ? `. S${item.ParentIndexNumber || 1}` : '');
 
-            let progressHtml = '';
-            if (item.UserData && item.UserData.PlaybackPositionTicks && item.RunTimeTicks) {
-                const pct = (item.UserData.PlaybackPositionTicks / item.RunTimeTicks) * 100;
-                progressHtml = `<div class="progress-bg"><div class="progress-fill" style="width:${pct}%"></div></div>`;
-            }
+            let pct = (item.UserData && item.UserData.PlaybackPositionTicks && item.RunTimeTicks) ? (item.UserData.PlaybackPositionTicks / item.RunTimeTicks) * 100 : 0;
 
             html += `
             <div class="dropdown-item" id="notif-item-${item.Id}" style="animation-delay:${index * 0.05}s">
                 <div class="thumb-wrapper">
                     <img src="${imgUrl}" class="dropdown-thumb">
                     <div class="play-overlay"><span class="material-icons" style="color:#fff;">play_arrow</span></div>
-                    ${progressHtml}
+                    ${pct > 0 ? `<div class="progress-bg"><div class="progress-fill" style="width:${pct}%"></div></div>` : ''}
                 </div>
                 <div class="dropdown-info">
                     <div class="dropdown-title">${title}</div>
@@ -299,35 +287,69 @@
 
         container.innerHTML = html;
 
-        // Re-attach list events
         container.querySelectorAll('.dropdown-item').forEach(el => {
             requestAnimationFrame(() => el.classList.add('animate-in'));
             el.addEventListener('mouseenter', () => playHoverSound(el.id.replace('notif-item-', '')));
             el.addEventListener('mouseleave', () => stopHoverSound());
 
             el.onclick = (e) => {
-                if (e.target.closest('.mark-one-btn')) return; // handled separately if needed
+                if (e.target.closest('.mark-one-btn')) return;
                 const id = el.id.replace('notif-item-', '');
                 window.location.hash = `#!/details?id=${id}`;
-                // drop.style.display = 'none';
+                toggleDropdown(false);
             };
         });
-    }
+    };
+
+    const buildStructure = () => {
+        if (document.getElementById('notification-dropdown')) return;
+
+        // BACKDROP: key for robust closing without complex logic
+        const backdrop = document.createElement('div');
+        backdrop.id = 'notify-backdrop';
+        backdrop.onclick = () => toggleDropdown(false);
+        document.body.appendChild(backdrop);
+
+        const drop = document.createElement('div');
+        drop.id = 'notification-dropdown';
+        // stopPropagation inside dropdown so clicks don't hit document or backdrop
+        drop.onclick = (e) => e.stopPropagation();
+        document.body.appendChild(drop);
+    };
+
+    const installBell = () => {
+        if (document.querySelector('#netflix-bell')) return;
+        injectStyles();
+        const header = document.querySelector('.headerRight') || document.querySelector('.headerButtons-right');
+        if (!header) return;
+
+        const bell = document.createElement('button'); bell.id = 'netflix-bell'; bell.className = 'paper-icon-button-light headerButton';
+        bell.innerHTML = `<span class="material-icons notifications"></span><div class="notification-dot"></div>`;
+
+        bell.onclick = (e) => {
+            e.preventDefault(); e.stopPropagation();
+            buildStructure(); // Ensure structure exists
+            const drop = document.querySelector('#notification-dropdown');
+            initDropdown(drop);
+            toggleDropdown(); // Toggle Logic
+        };
+
+        header.prepend(Object.assign(document.createElement('div'), { id: 'bell-container' }).appendChild(bell).parentNode);
+
+        buildStructure(); // Init early
+        fetchData();
+        setInterval(fetchData, 60000);
+    };
 
     const checkUnread = async (items) => {
         const client = window.ApiClient; if (!client) return;
         const userId = client.getCurrentUserId();
         const dot = document.querySelector('.notification-dot'); if (!dot) return;
-
         const lastSeenDateStr = await getRemoteLastSeenDate(userId);
         const lastSeenDate = new Date(lastSeenDateStr);
-
         let count = 0;
         for (let item of items) { if (new Date(item.DateCreated) > lastSeenDate) count++; else break; }
-
-        if (count > lastCount && count > 0 && localStorage.getItem(SOUND_KEY) !== 'true') {
-            try { NOTIF_SOUND.play(); } catch (e) { }
-        }
+        if (count > lastCount && count > 0 && localStorage.getItem(SOUND_KEY) !== 'true') try { NOTIF_SOUND.play(); } catch (e) { }
         lastCount = count;
         dot.innerText = count > 9 ? '9+' : count;
         dot.style.opacity = count > 0 ? '1' : '0';
@@ -349,46 +371,9 @@
             await checkUnread(currentData);
             groupedData = processGrouping(currentData);
 
-            if (document.querySelector('#notification-dropdown').style.display === 'block') {
-                // Update content but don't rebuild header if safe
-                const drop = document.querySelector('#notification-dropdown');
-                initDropdown(drop);
-                updateList(drop);
-            }
+            const drop = document.querySelector('#notification-dropdown');
+            if (drop && drop.style.display === 'block') updateList(drop);
         } catch (e) { } finally { isFetching = false; }
-    };
-
-    const installBell = () => {
-        if (document.querySelector('#netflix-bell')) return;
-        injectStyles();
-        const header = document.querySelector('.headerRight') || document.querySelector('.headerButtons-right');
-        if (!header) return;
-        const bell = document.createElement('button'); bell.id = 'netflix-bell'; bell.className = 'paper-icon-button-light headerButton';
-        bell.innerHTML = `<span class="material-icons notifications"></span><div class="notification-dot"></div>`;
-        header.prepend(Object.assign(document.createElement('div'), { id: 'bell-container' }).appendChild(bell).parentNode);
-
-        let drop = document.querySelector('#notification-dropdown');
-        if (!drop) {
-            drop = document.createElement('div'); drop.id = 'notification-dropdown'; document.body.appendChild(drop);
-            document.addEventListener('click', e => {
-                // Only close if click is OUTSIDE drop and OUTSIDE bell
-                if (drop.style.display === 'block' && !drop.contains(e.target) && !bell.contains(e.target)) {
-                    drop.style.display = 'none';
-                }
-            });
-        }
-
-        bell.onclick = (e) => {
-            e.preventDefault(); e.stopPropagation();
-            if (drop.style.display === 'block') { drop.style.display = 'none'; }
-            else {
-                drop.style.display = 'block';
-                initDropdown(drop);
-                updateList(drop);
-            }
-        };
-        fetchData();
-        setInterval(fetchData, 60000);
     };
 
     observer = new MutationObserver((m) => { if (!document.querySelector('#netflix-bell')) installBell(); });

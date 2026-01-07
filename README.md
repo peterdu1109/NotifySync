@@ -1,25 +1,33 @@
 # 🔔 NotifySync
 
-![Version](https://img.shields.io/badge/Version-2.0.2-blue?style=flat-square)
+![Version](https://img.shields.io/badge/Version-3.1.0-blue?style=flat-square)
 ![Jellyfin](https://img.shields.io/badge/Jellyfin-10.11.5%2B-purple?style=flat-square)
 ![Framework](https://img.shields.io/badge/.NET-9.0-512bd4?style=flat-square)
 
 **NotifySync** est un plugin complet pour Jellyfin qui intègre un centre de notifications interactif et moderne directement dans l'en-tête de votre interface utilisateur.
 
 > [!IMPORTANT]
-> **Mise à jour v2.0 "Netflix Edition"** : Profitez d'une toute nouvelle interface immersive !
+> **Mise à jour v3.1 "Overlay Edition"** : Retour au design classique "Overlay" mais boosté à la robustesse !
 
 ---
 
-## ✨ Fonctionnalités (v2.0)
+## ✨ Fonctionnalités (v3.1)
+
+### 🛡️ Interface "Overlay" (Le Retour)
+*   **Menu Flottant** : Retour du menu compact classique, plus discret.
+*   **Stabilité Totale** : Utilisation d'un système de "Backdrop" invisible. Le menu ne se clippe plus quand vous naviguez dedans, mais se ferme instantanément si vous cliquez en dehors. Le meilleur des deux mondes.
+
+### 🎌 Support Animes
+*   **Détection Améliorée** : Le filtre "Animes" détecte maintenant intelligemment les genres (`Animation`, `Anime`, etc.) peu importe la casse.
+
 
 ### 🌟 Expérience Visuelle "Hero"
-*   **Hero Banner** : Le dernier média ajouté s'affiche en grand en haut du menu, avec une image de fond cinématique (Backdrop) et le synopsis.
-*   **Cartes Interactives** : Au survol de la souris, les cartes s'agrandissent et affichent plus de détails (Note, Année).
+*   **Hero Banner** : Le dernier média ajouté s'affiche en grand en haut du panneau.
+*   **Cartes Interactives** : Liste verticale avec images larges (Backdrop) pour un look plus cinéma.
 
 ### 🧭 Navigation & Filtres
-*   **Filtres Intelligents** : Triez vos notifications en un clic : `[Tout]`, `[Films]`, `[Séries]`.
-*   **Ambiance Sonore** : *Expérimental* - Joue la musique de thème (si disponible) au survol d'une série.
+*   **Filtres Intelligents** : `[Tout]`, `[Films]`, `[Séries]`, `[Animes]`.
+*   **Contrôles** : Boutons "Actualiser" et "Tout marquer comme vu" accessibles.
 
 ### 🛎️ Centre de Notification
 *   **Intégration transparente** : Ajoute une icône "Cloche" dans la barre de navigation.

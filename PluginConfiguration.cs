@@ -42,5 +42,15 @@ namespace NotifySync.Configuration
                 }
             }
         }
+
+        // New features for V4.2
+        public List<string> ManualLibraryIds { get; set; } = new List<string>();
+        public List<CategoryMapping> CategoryMappings { get; set; } = new List<CategoryMapping>();
+    }
+
+    public class CategoryMapping
+    {
+        public string LibraryId { get; set; } = string.Empty;
+        public string CategoryName { get; set; } = string.Empty;
     }
 }

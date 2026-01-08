@@ -115,12 +115,9 @@
     };
 
     // --- LOGIC ---
+    // --- LOGIC ---
     const getCategory = (item) => {
-        const genres = (item.Genres || []).map(g => g.toLowerCase());
-        const isAnime = genres.some(g => g.includes('anime') || g.includes('animation'));
-        if (isAnime) return 'Anime';
-        if (item.Type === 'Movie') return 'Movie';
-        return 'Episode';
+        return item.Category || 'Movie'; // Server now handles logic (Series/Movie/Anime/Custom)
     };
 
     const processGrouping = (items) => {
@@ -145,12 +142,45 @@
         if (shouldOpen) {
             drop.style.display = 'block';
             backdrop.style.display = 'block';
+
+            // Re-init filters in case data changed categories
+            renderFilters(drop);
             updateList(drop);
         } else {
             drop.style.display = 'none';
             backdrop.style.display = 'none';
             stopHoverSound();
         }
+    };
+
+    const renderFilters = (drop) => {
+        const bar = drop.querySelector('.filter-bar');
+        if (!bar) return;
+
+        // Extract Categories
+        const cats = new Set(['All']);
+        if (groupedData) {
+            groupedData.forEach(i => cats.add(getCategory(i)));
+        }
+
+        // Render
+        let html = '';
+        cats.forEach(c => {
+            const label = T['filter' + c] || c; // Try translation, else use raw
+            const active = activeFilter === c ? 'active' : '';
+            html += `<div class="filter-pill ${active}" data-f="${c}">${label}</div>`;
+        });
+        bar.innerHTML = html;
+
+        // Bind
+        bar.querySelectorAll('.filter-pill').forEach(pill => {
+            pill.onclick = (e) => {
+                bar.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
+                e.target.classList.add('active');
+                activeFilter = e.target.getAttribute('data-f');
+                updateList(drop);
+            };
+        });
     };
 
     const updateList = (drop) => {
@@ -210,7 +240,7 @@
                 </div>
                 <div class="dropdown-info">
                     <div class="dropdown-title">${title}</div>
-                    <div class="metadata-line"><span>${year}</span></div>
+                    <div class="metadata-line"><span>${year}</span> &bull; <span>${getCategory(item)}</span></div>
                     ${subtitle ? `<div class="dropdown-subtitle">${subtitle}</div>` : ''}
                 </div>
             </div>`;
@@ -269,22 +299,13 @@
                     </div>
                  </div>
                  <div class="filter-bar">
-                    <div class="filter-pill active" data-f="All">${T.filterAll}</div>
-                    <div class="filter-pill" data-f="Movie">${T.filterMovies}</div>
-                    <div class="filter-pill" data-f="Episode">${T.filterSeries}</div>
-                    <div class="filter-pill" data-f="Anime">${T.filterAnime}</div>
+                    <!-- Dynamic Filters -->
                  </div>
                  <div class="list-container"></div>`;
         drop.innerHTML = h;
 
-        drop.querySelectorAll('.filter-pill').forEach(pill => {
-            pill.onclick = (e) => {
-                drop.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
-                e.target.classList.add('active');
-                activeFilter = e.target.getAttribute('data-f');
-                updateList(drop);
-            };
-        });
+        renderFilters(drop); // Initial render
+
         drop.querySelector('.refresh-btn').onclick = () => fetchData();
         drop.querySelector('.mute-btn').onclick = (e) => {
             const m = localStorage.getItem(SOUND_KEY) === 'true';

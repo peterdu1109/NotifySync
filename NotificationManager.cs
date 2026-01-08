@@ -81,7 +81,7 @@ namespace NotifySync
             }
         }
 
-        private void OnItemAdded(object sender, ItemChangeEventArgs e)
+        private void OnItemAdded(object? sender, ItemChangeEventArgs e)
         {
             var item = e.Item;
             if (item is Folder || item.IsVirtualItem) return;
@@ -90,32 +90,76 @@ namespace NotifySync
             if (!(item is MediaBrowser.Controller.Entities.Movies.Movie) && !(item is MediaBrowser.Controller.Entities.TV.Episode)) return;
 
             // Check Library Config (Admin selection)
-            // Check Library Config (Admin selection)
             var config = Plugin.Instance!.Configuration;
-            if (config.EnabledLibraries != null && config.EnabledLibraries.Any())
+            
+            // Determine active lists (Checkbox + Manual)
+            var enabledIds = new HashSet<string>(config.EnabledLibraries ?? new List<string>());
+            if (config.ManualLibraryIds != null) 
             {
-                // Recursive check for Library Root
+                foreach(var id in config.ManualLibraryIds) enabledIds.Add(id);
+            }
+
+            string? matchedLibraryId = null;
+
+            if (enabledIds.Any())
+            {
+                // Recursive check for Library Root and capture LibraryId
                 bool isAllowed = false;
                 var current = item;
                 while (current != null)
                 {
-                    if (config.EnabledLibraries.Contains(current.Id.ToString()) || 
-                        config.EnabledLibraries.Contains(current.Id.ToString("N"))) // Handles GUID format diffs
+                    var cid = current.Id.ToString();
+                    // Check strict and guid format
+                    if (enabledIds.Contains(cid) || enabledIds.Contains(current.Id.ToString("N")))
                     {
                         isAllowed = true;
+                        matchedLibraryId = cid; // Capture for category mapping
                         break;
                     }
                     current = current.GetParent();
-                    if (current is MediaBrowser.Controller.Entities.AggregateFolder) break; // Optimization: Stop at root
+                    if (current is MediaBrowser.Controller.Entities.AggregateFolder) break;
                 }
                 
                 if (!isAllowed) return; // Not in enabled libraries
+            }
+
+            // Determine Category
+            string category = item is MediaBrowser.Controller.Entities.TV.Episode ? "Series" : "Movie"; // Default
+            if (matchedLibraryId == null)
+            {
+                // If we didn't filter (enabledIds empty), we still need library ID for mapping
+                // Try to find root manually
+                 var current = item;
+                 while(current != null)
+                 {
+                     var parent = current.GetParent();
+                     if (parent is MediaBrowser.Controller.Entities.AggregateFolder || parent == null) 
+                     {
+                         matchedLibraryId = current.Id.ToString();
+                         break;
+                     }
+                     current = parent;
+                 }
+            }
+
+            if (matchedLibraryId != null && config.CategoryMappings != null)
+            {
+                var mapping = config.CategoryMappings.FirstOrDefault(m => m.LibraryId == matchedLibraryId);
+                if (mapping != null && !string.IsNullOrEmpty(mapping.CategoryName))
+                {
+                    category = mapping.CategoryName;
+                }
+            } else if (config.CategoryMappings != null)
+            {
+                 // Fallback check: maybe we have strict GUID format mismatch?
+                 // Iterating mappings is safer if we missed the ID above
             }
 
             var notif = new NotificationItem
             {
                 Id = item.Id.ToString(),
                 Name = item.Name,
+                Category = category,
                 SeriesName = (item as MediaBrowser.Controller.Entities.TV.Episode)?.SeriesName,
                 SeriesId = (item as MediaBrowser.Controller.Entities.TV.Episode)?.SeriesId.ToString(),
                 DateCreated = item.DateCreated,
@@ -139,7 +183,7 @@ namespace NotifySync
             SaveNotifications();
         }
 
-        private void OnItemRemoved(object sender, ItemChangeEventArgs e)
+        private void OnItemRemoved(object? sender, ItemChangeEventArgs e)
         {
             lock (_lock)
             {
@@ -148,7 +192,7 @@ namespace NotifySync
             }
         }
 
-        private void CleanupRoutine(object state)
+        private void CleanupRoutine(object? state)
         {
             // Auto cleanup items older than 30 days
             lock (_lock)
@@ -179,6 +223,7 @@ namespace NotifySync
     {
         public string Id { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
+        public string Category { get; set; } = string.Empty; // New field
         public string? SeriesName { get; set; } // Null for movies
         public string? SeriesId { get; set; }
         public DateTime DateCreated { get; set; }

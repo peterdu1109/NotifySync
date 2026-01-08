@@ -8,6 +8,14 @@
   "url": "https://github.com/peterdu1109/NotifySync",
   "versions": [
     {
+      "version": "4.2.1",
+      "changelog": "- **Hotfix**: Resolved startup crash due to configuration serialization.\n- **Custom Categories**: Map libraries to 'Anime', 'Docs', etc.\n- **Admin Controls**: Manual Library ID entry for robust config.\n- **Dynamic Filters**: Client auto-generates filter pills based on content.",
+      "targetAbi": "10.11.5.0",
+      "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/v4.2.1/NotifySync.zip",
+      "checksum": "{CHECKSUM_HERE}",
+      "timestamp": "2026-01-08T22:30:00Z"
+    },
+    {
       "version": "4.1.0",
       "changelog": "- **Admin Powers**: Select specific libraries to monitor in Plugin Config.\n- **Performance**: Full JSON-backend architecture with server-side caching.\n- **UI**: Lazy Loading images and Skeleton UI for instant feedback.\n- **Stability**: Robust Overlay with Backdrop protection.",
       "targetAbi": "10.11.5.0",

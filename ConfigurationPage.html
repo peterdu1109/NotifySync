@@ -1,10 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <title>NotifySync Configuration</title>
 </head>
+
 <body>
-    <div data-role="page" class="page type-interior pluginConfigurationPage" data-require="emby-button,emby-input,emby-checkbox">
+    <div data-role="page" class="page type-interior pluginConfigurationPage"
+        data-require="emby-button,emby-input,emby-checkbox">
         <div data-role="content">
             <div class="content-primary">
                 <form id="notifySyncConfigForm">
@@ -15,16 +18,47 @@
                         </div>
 
                         <div class="inputContainer">
-                            <label class="inputLabel inputLabelUnfocused" for="maxItems">Nombre d'éléments à afficher</label>
-                            <input is="emby-input" type="number" id="maxItems" name="maxItems" min="1" max="50" step="1" />
-                            <div class="fieldDescription">Définit combien de films/épisodes récents apparaissent dans le menu déroulant (Défaut: 5).</div>
+                            <label class="inputLabel inputLabelUnfocused" for="maxItems">Nombre d'éléments à
+                                afficher</label>
+                            <input is="emby-input" type="number" id="maxItems" name="maxItems" min="1" max="50"
+                                step="1" />
+                            <div class="fieldDescription">Définit combien de films/épisodes récents apparaissent dans le
+                                menu déroulant (Défaut: 5).</div>
                         </div>
 
                         <div class="inputContainer">
                             <h3 class="sectionTitle">Bibliothèques Actives</h3>
-                            <div class="fieldDescription">Cochez les médiathèques que vous souhaitez surveiller. Si aucune n'est cochée, tout est surveillé.</div>
-                            <div id="libraryCheckboxes" style="margin-top:10px; display: flex; flex-direction: column; gap: 5px;">
+                            <div class="fieldDescription">Cochez les médiathèques que vous souhaitez surveiller. Si
+                                aucune n'est cochée, tout est surveillé.</div>
+                            <div id="libraryCheckboxes"
+                                style="margin-top:10px; display: flex; flex-direction: column; gap: 5px;">
                                 <!-- Checkboxes will be injected here -->
+                            </div>
+                        </div>
+
+                        <div class="inputContainer">
+                            <h3 class="sectionTitle">IDs de Bibliothèques (Avancé)</h3>
+                            <div class="fieldDescription">Si les cases ci-dessus ne fonctionnent pas, entrez ici les IDs
+                                manuellement (séparés par des virgules).</div>
+                            <textarea is="emby-textarea" id="manualLibraryIds" name="manualLibraryIds"
+                                rows="3"></textarea>
+                        </div>
+
+                        <div class="verticalSection">
+                            <h3 class="sectionTitle">Catégories Personnalisées</h3>
+                            <div class="fieldDescription">Associez une bibliothèque à une catégorie spécifique (ex: "Mes
+                                Animes" -> "Anime").</div>
+
+                            <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+                                <select id="mappingLibrarySelect" is="emby-select" style="flex-grow:1;"></select>
+                                <input is="emby-input" id="mappingCategoryInput"
+                                    placeholder="Nom de la catégorie (ex: Anime)" style="flex-grow:1;" />
+                                <button type="button" is="emby-button" class="raised button-accent"
+                                    onclick="NotifySyncConfigurationPage.addMapping()">Ajouter</button>
+                            </div>
+
+                            <div id="mappingList" style="display:flex; flex-direction:column; gap:5px;">
+                                <!-- Mappings injected here -->
                             </div>
                         </div>
 
@@ -40,24 +74,186 @@
 
         <script type="text/javascript">
             var NotifySyncConfigurationPage = {
-                pluginId: "95655672-2342-4321-8291-321312312312", // Doit matcher le GUID dans Plugin.cs
-                loadConfiguration: function (page) {
-                    ApiClient.getPluginConfiguration(NotifySyncConfigurationPage.pluginId).then(function (config) {
-                        page.querySelector('#maxItems').value = config.MaxItems || 5;
+                pluginId: "95655672-2342-4321-8291-321312312312",
+                currentConfig: {},
 
-                        // Load Libraries
+                loadConfiguration: function (page) {
+                    Dashboard.showLoadingMsg();
+                    ApiClient.getPluginConfiguration(NotifySyncConfigurationPage.pluginId).then(function (config) {
+                        NotifySyncConfigurationPage.currentConfig = config || {};
+                        // Init logic
+                        if (!NotifySyncConfigurationPage.currentConfig.CategoryMappings) NotifySyncConfigurationPage.currentConfig.CategoryMappings = [];
+
+                        page.querySelector('#maxItems').value = config.MaxItems || 5;
+                        page.querySelector('#manualLibraryIds').value = (config.ManualLibraryIds || []).join(', ');
+
+                        NotifySyncConfigurationPage.fetchLibraries(page).then(function () {
+                            NotifySyncConfigurationPage.renderMappings(page);
+                            Dashboard.hideLoadingMsg();
+                        });
+                    }).catch(function (err) {
+                        Dashboard.hideLoadingMsg();
+                        Dashboard.alert({ message: "Erreur Chargement Config: " + err });
+                    });
+                },
+
+                fetchLibraries: function (page) {
+                    return new Promise(function (resolve, reject) {
+                        var container = page.querySelector('#libraryCheckboxes');
+                        var select = page.querySelector('#mappingLibrarySelect');
+                        var enabledLibs = NotifySyncConfigurationPage.currentConfig.EnabledLibraries || [];
+
+                        container.innerHTML = '<div style="padding:10px;">Chargement des bibliothèques...</div>';
+                        select.innerHTML = '<option value="">-- Choisir une bibliothèque --</option>';
+
+                        // STRATEGY: Try multiple methods
+                        function render(folders) {
+                            container.innerHTML = '';
+                            if (!folders || folders.length === 0) {
+                                container.innerHTML = '<div style="color:orange;">Aucune bibliothèque détectée. Utilisez le champ manuel ci-dessous.</div>';
+                                resolve();
+                                return;
+                            }
+
+                            folders.forEach(function (folder) {
+                                var name = folder.Name || folder.name;
+                                var id = folder.Id || folder.ItemId || folder.id;
+
+                                if (!id) return;
+
+                                // Checkbox
+                                var isChecked = enabledLibs.indexOf(id) !== -1;
+                                var html = '<label style="display:flex; align-items:center;">' +
+                                    '<input is="emby-checkbox" type="checkbox" name="enabledLibs" value="' + id + '" ' + (isChecked ? 'checked' : '') + ' />' +
+                                    '<span style="margin-left:10px;">' + name + '</span></label>';
+                                container.insertAdjacentHTML('beforeend', html);
+
+                                // Option
+                                var option = document.createElement('option');
+                                option.value = id;
+                                option.text = name;
+                                select.appendChild(option);
+                            });
+                            resolve();
+                        }
+
+                        // 1. Try getVirtualFolders (Admin context)
                         ApiClient.getVirtualFolders().then(function (folders) {
-                             var container = page.querySelector('#libraryCheckboxes');
-                             container.innerHTML = '';
-                             var enabledLibs = config.EnabledLibraries || [];
-                             
-                             folders.forEach(function(folder) {
-                                 var isChecked = enabledLibs.indexOf(folder.ItemId) !== -1;
-                                 var html = '<label style="display:flex; align-items:center;">' +
-                                            '<input is="emby-checkbox" type="checkbox" name="enabledLibs" value="' + folder.ItemId + '" ' + (isChecked ? 'checked' : '') + ' />' +
-                                            '<span style="margin-left:10px;">' + folder.Name + '</span></label>';
-                                 container.insertAdjacentHTML('beforeend', html);
-                             });
+                            if (folders && folders.length > 0) { render(folders); return; }
+
+                            // 2. Fallback: getUserViews (User context)
+                            ApiClient.getUserViews({}, ApiClient.getCurrentUserId()).then(function (res) {
+                                if (res && res.Items && res.Items.length > 0) { render(res.Items); return; }
+
+                                // 3. Fallback: Root Items
+                                ApiClient.getItems(ApiClient.getCurrentUserId(), { Recursive: false, ParentId: 'root' }).then(function (rootRes) {
+                                    render(rootRes.Items || []);
+                                }).catch(function () { render([]); });
+
+                            }).catch(function () { render([]); });
+                        }).catch(function () {
+                            // Verify failover
+                            ApiClient.getUserViews({}, ApiClient.getCurrentUserId()).then(function (res) {
+                                render(res.Items || []);
+                            });
+                        });
+                    });
+                },
+
+                renderMappings: function (page) {
+                    var list = page.querySelector('#mappingList');
+                    list.innerHTML = '';
+                    var mappings = NotifySyncConfigurationPage.currentConfig.CategoryMappings || [];
+
+                    if (mappings.length === 0) {
+                        list.innerHTML = '<div style="opacity:0.6; font-style:italic;">Aucune association configurée.</div>';
+                        return;
+                    }
+
+                    mappings.forEach(function (m, index) {
+                        var div = document.createElement('div');
+                        div.style.cssText = 'display:flex; align-items:center; background: rgba(0,0,0,0.2); margin-top:5px; padding: 10px; border-radius: 5px;';
+
+                        var lid = m.LibraryId || m.libraryId;
+                        var cat = m.CategoryName || m.categoryName;
+
+                        div.innerHTML = '<div style="flex-grow:1;"><strong>' + lid + '</strong> &rarr; <span style="color:#00a4dc;">' + cat + '</span></div>';
+
+                        var btn = document.createElement('button');
+                        btn.type = 'button';
+                        btn.is = 'emby-button';
+                        btn.className = 'raised button-delete';
+                        btn.innerHTML = 'Supprimer';
+                        btn.onclick = function () {
+                            NotifySyncConfigurationPage.currentConfig.CategoryMappings.splice(index, 1);
+                            NotifySyncConfigurationPage.renderMappings(page);
+                        };
+                        div.appendChild(btn);
+                        list.appendChild(div);
+                    });
+                },
+
+                addMapping: function () {
+                    var page = document.querySelector('.pluginConfigurationPage');
+                    var select = page.querySelector('#mappingLibrarySelect');
+                    var input = page.querySelector('#mappingCategoryInput');
+
+                    var libId = select.value;
+                    var catName = input.value.trim();
+
+                    if (!libId || !catName) return;
+
+                    if (!NotifySyncConfigurationPage.currentConfig.CategoryMappings) NotifySyncConfigurationPage.currentConfig.CategoryMappings = [];
+
+                    NotifySyncConfigurationPage.currentConfig.CategoryMappings = NotifySyncConfigurationPage.currentConfig.CategoryMappings.filter(function (m) {
+                        return (m.LibraryId || m.libraryId) !== libId;
+                    });
+
+                    NotifySyncConfigurationPage.currentConfig.CategoryMappings.push({ LibraryId: libId, CategoryName: catName });
+
+                    NotifySyncConfigurationPage.renderMappings(page);
+                    input.value = '';
+                    select.value = '';
+                },
+
+                save: function () {
+                    Dashboard.showLoadingMsg();
+                    var page = document.querySelector('.pluginConfigurationPage');
+
+                    ApiClient.getPluginConfiguration(NotifySyncConfigurationPage.pluginId).then(function (config) {
+                        config.MaxItems = parseInt(page.querySelector('#maxItems').value) || 5;
+
+                        // Checkboxes
+                        var selected = [];
+                        page.querySelectorAll('input[name="enabledLibs"]:checked').forEach(function (cb) {
+                            selected.push(cb.value);
+                        });
+
+                        // CRITICAL: Only update EnabledLibraries if user actually saw the checkboxes!
+                        // If selected is empty, check if we had any checkboxes rendered.
+                        var anyCheckbox = page.querySelector('input[name="enabledLibs"]');
+                        if (anyCheckbox || selected.length > 0) {
+                            config.EnabledLibraries = selected;
+                        } else {
+                            // Safety: If no checkboxes were rendered, do NOT wipe the config. Keep existing.
+                            console.warn("NotifySync: No checkboxes found, preserving existing EnabledLibraries.");
+                            config.EnabledLibraries = NotifySyncConfigurationPage.currentConfig.EnabledLibraries;
+                        }
+
+                        // Manual IDs
+                        var manualStr = page.querySelector('#manualLibraryIds').value;
+                        config.ManualLibraryIds = manualStr ? manualStr.split(',').map(function (s) { return s.trim(); }).filter(function (s) { return s.length > 0; }) : [];
+
+                        // Mappings
+                        config.CategoryMappings = NotifySyncConfigurationPage.currentConfig.CategoryMappings || [];
+
+                        ApiClient.updatePluginConfiguration(NotifySyncConfigurationPage.pluginId, config).then(function (result) {
+                            Dashboard.hideLoadingMsg();
+                            Dashboard.processPluginConfigurationUpdateResult(result);
+                            Dashboard.alert({ message: "Configuration sauvegardée avec succès !" });
+                        }).catch(function (err) {
+                            Dashboard.hideLoadingMsg();
+                            Dashboard.alert({ message: "Erreur de sauvegarde: " + err });
                         });
                     });
                 }
@@ -65,20 +261,8 @@
 
             document.querySelector('#notifySyncConfigForm').addEventListener('submit', function (e) {
                 e.preventDefault();
-                ApiClient.getPluginConfiguration(NotifySyncConfigurationPage.pluginId).then(function (config) {
-                    config.MaxItems = parseInt(document.querySelector('#maxItems').value) || 5;
-                    
-                    // Capture Checkboxes
-                    var selected = [];
-                    document.querySelectorAll('input[name="enabledLibs"]:checked').forEach(function(cb) {
-                        selected.push(cb.value);
-                    });
-                    config.EnabledLibraries = selected;
-
-                    ApiClient.updatePluginConfiguration(NotifySyncConfigurationPage.pluginId, config).then(function (result) {
-                        Dashboard.processPluginConfigurationUpdateResult(result);
-                    });
-                });
+                NotifySyncConfigurationPage.save();
+                return false;
             });
 
             document.addEventListener('pageshow', function (e) {
@@ -89,4 +273,5 @@
         </script>
     </div>
 </body>
+
 </html>

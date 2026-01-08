@@ -1,21 +1,25 @@
 # 🔔 NotifySync
 
-![Version](https://img.shields.io/badge/Version-4.1.0-blue?style=flat-square)
+![Version](https://img.shields.io/badge/Version-4.2.0-blue?style=flat-square)
 ![Jellyfin](https://img.shields.io/badge/Jellyfin-10.11.5%2B-purple?style=flat-square)
 ![Framework](https://img.shields.io/badge/.NET-9.0-512bd4?style=flat-square)
 
 **NotifySync** est un plugin complet pour Jellyfin qui intègre un centre de notifications interactif et moderne directement dans l'en-tête de votre interface utilisateur.
 
 > [!IMPORTANT]
-> **Mise à jour v4.1 "Admin Control"** : Sélectionnez précisément les bibliothèques à surveiller.
+> **Mise à jour v4.2 "Custom Categories"** : Créez vos propres catégories (ex: "Mes Animes") et gérez finement vos bibliothèques.
 
 ---
 
-## ✨ Fonctionnalités (v4.1)
+## ✨ Fonctionnalités (v4.2)
 
-### 🛠️ Contrôle Admin
-*   **Filtrage des Bibliothèques** : Choisissez quelles médiathèques génèrent des notifications (ex: exclure "Vidéos Personnelles").
-*   **Configuration Facile** : Interface simple avec cases à cocher dans le tableau de bord.
+### 🎨 Catégories Personnalisées (Nouveau)
+*   **Mapping Intelligent** : Associez une bibliothèque à une catégorie (ex: La bibliothèque "Jap-Anim" -> Affiche "Anime" dans le menu).
+*   **Filtres Dynamiques** : Le menu génère automatiquement les boutons de filtre en fonction de votre contenu.
+
+### 🛠️ Contrôle Admin Avancé
+*   **Sélection Bibliothèques** : Cochez les bibliothèques actives.
+*   **Mode Manuel** : Si la détection automatique échoue, entrez simplement les IDs manuellement.
 
 ### ⚡ Performances (v4.0)
 *   **JSON Backend** : Stockage fichier plat pour une rapidité extrême.

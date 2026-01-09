@@ -5,6 +5,7 @@ using System.Linq;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Model.IO;
 using Microsoft.Extensions.Logging;
+using System.Threading.Tasks;
 
 namespace NotifySync
 {
@@ -14,16 +15,10 @@ namespace NotifySync
     {
         private static readonly object _configLock = new object();
         private readonly IUserManager _userManager;
-        private readonly ILibraryManager _libraryManager;
-        private readonly IFileSystem _fileSystem;
-        private readonly ILogger<NotificationManager> _logger; // Inject Generic logger for Manager
-
-        public NotifyController(IUserManager userManager, ILibraryManager libraryManager, IFileSystem fileSystem, ILogger<NotificationManager> logger)
+        
+        public NotifyController(IUserManager userManager)
         {
             _userManager = userManager;
-            _libraryManager = libraryManager;
-            _fileSystem = fileSystem;
-            _logger = logger;
         }
 
         [HttpGet("Config")]
@@ -34,33 +29,11 @@ namespace NotifySync
         }
 
         [HttpGet("Data")]
-        [ResponseCache(Duration = 60)] // Cache for 60 seconds
+        [ResponseCache(Duration = 60)]
         public ActionResult GetData()
         {
-            // LAZY INIT (Singleton)
-            if (NotificationManager.Instance == null)
-            {
-                lock (_configLock) // Use existing lock
-                {
-                    if (NotificationManager.Instance == null)
-                    {
-                        new NotificationManager(_libraryManager, _logger, _fileSystem);
-                    }
-                }
-            }
-            
             if (NotificationManager.Instance == null) return Ok(new List<object>());
             return Ok(NotificationManager.Instance.GetRecentNotifications());
-        }
-
-        [HttpGet("Audio/{itemId}")]
-        public ActionResult GetAudio(string itemId)
-        {
-             // Dedicated Audio Endpoint
-            // Logic: Find item, get theme song, stream it.
-            // Simplified for now: Client still queries API or we implement full stream logic later if required.
-            // For now, let's stick to returning Data.
-            return NotFound("Audio proxy not fully implemented yet");
         }
 
         [HttpGet("LastSeen/{userId}")]
@@ -75,7 +48,6 @@ namespace NotifySync
                     return Ok(lastSeenDate);
                 }
             }
-            // Retourne une date ancienne par défaut si rien n'est trouvé
             return Ok("2000-01-01T00:00:00.000Z");
         }
 
@@ -87,16 +59,13 @@ namespace NotifySync
                 lock (_configLock)
                 {
                     var config = Plugin.Instance.Configuration;
-                    
                     bool shouldUpdate = true;
                     
-                    // CORRECTION DU WARNING ICI : Ajout du '?' après string
                     if (config.UserLastSeen.TryGetValue(userId, out string? currentSavedDate))
                     {
                         if (DateTime.TryParse(currentSavedDate, out DateTime saved) && 
                             DateTime.TryParse(date, out DateTime incoming))
                         {
-                            // Si la date entrante est plus vieille que celle sauvegardée, on ignore
                             if (incoming <= saved) shouldUpdate = false;
                         }
                     }
@@ -104,14 +73,13 @@ namespace NotifySync
                     if (shouldUpdate)
                     {
                         config.UserLastSeen[userId] = date;
-                        
-                        // Nettoyage opportuniste (1 chance sur 10) des utilisateurs supprimés
+                        Plugin.Instance.UpdateConfiguration(config);
+
+                        // Nettoyage en tâche de fond (Fire and Forget) pour ne pas ralentir la réponse
                         if (new Random().Next(0, 10) == 0) 
                         {
-                            CleanupUsers(config);
+                            Task.Run(() => CleanupUsers(config));
                         }
-
-                        Plugin.Instance.UpdateConfiguration(config);
                     }
                 }
             }
@@ -122,18 +90,21 @@ namespace NotifySync
         {
             try 
             {
-                var validUserIds = _userManager.Users.Select(u => u.Id.ToString("N")).ToHashSet();
-                // Nettoyage des IDs qui ne sont plus dans Jellyfin
-                var keysToRemove = config.UserLastSeen.Keys
-                    .Where(k => !validUserIds.Contains(k.Replace("-", "")))
-                    .ToList();
-
-                foreach (var key in keysToRemove)
+                lock(_configLock) 
                 {
-                    config.UserLastSeen.Remove(key);
+                    var validUserIds = _userManager.Users.Select(u => u.Id.ToString("N")).ToHashSet();
+                    var keysToRemove = config.UserLastSeen.Keys
+                        .Where(k => !validUserIds.Contains(k.Replace("-", "")))
+                        .ToList();
+
+                    if (keysToRemove.Any())
+                    {
+                        foreach (var key in keysToRemove) config.UserLastSeen.Remove(key);
+                        Plugin.Instance?.UpdateConfiguration(config);
+                    }
                 }
             }
-            catch { /* Ignorer pour éviter un crash serveur */ }
+            catch { /* Sécurité anti-crash */ }
         }
 
         [HttpGet("Client.js")]

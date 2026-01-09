@@ -12,11 +12,12 @@ using System.Reflection;
 
 [assembly: System.Reflection.AssemblyCompanyAttribute("NotifySync")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
-[assembly: System.Reflection.AssemblyFileVersionAttribute("4.2.1.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("4.2.1+2e7c6f261318c3e167f9e959cb929ce8bfe33e0a")]
+[assembly: System.Reflection.AssemblyDescriptionAttribute("Notification center for Jellyfin (Netflix style)")]
+[assembly: System.Reflection.AssemblyFileVersionAttribute("4.2.2.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("4.2.2")]
 [assembly: System.Reflection.AssemblyProductAttribute("NotifySync")]
 [assembly: System.Reflection.AssemblyTitleAttribute("NotifySync")]
-[assembly: System.Reflection.AssemblyVersionAttribute("4.2.1.0")]
+[assembly: System.Reflection.AssemblyVersionAttribute("4.2.2.0")]
 
 // Généré par la classe MSBuild WriteCodeFragment.
 

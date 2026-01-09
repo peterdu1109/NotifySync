@@ -1595,23 +1595,24 @@
   "projectFileDependencyGroups": {
     "net9.0": [
       "Jellyfin.Controller >= 10.11.5",
+      "Jellyfin.Data >= 10.11.5",
       "Jellyfin.Model >= 10.11.5"
     ]
   },
   "packageFolders": {
-    "C:\\Users\\peter\\.nuget\\packages\\": {}
+    "C:\\Users\\eliem\\.nuget\\packages\\": {}
   },
   "project": {
-    "version": "4.2.1",
+    "version": "4.2.2",
     "restore": {
-      "projectUniqueName": "C:\\Users\\peter\\Documents\\GitHub\\NotifySync\\NotifySync.csproj",
+      "projectUniqueName": "C:\\Users\\eliem\\Documents\\NotifySync-main\\NotifySync.csproj",
       "projectName": "NotifySync",
-      "projectPath": "C:\\Users\\peter\\Documents\\GitHub\\NotifySync\\NotifySync.csproj",
-      "packagesPath": "C:\\Users\\peter\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\peter\\Documents\\GitHub\\NotifySync\\obj\\",
+      "projectPath": "C:\\Users\\eliem\\Documents\\NotifySync-main\\NotifySync.csproj",
+      "packagesPath": "C:\\Users\\eliem\\.nuget\\packages\\",
+      "outputPath": "C:\\Users\\eliem\\Documents\\NotifySync-main\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
-        "C:\\Users\\peter\\AppData\\Roaming\\NuGet\\NuGet.Config"
+        "C:\\Users\\eliem\\AppData\\Roaming\\NuGet\\NuGet.Config"
       ],
       "originalTargetFrameworks": [
         "net9.0"
@@ -1645,6 +1646,10 @@
             "target": "Package",
             "version": "[10.11.5, )"
           },
+          "Jellyfin.Data": {
+            "target": "Package",
+            "version": "[10.11.5, )"
+          },
           "Jellyfin.Model": {
             "target": "Package",
             "version": "[10.11.5, )"
@@ -1669,7 +1674,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.308/PortableRuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.307/PortableRuntimeIdentifierGraph.json"
       }
     }
   }

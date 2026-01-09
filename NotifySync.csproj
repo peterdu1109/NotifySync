@@ -3,15 +3,17 @@
     <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <Version>4.2.1</Version>
+    <Version>4.2.2</Version>
     <Authors>PeterDu1109</Authors>
     <Company>NotifySync</Company>
     <Product>NotifySync</Product>
+    <Description>Notification center for Jellyfin (Netflix style)</Description>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Jellyfin.Controller" Version="10.11.5" />
     <PackageReference Include="Jellyfin.Model" Version="10.11.5" />
+    <PackageReference Include="Jellyfin.Data" Version="10.11.5" />
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
   

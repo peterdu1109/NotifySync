@@ -48,46 +48,65 @@ namespace NotifySync
             _libraryManager.ItemRemoved += OnItemRemoved;
         }
 
+        public void Refresh()
+        {
+            lock (_lock)
+            {
+                _notifications.Clear();
+            }
+            PopulateInitialHistory();
+            SaveNotifications();
+        }
+
         private void PopulateInitialHistory()
         {
             try
             {
+                // SCAN LARGE (300 items) pour trouver de la diversité
                 var query = new InternalItemsQuery
                 {
-                    // 1. Les types d'items (Jellyfin.Data)
-                    IncludeItemTypes = new[] { 
-                        BaseItemKind.Movie, 
-                        BaseItemKind.Episode, 
-                        BaseItemKind.MusicAlbum 
-                    },
-                    
-                    // 2. L'ordre de tri (CORRIGÉ GRÂCE AU MESSAGE D'ERREUR)
-                    // On utilise les types exacts demandés par le compilateur
-                    OrderBy = new[] { 
-                        (Jellyfin.Data.Enums.ItemSortBy.DateCreated, Jellyfin.Database.Implementations.Enums.SortOrder.Descending) 
-                    },
-                    
-                    Limit = 10,
+                    IncludeItemTypes = new[] { BaseItemKind.Movie, BaseItemKind.Episode, BaseItemKind.MusicAlbum },
+                    OrderBy = new[] { (Jellyfin.Data.Enums.ItemSortBy.DateCreated, Jellyfin.Database.Implementations.Enums.SortOrder.Descending) },
+                    Limit = 300, 
                     Recursive = true,
                     IsVirtualItem = false
                 };
 
                 var items = _libraryManager.GetItemList(query);
-
+                var tempNotifs = new List<NotificationItem>();
+                
                 foreach (var item in items)
                 {
                     var notif = CreateNotificationFromItem(item);
-                    if (notif != null)
-                    {
-                        _notifications.Add(notif);
-                    }
+                    if (notif != null) tempNotifs.Add(notif);
                 }
-                
-                if (_notifications.Count > 0) SaveNotifications();
+
+                // Application des quotas par catégorie
+                ApplyCategoryQuotas(tempNotifs);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Erreur lors du scan initial de l'historique.");
+                _logger.LogError(ex, "Erreur scan historique.");
+            }
+        }
+
+        private void ApplyCategoryQuotas(List<NotificationItem> newItems)
+        {
+            var config = Plugin.Instance?.Configuration;
+            int limitPerCat = config?.MaxItems ?? 5; 
+            if (limitPerCat < 3) limitPerCat = 3;
+
+            lock (_lock)
+            {
+                _notifications.AddRange(newItems);
+
+                // --- ALGORITHME DE QUOTAS ---
+                // Garde les X meilleurs de chaque catégorie
+                _notifications = _notifications
+                    .GroupBy(n => n.Category)
+                    .SelectMany(g => g.OrderByDescending(x => x.DateCreated).Take(limitPerCat))
+                    .OrderByDescending(x => x.DateCreated)
+                    .ToList();
             }
         }
 
@@ -103,11 +122,7 @@ namespace NotifySync
                         _notifications = JsonSerializer.Deserialize<List<NotificationItem>>(json) ?? new List<NotificationItem>();
                     }
                 }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Error loading notifications.json");
-                    _notifications = new List<NotificationItem>();
-                }
+                catch { _notifications = new List<NotificationItem>(); }
             }
         }
 
@@ -120,10 +135,7 @@ namespace NotifySync
                     var json = JsonSerializer.Serialize(_notifications);
                     File.WriteAllText(_jsonPath, json);
                 }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Error saving notifications.json");
-                }
+                catch (Exception ex) { _logger.LogError(ex, "Erreur sauvegarde notifications."); }
             }
         }
 
@@ -132,11 +144,7 @@ namespace NotifySync
             var notif = CreateNotificationFromItem(e.Item);
             if (notif != null)
             {
-                lock (_lock)
-                {
-                    _notifications.Insert(0, notif);
-                    if (_notifications.Count > 50) _notifications = _notifications.Take(50).ToList();
-                }
+                ApplyCategoryQuotas(new List<NotificationItem> { notif });
                 SaveNotifications();
             }
         }
@@ -151,54 +159,53 @@ namespace NotifySync
 
             if (!isMovie && !isEpisode && !isMusic) return null;
 
-            var config = Plugin.Instance!.Configuration;
-            var allowedLibraryIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            
-            if (config.EnabledLibraries != null) foreach (var id in config.EnabledLibraries) allowedLibraryIds.Add(id);
-            if (config.ManualLibraryIds != null) foreach(var id in config.ManualLibraryIds) allowedLibraryIds.Add(id);
+            var config = Plugin.Instance?.Configuration;
+            if (config == null) return null;
+
+            // --- DETECTION ROBUSTE (Nom ou ID) ---
+            var allParents = item.GetParents().ToList();
+            var rootLibrary = _libraryManager.GetCollectionFolders(item).FirstOrDefault();
+            if (rootLibrary != null && !allParents.Contains(rootLibrary)) allParents.Add(rootLibrary);
+
+            var enabledIds = config.EnabledLibraries ?? new List<string>();
+            var manualEntries = config.ManualLibraryIds ?? new List<string>();
+            manualEntries = manualEntries.Select(x => x.Trim()).Where(x => !string.IsNullOrEmpty(x)).ToList();
 
             string? matchedLibraryId = null;
+            bool isAllowed = false;
 
-            if (allowedLibraryIds.Count > 0)
+            if (enabledIds.Count == 0 && manualEntries.Count == 0)
             {
-                bool isAllowed = false;
-                var current = item;
-                while (current != null)
+                isAllowed = true;
+                if (rootLibrary != null) matchedLibraryId = rootLibrary.Id.ToString();
+            }
+            else
+            {
+                foreach (var parent in allParents)
                 {
-                    if (allowedLibraryIds.Contains(current.Id.ToString()) || allowedLibraryIds.Contains(current.Id.ToString("N")))
-                    {
-                        isAllowed = true;
-                        matchedLibraryId = current.Id.ToString();
-                        break;
-                    }
-                    current = current.GetParent();
-                    if (current is AggregateFolder) break;
+                    string pId = parent.Id.ToString();
+                    string pIdSimple = parent.Id.ToString("N");
+                    string pName = parent.Name;
+
+                    if (enabledIds.Contains(pId) || enabledIds.Contains(pIdSimple)) { isAllowed = true; matchedLibraryId = pId; break; }
+                    if (manualEntries.Any(m => m.Equals(pId, StringComparison.OrdinalIgnoreCase) || m.Equals(pIdSimple, StringComparison.OrdinalIgnoreCase))) { isAllowed = true; matchedLibraryId = pId; break; }
+                    if (manualEntries.Any(m => m.Equals(pName, StringComparison.OrdinalIgnoreCase))) { isAllowed = true; matchedLibraryId = pId; break; }
                 }
-                if (!isAllowed) return null;
             }
 
+            if (!isAllowed) return null;
+
+            // --- CATEGORIES ---
             string category = "Movie";
             if (isEpisode) category = "Series";
             else if (isMusic) category = "Music";
 
-            if (matchedLibraryId == null)
-            {
-                 var current = item;
-                 while(current != null)
-                 {
-                     var parent = current.GetParent();
-                     if (parent is AggregateFolder || parent == null) 
-                     {
-                         matchedLibraryId = current.Id.ToString();
-                         break;
-                     }
-                     current = parent;
-                 }
-            }
-
             if (matchedLibraryId != null && config.CategoryMappings != null)
             {
-                var mapping = config.CategoryMappings.FirstOrDefault(m => m.LibraryId == matchedLibraryId);
+                var mapping = config.CategoryMappings.FirstOrDefault(m => 
+                    string.Equals(m.LibraryId, matchedLibraryId, StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(m.LibraryId, matchedLibraryId.Replace("-", ""), StringComparison.OrdinalIgnoreCase));
+                
                 if (mapping != null && !string.IsNullOrEmpty(mapping.CategoryName))
                 {
                     category = mapping.CategoryName;
@@ -207,10 +214,7 @@ namespace NotifySync
 
             var backdropTags = new List<string>();
             var imgInfo = item.GetImageInfo(ImageType.Backdrop, 0);
-            if (imgInfo != null)
-            {
-                backdropTags.Add(imgInfo.DateModified.Ticks.ToString("x"));
-            }
+            if (imgInfo != null) backdropTags.Add(imgInfo.DateModified.Ticks.ToString("x"));
 
             return new NotificationItem
             {
@@ -223,12 +227,8 @@ namespace NotifySync
                 Type = item.GetType().Name,
                 RunTimeTicks = item.RunTimeTicks,
                 ProductionYear = item.ProductionYear,
-                CommunityRating = item.CommunityRating,
                 Overview = item.Overview,
-                Genres = item.Genres.ToList(),
-                BackdropImageTags = backdropTags,
-                ParentIndexNumber = (item as MediaBrowser.Controller.Entities.TV.Episode)?.ParentIndexNumber,
-                IndexNumber = (item as MediaBrowser.Controller.Entities.TV.Episode)?.IndexNumber
+                BackdropImageTags = backdropTags
             };
         }
 
@@ -253,16 +253,16 @@ namespace NotifySync
 
         public List<NotificationItem> GetRecentNotifications()
         {
-            lock (_lock)
-            {
-                return _notifications.ToList();
-            }
+            lock (_lock) { return _notifications.ToList(); }
         }
 
         public void Dispose()
         {
-            _libraryManager.ItemAdded -= OnItemAdded;
-            _libraryManager.ItemRemoved -= OnItemRemoved;
+            if (_libraryManager != null)
+            {
+                _libraryManager.ItemAdded -= OnItemAdded;
+                _libraryManager.ItemRemoved -= OnItemRemoved;
+            }
             _cleanupTimer?.Dispose();
         }
     }
@@ -278,11 +278,7 @@ namespace NotifySync
         public string Type { get; set; } = string.Empty;
         public long? RunTimeTicks { get; set; }
         public int? ProductionYear { get; set; }
-        public float? CommunityRating { get; set; }
         public string? Overview { get; set; }
-        public List<string> Genres { get; set; } = new List<string>();
         public List<string> BackdropImageTags { get; set; } = new List<string>();
-        public int? ParentIndexNumber { get; set; }
-        public int? IndexNumber { get; set; }
     }
 }

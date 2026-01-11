@@ -3,8 +3,6 @@ using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
 using System.Linq;
 using MediaBrowser.Controller.Library;
-using MediaBrowser.Model.IO;
-using Microsoft.Extensions.Logging;
 using System.Threading.Tasks;
 
 namespace NotifySync
@@ -21,11 +19,15 @@ namespace NotifySync
             _userManager = userManager;
         }
 
-        [HttpGet("Config")]
-        public ActionResult GetConfig()
+        [HttpPost("Refresh")]
+        public ActionResult Refresh()
         {
-            if (Plugin.Instance == null) return NotFound();
-            return Ok(Plugin.Instance.Configuration);
+            if (NotificationManager.Instance != null)
+            {
+                NotificationManager.Instance.Refresh();
+                return Ok("Refreshed");
+            }
+            return NotFound();
         }
 
         [HttpGet("Data")]
@@ -39,14 +41,11 @@ namespace NotifySync
         [HttpGet("LastSeen/{userId}")]
         public ActionResult GetLastSeen(string userId)
         {
-            if (Plugin.Instance == null) return Ok("");
-            
+            if (Plugin.Instance == null) return Ok("2000-01-01T00:00:00.000Z");
             lock (_configLock)
             {
                 if (Plugin.Instance.Configuration.UserLastSeen.TryGetValue(userId, out var lastSeenDate))
-                {
                     return Ok(lastSeenDate);
-                }
             }
             return Ok("2000-01-01T00:00:00.000Z");
         }
@@ -59,28 +58,10 @@ namespace NotifySync
                 lock (_configLock)
                 {
                     var config = Plugin.Instance.Configuration;
-                    bool shouldUpdate = true;
+                    config.UserLastSeen[userId] = date;
+                    Plugin.Instance.UpdateConfiguration(config);
                     
-                    if (config.UserLastSeen.TryGetValue(userId, out string? currentSavedDate))
-                    {
-                        if (DateTime.TryParse(currentSavedDate, out DateTime saved) && 
-                            DateTime.TryParse(date, out DateTime incoming))
-                        {
-                            if (incoming <= saved) shouldUpdate = false;
-                        }
-                    }
-
-                    if (shouldUpdate)
-                    {
-                        config.UserLastSeen[userId] = date;
-                        Plugin.Instance.UpdateConfiguration(config);
-
-                        // Nettoyage en tâche de fond (Fire and Forget) pour ne pas ralentir la réponse
-                        if (new Random().Next(0, 10) == 0) 
-                        {
-                            Task.Run(() => CleanupUsers(config));
-                        }
-                    }
+                    if (new Random().Next(0, 20) == 0) Task.Run(() => CleanupUsers(config));
                 }
             }
             return Ok();
@@ -104,7 +85,7 @@ namespace NotifySync
                     }
                 }
             }
-            catch { /* Sécurité anti-crash */ }
+            catch { }
         }
 
         [HttpGet("Client.js")]
@@ -112,8 +93,7 @@ namespace NotifySync
         public ActionResult GetScript()
         {
             var assembly = typeof(NotifyController).Assembly;
-            var resourceName = "NotifySync.client.js";
-            var stream = assembly.GetManifestResourceStream(resourceName);
+            var stream = assembly.GetManifestResourceStream("NotifySync.client.js");
             if (stream == null) return NotFound();
             return File(stream, "application/javascript");
         }

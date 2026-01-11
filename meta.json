@@ -2,34 +2,18 @@
   "category": "UI",
   "guid": "95655672-2342-4321-8291-321312312312",
   "name": "NotifySync",
-  "description": "A notification center for Jellyfin that integrates a Netflix-style dropdown bell in the header.",
+  "description": "Centre de notifications intelligent (Quotas, Musique, Synchro 'Vu' réelle).",
   "owner": "NotifySync",
-  "overview": "Adds a notification bell to the Jellyfin header. Features: New item notifications, 'Skeleton' loading, Lazy loading images, Admin library selection, and a robust Overlay UI.",
+  "overview": "Cloche de notification avancée. Fonctionnalités : Quotas par catégorie (ex: 5 films + 5 séries), Support Musique, Synchro 'Vu' chirurgicale, Interface Clean.",
   "url": "https://github.com/peterdu1109/NotifySync",
   "versions": [
     {
-      "version": "4.2.2",
-      "changelog": "- **Critical Fix**: Fixed 'SortOrder' compilation error for Jellyfin 10.11.5+ (API Change).\n- **History Restore**: Re-enabled initial history scan (populates notifications instantly on first install).\n- **Stability**: Implemented IDisposable for better resource cleanup on plugin reload.",
+      "version": "4.3.18",
+      "changelog": "- **Synchro Chirurgicale**: Vérification individuelle du statut 'Vu' auprès de la base de données (100% fiable).\n- **Clean UI**: Suppression du badge rouge global. Indication visuelle discrète (bordure rouge) pour les non-vus.\n- **Quotas Intelligents**: Garde les N derniers éléments de CHAQUE catégorie (Films, Séries, Musique).\n- **Support Musique**: Gestion des albums et pochettes carrées.\n- **Bulldozer**: Détection des bibliothèques par Nom ou ID.",
       "targetAbi": "10.11.5.0",
-      "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/v4.2.2/NotifySync.zip",
-      "checksum": "CD0D279667337D3833D2FEFBC42DB714",
-      "timestamp": "2026-01-09T20:00:00Z"
-    },
-    {
-      "version": "4.2.1",
-      "changelog": "- **Hotfix**: Resolved startup crash due to configuration serialization.\n- **Custom Categories**: Map libraries to 'Anime', 'Docs', etc.\n- **Admin Controls**: Manual Library ID entry for robust config.\n- **Dynamic Filters**: Client auto-generates filter pills based on content.",
-      "targetAbi": "10.11.5.0",
-      "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/v4.2.1/NotifySync.zip",
-      "checksum": "{CHECKSUM_HERE}",
-      "timestamp": "2026-01-08T22:30:00Z"
-    },
-    {
-      "version": "4.1.0",
-      "changelog": "- **Admin Powers**: Select specific libraries to monitor in Plugin Config.\n- **Performance**: Full JSON-backend architecture with server-side caching.\n- **UI**: Lazy Loading images and Skeleton UI for instant feedback.\n- **Stability**: Robust Overlay with Backdrop protection.",
-      "targetAbi": "10.11.5.0",
-      "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/v4.1.0/NotifySync.zip",
-      "checksum": "{CHECKSUM_HERE}",
-      "timestamp": "2025-11-20T12:00:00Z"
+      "sourceUrl": "",
+      "checksum": "",
+      "timestamp": "2026-01-12T18:00:00Z"
     }
   ]
 }

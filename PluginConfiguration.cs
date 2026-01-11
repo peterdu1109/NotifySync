@@ -8,14 +8,8 @@ namespace NotifySync.Configuration
     public class PluginConfiguration : BasePluginConfiguration
     {
         public int MaxItems { get; set; } = 5;
-        
-        // Liste des IDs de bibliothèques cochées dans l'UI
         public List<string> EnabledLibraries { get; set; } = new List<string>();
-
-        // Liste de secours manuelle
         public List<string> ManualLibraryIds { get; set; } = new List<string>();
-        
-        // Mappings pour renommer les catégories
         public List<CategoryMapping> CategoryMappings { get; set; } = new List<CategoryMapping>();
 
         [XmlIgnore]
@@ -30,10 +24,7 @@ namespace NotifySync.Configuration
         [XmlElement("UserLastSeenEntries")]
         public List<UserSeenEntry> UserLastSeenXml
         {
-            get
-            {
-                return UserLastSeen.Select(kv => new UserSeenEntry { UserId = kv.Key, ItemId = kv.Value }).ToList();
-            }
+            get => UserLastSeen.Select(kv => new UserSeenEntry { UserId = kv.Key, ItemId = kv.Value }).ToList();
             set
             {
                 UserLastSeen = new Dictionary<string, string>();
@@ -42,9 +33,7 @@ namespace NotifySync.Configuration
                     foreach (var entry in value)
                     {
                         if (!string.IsNullOrEmpty(entry.UserId) && !UserLastSeen.ContainsKey(entry.UserId))
-                        {
                             UserLastSeen[entry.UserId] = entry.ItemId;
-                        }
                     }
                 }
             }

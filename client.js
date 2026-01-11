@@ -1,20 +1,16 @@
-/* NOTIFYSYNC V4.2.2 */
+/* NOTIFYSYNC V4.3.18 - SURGICAL CHECK MODE */
 (function () {
     let currentData = null;
     let groupedData = null;
-    let observer = null;
-    let lastCount = 0;
     let isFetching = false;
     let activeFilter = 'All';
     let pollInterval = 60000;
-
-    const PLUGIN_ID = "95655672-2342-4321-8291-321312312312";
+    
     const SOUND_KEY = 'notifysync_muted';
-    const SNAPSHOT_KEY = 'notifysync_snapshot';
-
+    
     const STRINGS = {
-        fr: { header: "Notifications", empty: "Tout est calme...", markAll: "Tout vu", recent: "À l'instant", badgeNew: "NOUVEAU", newEps: "épisodes", badgeMovie: "FILM", badgeSeries: "SÉRIE", badgeMusic: "MUSIQUE", filterAll: "Tout", filterMovies: "Films", filterSeries: "Séries", filterAnime: "Animes", filterMusic: "Musique", play: "Lecture", refresh: "Actualiser" },
-        en: { header: "Notifications", empty: "All caught up!", markAll: "Mark all read", recent: "Just now", badgeNew: "NEW", newEps: "episodes", badgeMovie: "MOVIE", badgeSeries: "SERIES", badgeMusic: "MUSIC", filterAll: "All", filterMovies: "Movies", filterSeries: "Series", filterAnime: "Anime", filterMusic: "Music", play: "Play", refresh: "Refresh" }
+        fr: { header: "Derniers Ajouts", empty: "Aucun média...", markAll: "Tout marquer comme vu", badgeNew: "NOUVEAU", newEps: "épisodes", filterAll: "Tout" },
+        en: { header: "Latest Media", empty: "No media...", markAll: "Mark all read", badgeNew: "NEW", newEps: "episodes", filterAll: "All" }
     };
     const userLang = navigator.language || navigator.userLanguage;
     const T = userLang.startsWith('fr') ? STRINGS.fr : STRINGS.en;
@@ -22,135 +18,122 @@
     let hoverAudio = null;
     let hoverTimeout = null;
 
+    // --- CSS ---
     const injectStyles = () => {
         if (document.getElementById('notifysync-css')) return;
         const css = `
-            :root { --ns-red: #e50914; --ns-dark: #181818; }
+            :root { --ns-red: #e50914; --ns-dark: #141414; }
             #bell-container{display:flex!important;align-items:center;justify-content:center;z-index:1000}
-            #netflix-bell{display:flex!important;visibility:visible!important;opacity:1!important;position:relative;background:0 0;border:none;cursor:pointer;padding:10px;color:inherit}
-            .notification-dot{position:absolute;top:4px;right:4px;min-width:15px;height:15px;padding:0 4px;background-color:var(--ns-red);border-radius:10px;opacity:0;pointer-events:none;transition:opacity .3s;display:flex!important;align-items:center;justify-content:center;color:#fff!important;font-size:9px!important;font-weight:700;box-shadow:0 0 5px rgba(0,0,0,.5);z-index:2}
+            #netflix-bell{background:0 0;border:none;cursor:pointer;padding:10px;color:inherit;position:relative}
             
-            #notify-backdrop { position: fixed; inset: 0; z-index: 999998; display: none; cursor: default; }
-            #notification-dropdown{position:fixed;top:70px;right:20px;width:380px;max-width:90vw;background:var(--ns-dark);color:#fff;border:1px solid rgba(255,255,255,.1);border-radius:8px;box-shadow:0 0 50px rgba(0,0,0,.8);z-index:999999;display:none;overflow:hidden; font-family: 'Netflix Sans', sans-serif; animation: dropIn 0.2s ease;}
-            @keyframes dropIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+            #notify-backdrop { position: fixed; inset: 0; z-index: 999998; display: none; }
+            #notification-dropdown{position:fixed;top:70px;right:20px;width:380px;max-width:90vw;background:var(--ns-dark);color:#fff;border:1px solid #333;border-radius:6px;box-shadow:0 10px 40px rgba(0,0,0,0.8);z-index:999999;display:none; font-family: sans-serif; animation: dropIn 0.2s ease;}
             
-            .dropdown-header { display:flex;justify-content:space-between;padding:15px;background:#000; border-bottom: 1px solid rgba(255,255,255,0.1); }
+            .dropdown-header { display:flex;justify-content:space-between;padding:15px;border-bottom: 1px solid #333; background:#000; align-items:center;}
             .header-tools { display:flex; gap:15px; }
-            .tool-icon { cursor:pointer; opacity:0.7; transition:opacity 0.2s; }
+            .tool-icon { cursor:pointer; opacity:0.7; transition:opacity 0.2s; font-size: 20px; }
             .tool-icon:hover { opacity:1; }
-
-            .filter-bar { padding: 12px 15px; display: flex; gap: 10px; border-bottom: 1px solid rgba(255,255,255,0.1); background: rgba(30,30,30,0.95); backdrop-filter: blur(10px); position: sticky; top: 0; z-index: 10; overflow-x: auto; }
-            .filter-pill { font-size: 11px; padding: 5px 12px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.3); cursor: pointer; transition: all 0.2s; opacity: 0.7; white-space: nowrap; }
-            .filter-pill:hover { border-color: #fff; opacity: 1; }
+            .filter-bar { padding: 10px; display: flex; gap: 8px; border-bottom: 1px solid #333; overflow-x: auto; background: #1a1a1a; }
+            .filter-pill { font-size: 11px; padding: 4px 12px; border-radius: 20px; border: 1px solid #555; cursor: pointer; opacity: 0.8; white-space: nowrap; }
             .filter-pill.active { background: #fff; color: #000; border-color: #fff; opacity: 1; font-weight: bold; }
+            .list-container { max-height: 450px; overflow-y: auto; }
+            
+            .dropdown-item{display:flex;padding:12px;border-bottom:1px solid #222;cursor:pointer;transition: background .2s;}
+            .dropdown-item:hover{background:#222;}
+            
+            /* --- STYLE CLEAN --- */
+            /* NON VU : Bordure Rouge + Fond léger */
+            .dropdown-item.style-new { 
+                border-left: 3px solid var(--ns-red); 
+                background: rgba(255,255,255,0.05); 
+            }
+            /* VU : Normal (Transparent) */
+            .dropdown-item.style-seen { 
+                border-left: 3px solid transparent; 
+                opacity: 1; 
+            }
 
-            .list-container { max-height: 400px; overflow-y: auto; overflow-x: hidden; }
-            .list-container::-webkit-scrollbar { width: 6px; }
-            .list-container::-webkit-scrollbar-thumb { background: #444; border-radius: 3px; }
-
-            .skeleton-box { background: #333; position: relative; overflow: hidden; border-radius: 4px; }
-            .skeleton-box::after { position: absolute; top: 0; right: 0; bottom: 0; left: 0; transform: translateX(-100%); background-image: linear-gradient(90deg, rgba(255, 255, 255, 0) 0, rgba(255, 255, 255, 0.05) 20%, rgba(255, 255, 255, 0.1) 60%, rgba(255, 255, 255, 0) 100%); animation: shimmer 2s infinite; content: ''; }
-            @keyframes shimmer { 100% { transform: translateX(100%); } }
-            .sk-item { padding: 12px; display: flex; align-items: flex-start; gap: 12px; border-bottom: 1px solid rgba(255,255,255,.05); }
-            .sk-thumb { width: 90px; height: 56px; }
-            .sk-lines { flex: 1; display: flex; flex-direction: column; gap: 6px; }
-            .sk-line { height: 10px; width: 60%; }
-            .sk-line.short { width: 40%; }
-
-            .dropdown-item{display:flex;align-items:flex-start;padding:12px;border-bottom:1px solid rgba(255,255,255,.05);cursor:pointer;position:relative;transition: background .2s;}
-            .dropdown-item:hover{background:#252525;}
-            .thumb-wrapper{position:relative;width:90px;height:56px;margin-right:12px;flex-shrink:0;overflow:hidden;border-radius:4px;background: #222; }
+            .thumb-wrapper{width:100px;height:56px;margin-right:12px;flex-shrink:0;background:#333;border-radius:4px;overflow:hidden; display:flex; justify-content:center; align-items:center;}
             .dropdown-thumb{width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity 0.3s;}
+            .dropdown-thumb.music-thumb{object-fit:contain;}
             .dropdown-thumb.loaded{opacity:1;}
+            .dropdown-info{flex:1;display:flex;flex-direction:column;justify-content:center;}
+            .dropdown-title{font-weight:700;font-size:13px;margin-bottom:3px; line-height:1.2;}
+            .dropdown-subtitle{font-size:11px;color:#aaa;}
             
-            .dropdown-info{flex:1;min-width:0;display:flex;flex-direction:column;}
-            .dropdown-title{font-weight:700;font-size:13px;margin-bottom:2px; line-height:1.2;}
-            .dropdown-subtitle{font-size:11px;color:#bbb;margin-bottom:4px;}
-            .metadata-line { display: flex; gap: 8px; font-size: 10px; color: #888; align-items: center; }
+            .hero-section { position: relative; height: 180px; cursor: pointer; display: flex; align-items: flex-end; }
+            .hero-bg { position: absolute; inset: 0; background-size: cover; background-position: center; transition: transform 4s ease; }
+            .hero-content { position: relative; z-index: 2; padding: 15px; width:100%; }
+            .hero-overlay { position: absolute; inset: 0; background: linear-gradient(to top, #141414 0%, transparent 100%); }
             
-            .hero-section { position: relative; height: 200px; width: 100%; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end; cursor: pointer; }
-            .hero-bg { position: absolute; inset: 0; background-size: cover; background-position: center; transition: transform 6s ease; }
-            .hero-section:hover .hero-bg { transform: scale(1.05); }
-            .hero-overlay { position: absolute; inset: 0; background: linear-gradient(to top, #181818 0%, rgba(20,20,20,0.6) 50%, rgba(0,0,0,0.3) 100%); }
-            .hero-content { position: relative; z-index: 2; padding: 15px; width: 100%; box-sizing: border-box; }
-            .hero-title { font-size: 18px; font-weight: 800; text-shadow: 0 1px 2px rgba(0,0,0,0.8); margin-bottom: 5px; }
-
-            #notifysync-toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:#fff;color:#000;padding:10px 24px;border-radius:4px;font-weight:bold;z-index:10000;opacity:0;transition:opacity .3s,transform .3s;pointer-events:none;}#notifysync-toast.visible{opacity:1;transform:translateX(-50%) translateY(-10px)}
+            #notifysync-toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#fff;color:#000;padding:8px 20px;border-radius:20px;font-weight:bold;z-index:10000;opacity:0;transition:opacity .3s;pointer-events:none;}
+            #notifysync-toast.visible{opacity:1;}
         `;
         const style = document.createElement('style'); style.id = 'notifysync-css'; style.textContent = css; document.head.appendChild(style);
         if (!document.getElementById('notifysync-toast')) { const t = document.createElement('div'); t.id = 'notifysync-toast'; document.body.appendChild(t); }
     };
 
-    const getRemoteLastSeenDate = async (uid) => { try { const r = await fetch(`/NotifySync/LastSeen/${uid}?t=` + Date.now()); if (r.ok) return await r.text(); } catch (e) { } return "2000-01-01T00:00:00.000Z"; };
-    const setRemoteLastSeenDate = async (uid, dateStr) => { try { await fetch(`/NotifySync/LastSeen/${uid}?date=${encodeURIComponent(dateStr)}`, { method: 'POST' }); } catch (e) { } };
-    const showToast = (msg) => { const t = document.getElementById('notifysync-toast'); if (t) { t.innerHTML = msg; t.classList.add('visible'); setTimeout(() => t.classList.remove('visible'), 3000); } };
+    const showToast = (msg) => { const t = document.getElementById('notifysync-toast'); if (t) { t.innerHTML = msg; t.classList.add('visible'); setTimeout(() => t.classList.remove('visible'), 2000); } };
+    const getCategory = (item) => item.Category || 'Movie';
+
+    const processGrouping = (items) => {
+        const g = {}; const r = [];
+        items.forEach(i => {
+            if (i.Type === 'Episode' && i.SeriesName) {
+                if (!g[i.SeriesName]) { 
+                    g[i.SeriesName] = { ...i, IsGroup: true, GroupCount: 1, LatestDate: i.DateCreated }; 
+                    r.push(g[i.SeriesName]); 
+                } else { 
+                    g[i.SeriesName].GroupCount++; 
+                    if(new Date(i.DateCreated) > new Date(g[i.SeriesName].LatestDate)) {
+                        g[i.SeriesName].LatestDate = i.DateCreated;
+                        g[i.SeriesName].Id = i.Id; 
+                        // Le groupe hérite du statut du dernier épisode
+                        g[i.SeriesName].Played = i.Played; 
+                    }
+                }
+            } else { r.push(i); }
+        });
+        return r;
+    };
+
+    const toggleDropdown = () => {
+        const drop = document.getElementById('notification-dropdown');
+        const backdrop = document.getElementById('notify-backdrop');
+        if (!drop) return;
+        const isOpen = drop.style.display === 'block';
+        if (!isOpen) {
+            refreshPlayStates().then(() => {
+                drop.style.display = 'block'; backdrop.style.display = 'block';
+                updateList(drop);
+            });
+        } else {
+            drop.style.display = 'none'; backdrop.style.display = 'none';
+            stopHoverSound();
+        }
+    };
 
     const playHoverSound = (itemId) => {
         if (localStorage.getItem(SOUND_KEY) === 'true') return;
-        if (hoverTimeout) clearTimeout(hoverTimeout);
         if (hoverAudio) { hoverAudio.pause(); hoverAudio = null; }
+        clearTimeout(hoverTimeout);
         hoverTimeout = setTimeout(async () => {
             const client = window.ApiClient;
             try {
                 const songs = await client.getThemeSongs(client.getCurrentUserId(), itemId);
                 if (songs && songs.Items.length > 0) {
                     hoverAudio = new Audio(client.getUrl(`Audio/${songs.Items[0].Id}/stream`));
-                    hoverAudio.volume = 0; hoverAudio.play();
-                    let v = 0; const f = setInterval(() => { v += 0.05; if (v >= 0.3) { v = 0.3; clearInterval(f); } hoverAudio.volume = v; }, 200);
+                    hoverAudio.volume = 0.2; hoverAudio.play().catch(() => {});
                 }
-            } catch (e) { }
-        }, 800);
+            } catch (e) {}
+        }, 600);
     };
-    const stopHoverSound = () => {
-        if (hoverTimeout) clearTimeout(hoverTimeout);
-        if (hoverAudio) {
-            let a = hoverAudio; hoverAudio = null;
-            let v = a.volume; const f = setInterval(() => { v -= 0.05; if (v <= 0) { a.pause(); clearInterval(f); } else a.volume = v; }, 100);
-        }
-    };
+    const stopHoverSound = () => { clearTimeout(hoverTimeout); if (hoverAudio) { hoverAudio.pause(); hoverAudio = null; } };
 
-    const getCategory = (item) => {
-        return item.Category || 'Movie';
-    };
-
-    const processGrouping = (items) => {
-        const g = {}; const r = [];
-        items.forEach(i => {
-            if (i.Type === 'Episode' && i.SeriesName) {
-                if (!g[i.SeriesName]) { g[i.SeriesName] = { ...i, IsGroup: true, GroupCount: 1, LatestId: i.Id, LatestDate: i.DateCreated }; r.push(g[i.SeriesName]); }
-                else { g[i.SeriesName].GroupCount++; }
-            } else { r.push(i); }
-        });
-        return r;
-    };
-
-    const toggleDropdown = (forceOpen = null) => {
-        const drop = document.getElementById('notification-dropdown');
-        const backdrop = document.getElementById('notify-backdrop');
-        if (!drop || !backdrop) return;
-
-        const isOpen = drop.style.display === 'block';
-        const shouldOpen = forceOpen !== null ? forceOpen : !isOpen;
-
-        if (shouldOpen) {
-            drop.style.display = 'block';
-            backdrop.style.display = 'block';
-            renderFilters(drop);
-            updateList(drop);
-        } else {
-            drop.style.display = 'none';
-            backdrop.style.display = 'none';
-            stopHoverSound();
-        }
-    };
-
-    const renderFilters = (drop) => {
+    const renderFilters = (drop, items) => {
         const bar = drop.querySelector('.filter-bar');
-        if (!bar) return;
         const cats = new Set(['All']);
-        if (groupedData) {
-            groupedData.forEach(i => cats.add(getCategory(i)));
-        }
+        items.forEach(i => cats.add(getCategory(i)));
         let html = '';
         cats.forEach(c => {
             const label = T['filter' + c] || c; 
@@ -160,190 +143,196 @@
         bar.innerHTML = html;
         bar.querySelectorAll('.filter-pill').forEach(pill => {
             pill.onclick = (e) => {
-                bar.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
-                e.target.classList.add('active');
                 activeFilter = e.target.getAttribute('data-f');
                 updateList(drop);
             };
         });
     };
 
-    const updateList = (drop) => {
+    const updateList = async (drop) => {
         const container = drop.querySelector('.list-container');
-        if (!container) return;
-        if (isFetching && !groupedData) {
-            container.innerHTML = `
-                <div class="sk-item"><div class="skeleton-box sk-thumb"></div><div class="skeleton-box sk-lines"><div class="skeleton-box sk-line"></div><div class="skeleton-box sk-line short"></div></div></div>
-                <div class="sk-item"><div class="skeleton-box sk-thumb"></div><div class="skeleton-box sk-lines"><div class="skeleton-box sk-line"></div><div class="skeleton-box sk-line short"></div></div></div>
-                <div class="sk-item"><div class="skeleton-box sk-thumb"></div><div class="skeleton-box sk-lines"><div class="skeleton-box sk-line"></div><div class="skeleton-box sk-line short"></div></div></div>`;
+        container.innerHTML = '<div style="padding:20px;text-align:center;color:#666;">Chargement...</div>';
+
+        let filtered = groupedData || [];
+
+        renderFilters(drop, filtered);
+        if (activeFilter !== 'All') filtered = filtered.filter(i => getCategory(i) === activeFilter);
+
+        if (filtered.length === 0) {
+            container.innerHTML = `<div style="padding:50px 0;text-align:center;color:#666;">${T.empty}</div>`;
             return;
         }
-        container.innerHTML = '';
-        if (!groupedData || groupedData.length === 0) { container.innerHTML = `<div style="padding:40px;text-align:center;color:#666;">${T.empty}</div>`; return; }
 
-        let filtered = groupedData;
-        if (activeFilter !== 'All') filtered = groupedData.filter(i => getCategory(i) === activeFilter);
-        if (filtered.length === 0) { container.innerHTML = `<div style="padding:40px;text-align:center;color:#666;">${T.empty}</div>`; return; }
-
-        const client = window.ApiClient;
         let html = '';
+        const client = window.ApiClient;
 
+        // HERO
         const hero = filtered[0];
         if (hero) {
-            let heroImg = hero.BackdropImageTags && hero.BackdropImageTags.length > 0 ? client.getUrl(`Items/${hero.Id}/Images/Backdrop/0?quality=60&maxWidth=600`) : client.getUrl(`Items/${hero.SeriesId || hero.Id}/Images/Primary?quality=60&maxWidth=400`);
-            if (hero.IsGroup && hero.SeriesId) heroImg = client.getUrl(`Items/${hero.SeriesId}/Images/Backdrop/0?quality=60&maxWidth=600`);
-            let heroTitle = hero.IsGroup ? hero.SeriesName : (hero.SeriesName || hero.Name);
+            let heroImg = hero.BackdropImageTags && hero.BackdropImageTags.length > 0 
+                ? client.getUrl(`Items/${hero.Id}/Images/Backdrop/0?quality=60&maxWidth=600`) 
+                : client.getUrl(`Items/${hero.SeriesId || hero.Id}/Images/Primary?quality=60&maxWidth=400`);
+            if (hero.IsGroup) heroImg = client.getUrl(`Items/${hero.SeriesId}/Images/Backdrop/0?quality=60&maxWidth=600`);
+            if(hero.Category === 'Music' && (!hero.BackdropImageTags || hero.BackdropImageTags.length === 0)) {
+                 heroImg = client.getUrl(`Items/${hero.Id}/Images/Primary?quality=60&maxWidth=400`);
+            }
+
+            // BADGE NOUVEAU SI PAS VU
+            const badgeHtml = !hero.Played 
+                ? `<div style="background:var(--ns-red);color:#fff;display:inline-block;padding:2px 6px;font-size:10px;font-weight:bold;border-radius:2px;margin-bottom:4px;">${T.badgeNew}</div>` 
+                : '';
+
             html += `
             <div class="hero-section" onclick="window.location.hash='#!/details?id=${hero.IsGroup ? hero.SeriesId : hero.Id}'">
                 <div class="hero-bg" style="background-image:url('${heroImg}')"></div>
                 <div class="hero-overlay"></div>
                 <div class="hero-content">
-                    <div class="hero-new-badge">${T.badgeNew}</div>
-                    <div class="hero-title">${heroTitle}</div>
+                    ${badgeHtml}
+                    <div style="font-size:18px;font-weight:bold;text-shadow:0 1px 2px #000;">${hero.IsGroup ? hero.SeriesName : (hero.SeriesName || hero.Name)}</div>
                 </div>
             </div>`;
         }
 
-        filtered.slice(1).forEach((item, index) => {
-            let imgUrl = client.getUrl(`Items/${item.Id}/Images/Primary?fillHeight=112&fillWidth=180&quality=90`);
-            if (item.IsGroup) imgUrl = client.getUrl(`Items/${item.SeriesId}/Images/Primary?fillHeight=112&fillWidth=180&quality=90`);
+        // LIST
+        filtered.slice(1).forEach(item => {
+            let imgOptions = (item.Category === 'Music') ? 'fillHeight=100&fillWidth=100&quality=90' : 'fillHeight=112&fillWidth=200&quality=90';
+            let imgUrl = client.getUrl(`Items/${item.IsGroup ? item.SeriesId : item.Id}/Images/Primary?${imgOptions}`);
+            let title = item.IsGroup ? item.SeriesName : (item.SeriesName || item.Name);
+            let sub = item.IsGroup ? `${item.GroupCount} ${T.newEps}` : (item.SeriesName ? item.Name : item.ProductionYear);
+            let imgClass = (item.Category === 'Music') ? 'dropdown-thumb music-thumb' : 'dropdown-thumb';
 
-            let title = item.IsGroup ? item.SeriesName : (item.SeriesName ? item.SeriesName : item.Name);
-            let subtitle = item.IsGroup ? `${item.GroupCount} ${T.newEps}` : (item.SeriesName ? item.Name : '');
-            let year = item.ProductionYear || '';
+            // CLASSE CSS : style-seen (Vu) ou style-new (Pas vu)
+            const statusClass = item.Played ? 'style-seen' : 'style-new';
 
             html += `
-            <div class="dropdown-item" id="notif-item-${item.Id}">
-                <div class="thumb-wrapper">
-                    <img data-src="${imgUrl}" class="dropdown-thumb" loading="lazy">
-                </div>
+            <div class="dropdown-item ${statusClass}" id="notif-item-${item.Id}">
+                <div class="thumb-wrapper"><img data-src="${imgUrl}" class="${imgClass}" loading="lazy"></div>
                 <div class="dropdown-info">
                     <div class="dropdown-title">${title}</div>
-                    <div class="metadata-line"><span>${year}</span> &bull; <span>${getCategory(item)}</span></div>
-                    ${subtitle ? `<div class="dropdown-subtitle">${subtitle}</div>` : ''}
+                    <div class="dropdown-subtitle">${sub} &bull; ${getCategory(item)}</div>
                 </div>
             </div>`;
         });
         container.innerHTML = html;
 
-        const imgObserver = new IntersectionObserver((entries, obs) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    const img = entry.target;
-                    img.src = img.getAttribute('data-src');
-                    img.onload = () => img.classList.add('loaded');
-                    obs.unobserve(img);
-                }
-            });
-        });
-        container.querySelectorAll('img[data-src]').forEach(img => imgObserver.observe(img));
-
-        container.querySelectorAll('.dropdown-item').forEach(el => {
-            el.addEventListener('mouseenter', () => playHoverSound(el.id.replace('notif-item-', '')));
-            el.addEventListener('mouseleave', () => stopHoverSound());
-            el.onclick = (e) => {
-                const id = el.id.replace('notif-item-', '');
-                window.location.hash = `#!/details?id=${id}`;
-                toggleDropdown(false);
-            };
+        const obs = new IntersectionObserver((entries, o) => { entries.forEach(e => { if (e.isIntersecting) { const i = e.target; i.src = i.dataset.src; i.onload = () => i.classList.add('loaded'); o.unobserve(i); } }); });
+        container.querySelectorAll('img[data-src]').forEach(i => obs.observe(i));
+        container.querySelectorAll('.dropdown-item').forEach(el => { 
+            el.onmouseenter = () => playHoverSound(el.id.replace('notif-item-', ''));
+            el.onmouseleave = stopHoverSound;
+            el.onclick = () => { window.location.hash = `#!/details?id=${el.id.replace('notif-item-', '')}`; toggleDropdown(); }; 
         });
     };
 
-    const buildStructure = () => {
+    const buildUI = () => {
         if (document.getElementById('notification-dropdown')) return;
-        const backdrop = document.createElement('div');
-        backdrop.id = 'notify-backdrop';
-        backdrop.onclick = () => toggleDropdown(false);
-        document.body.appendChild(backdrop);
-        const drop = document.createElement('div');
-        drop.id = 'notification-dropdown';
-        drop.onclick = (e) => e.stopPropagation();
-        document.body.appendChild(drop);
-    };
+        const bg = document.createElement('div'); bg.id = 'notify-backdrop'; bg.onclick = toggleDropdown; document.body.appendChild(bg);
+        const d = document.createElement('div'); d.id = 'notification-dropdown';
+        d.innerHTML = `
+            <div class="dropdown-header">
+                <span style="font-weight:bold;font-size:16px;">${T.header}</span>
+                <div class="header-tools">
+                    <span class="material-icons tool-icon" id="ns-refresh" title="${T.refresh}">refresh</span>
+                    <span class="material-icons tool-icon" id="ns-mute">volume_up</span>
+                </div>
+            </div>
+            <div class="filter-bar"></div>
+            <div class="list-container"></div>`;
+        d.onclick = e => e.stopPropagation();
+        document.body.appendChild(d);
 
-    const initDropdown = (drop) => {
-        if (drop.querySelector('.dropdown-header')) return;
-        const isMuted = localStorage.getItem(SOUND_KEY) === 'true';
-        let h = `<div class="dropdown-header">
-                    <span style="font-weight:bold;font-size:16px;">${T.header}</span>
-                    <div class="header-tools">
-                        <span class="material-icons tool-icon refresh-btn" title="${T.refresh}">refresh</span>
-                        <span class="material-icons tool-icon mute-btn">${isMuted ? 'volume_off' : 'volume_up'}</span>
-                        <span class="material-icons tool-icon mark-all-btn" title="${T.markAll}">done_all</span>
-                    </div>
-                 </div>
-                 <div class="filter-bar"></div>
-                 <div class="list-container"></div>`;
-        drop.innerHTML = h;
-        renderFilters(drop);
-        drop.querySelector('.refresh-btn').onclick = () => fetchData();
-        drop.querySelector('.mute-btn').onclick = (e) => {
+        d.querySelector('#ns-refresh').onclick = () => { fetchData(); toggleDropdown(); };
+        d.querySelector('#ns-mute').onclick = (e) => {
             const m = localStorage.getItem(SOUND_KEY) === 'true';
             localStorage.setItem(SOUND_KEY, !m);
             e.target.innerText = !m ? 'volume_off' : 'volume_up';
         };
-        drop.querySelector('.mark-all-btn').onclick = async () => {
-            if (groupedData && groupedData[0]) {
-                await setRemoteLastSeenDate(window.ApiClient.getCurrentUserId(), groupedData[0].DateCreated);
-                showToast(T.markAll);
-                fetchData();
-            }
-        };
     };
 
     const installBell = () => {
-        if (document.querySelector('#netflix-bell')) return;
-        injectStyles();
-        const header = document.querySelector('.headerRight') || document.querySelector('.headerButtons-right');
-        if (!header) return;
-        const bell = document.createElement('button'); bell.id = 'netflix-bell'; bell.className = 'paper-icon-button-light headerButton';
-        bell.innerHTML = `<span class="material-icons notifications"></span><div class="notification-dot"></div>`;
-        bell.onclick = (e) => {
-            e.preventDefault(); e.stopPropagation();
-            buildStructure();
-            const drop = document.querySelector('#notification-dropdown');
-            initDropdown(drop);
-            toggleDropdown();
-        };
-        header.prepend(Object.assign(document.createElement('div'), { id: 'bell-container' }).appendChild(bell).parentNode);
-        buildStructure();
-        fetchData();
-        setInterval(fetchData, pollInterval);
+        try {
+            const header = document.querySelector('.headerRight') || document.querySelector('.headerButtons-right');
+            if (!header || document.getElementById('netflix-bell')) return;
+            
+            injectStyles();
+            const div = document.createElement('div'); div.id = 'bell-container';
+            div.innerHTML = `<button id="netflix-bell" class="paper-icon-button-light headerButton"><span class="material-icons notifications"></span></button>`;
+            div.firstChild.onclick = (e) => { e.preventDefault(); e.stopPropagation(); buildUI(); toggleDropdown(); };
+            header.prepend(div);
+            
+            fetchData();
+        } catch(e) { console.error("NotifySync: Bell install failed", e); }
     };
 
-    const checkUnread = async (items) => {
-        const client = window.ApiClient; if (!client) return;
-        const userId = client.getCurrentUserId();
-        const dot = document.querySelector('.notification-dot'); if (!dot) return;
-        const lastSeenDateStr = await getRemoteLastSeenDate(userId);
-        const lastSeenDate = new Date(lastSeenDateStr);
-        let count = 0;
-        for (let item of items) { if (new Date(item.DateCreated) > lastSeenDate) count++; else break; }
-        lastCount = count;
-        dot.innerText = count > 9 ? '9+' : count;
-        dot.style.opacity = count > 0 ? '1' : '0';
+    // --- SYNCHRONISATION CHIRURGICALE (ITEM PAR ITEM) ---
+    const refreshPlayStates = async () => {
+        if (!currentData || currentData.length === 0) return;
+        
+        const client = window.ApiClient;
+        const uid = client.getCurrentUserId();
+        
+        console.log("NotifySync: Starting surgical UserData check...");
+
+        // On crée un tableau de promesses pour vérifier chaque item individuellement
+        // C'est le seul moyen 100% fiable d'avoir le UserData si le bulk échoue
+        const promises = currentData.map(async (item) => {
+            try {
+                // On récupère l'item complet avec ses infos UserData
+                const fullItem = await client.getItem(uid, item.Id);
+                
+                let played = false;
+                if (fullItem.UserData) {
+                    played = fullItem.UserData.Played || fullItem.UserData.PlayedPercentage > 90;
+                }
+                
+                // Debug log
+                // console.log(`Check: ${item.Name} -> Played: ${played}`);
+                
+                // Mise à jour directe
+                item.Played = played;
+            } catch (err) {
+                console.warn(`NotifySync: Failed to check ${item.Name}`, err);
+                item.Played = false;
+            }
+        });
+
+        // On attend que tout soit vérifié
+        await Promise.all(promises);
+
+        // On refait les groupes avec les nouvelles infos
+        groupedData = processGrouping(currentData);
+        
+        // Propagation aux groupes (si le dernier épisode est vu, le groupe est vu)
+        groupedData.forEach(g => {
+            if (g.IsGroup) {
+                // On trouve l'item source dans currentData pour confirmer
+                const source = currentData.find(x => x.Id === g.Id);
+                if (source && source.Played) g.Played = true;
+            }
+        });
+        
+        console.log("NotifySync: Check complete.");
     };
 
     const fetchData = async () => {
         if (isFetching) return; isFetching = true;
         try {
             const res = await fetch('/NotifySync/Data?t=' + Date.now());
-            if (!res.ok) throw new Error("API Error");
-            const items = await res.json();
-            const snapshot = JSON.stringify(items.map(i => i.Id));
-            if (snapshot === localStorage.getItem(SNAPSHOT_KEY) && groupedData) {
-                isFetching = false; return;
+            if (res.ok) {
+                currentData = await res.json();
+                await refreshPlayStates();
             }
-            localStorage.setItem(SNAPSHOT_KEY, snapshot);
-            currentData = items;
-            await checkUnread(currentData);
-            groupedData = processGrouping(currentData);
-            const drop = document.querySelector('#notification-dropdown');
-            if (drop && drop.style.display === 'block') updateList(drop);
-        } catch (e) { console.error("NotifySync:", e); } finally { isFetching = false; }
+        } catch (e) { console.error(e); } finally { isFetching = false; }
     };
 
-    observer = new MutationObserver((m) => { if (!document.querySelector('#netflix-bell')) installBell(); });
-    observer.observe(document.body, { childList: true, subtree: true });
+    const obs = new MutationObserver(() => {
+        if(!document.getElementById('netflix-bell')) installBell();
+    });
+    obs.observe(document.body, { childList: true, subtree: true });
+
+    setInterval(() => {
+        if (document.visibilityState === 'visible') fetchData();
+    }, pollInterval);
+    
     installBell();
 })();

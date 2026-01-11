@@ -11,7 +11,6 @@ using MediaBrowser.Model.IO;
 
 namespace NotifySync
 {
-    // AJOUT DE IDisposable pour permettre le nettoyage
     public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages, IDisposable
     {
         public override string Name => "NotifySync";
@@ -31,7 +30,6 @@ namespace NotifySync
             _fileSystem = fileSystem;
             _logger = logger;
 
-            // Initialisation immédiate du Singleton
             if (NotificationManager.Instance == null)
             {
                 new NotificationManager(_libraryManager, _logger, _fileSystem);
@@ -43,10 +41,10 @@ namespace NotifySync
             return new[] { new PluginPageInfo { Name = this.Name, EmbeddedResourcePath = GetType().Namespace + ".ConfigurationPage.html" } };
         }
 
-        // CORRECTION : Implémentation explicite de IDisposable sans 'override'
         public void Dispose()
         {
             NotificationManager.Instance?.Dispose();
+            Instance = null;
         }
     }
 }

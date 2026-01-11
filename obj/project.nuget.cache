@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "I7Z1ig/9mQQ=",
+  "dgSpecHash": "y6t7tpsdSxs=",
   "success": true,
-  "projectFilePath": "C:\\Users\\eliem\\Documents\\NotifySync-main\\NotifySync.csproj",
+  "projectFilePath": "C:\\Users\\eliem\\Documents\\GitHub\\NotifySync\\NotifySync.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\eliem\\.nuget\\packages\\bitfaster.caching\\2.5.4\\bitfaster.caching.2.5.4.nupkg.sha512",
     "C:\\Users\\eliem\\.nuget\\packages\\diacritics\\4.0.17\\diacritics.4.0.17.nupkg.sha512",

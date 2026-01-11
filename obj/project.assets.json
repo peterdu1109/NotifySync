@@ -1603,13 +1603,13 @@
     "C:\\Users\\eliem\\.nuget\\packages\\": {}
   },
   "project": {
-    "version": "4.2.2",
+    "version": "4.3.9",
     "restore": {
-      "projectUniqueName": "C:\\Users\\eliem\\Documents\\NotifySync-main\\NotifySync.csproj",
+      "projectUniqueName": "C:\\Users\\eliem\\Documents\\GitHub\\NotifySync\\NotifySync.csproj",
       "projectName": "NotifySync",
-      "projectPath": "C:\\Users\\eliem\\Documents\\NotifySync-main\\NotifySync.csproj",
+      "projectPath": "C:\\Users\\eliem\\Documents\\GitHub\\NotifySync\\NotifySync.csproj",
       "packagesPath": "C:\\Users\\eliem\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\eliem\\Documents\\NotifySync-main\\obj\\",
+      "outputPath": "C:\\Users\\eliem\\Documents\\GitHub\\NotifySync\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "C:\\Users\\eliem\\AppData\\Roaming\\NuGet\\NuGet.Config"
@@ -1674,7 +1674,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.307/PortableRuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.308/PortableRuntimeIdentifierGraph.json"
       }
     }
   }

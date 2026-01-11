@@ -1,62 +1,37 @@
 # 🔔 NotifySync
 
-![Version](https://img.shields.io/badge/Version-4.2.0-blue?style=flat-square)
+![Version](https://img.shields.io/badge/Version-4.3.18-blue?style=flat-square)
 ![Jellyfin](https://img.shields.io/badge/Jellyfin-10.11.5%2B-purple?style=flat-square)
 ![Framework](https://img.shields.io/badge/.NET-9.0-512bd4?style=flat-square)
 
-**NotifySync** est un plugin complet pour Jellyfin qui intègre un centre de notifications interactif et moderne directement dans l'en-tête de votre interface utilisateur.
+**NotifySync** est un plugin complet pour Jellyfin qui intègre un tableau de bord de suivi des nouveautés directement dans l'en-tête de votre interface utilisateur.
 
 > [!IMPORTANT]
-> **Mise à jour v4.2 "Custom Categories"** : Créez vos propres catégories (ex: "Mes Animes") et gérez finement vos bibliothèques.
+> **Mise à jour v4.3 "Surgical Update"** : Synchronisation précise du statut "Vu", Quotas par catégories et Support Musique complet.
 
 ---
 
-## ✨ Fonctionnalités (v4.2)
+## ✨ Fonctionnalités Clés (v4.3)
 
-### 🎨 Catégories Personnalisées (Nouveau)
-*   **Mapping Intelligent** : Associez une bibliothèque à une catégorie (ex: La bibliothèque "Jap-Anim" -> Affiche "Anime" dans le menu).
-*   **Filtres Dynamiques** : Le menu génère automatiquement les boutons de filtre en fonction de votre contenu.
+### 🧠 Intelligence & Quotas
+* **Quotas par Catégorie** : Fini les films écrasés par une saison de série ! Configurez "5 éléments" pour avoir les **5 derniers Films** + **5 dernières Séries** + **5 derniers Albums**.
+* **Support Multi-Média** : Gestion native des Films, Séries, Animes et **Albums de Musique** (avec affichage carré des pochettes).
 
-### 🛠️ Contrôle Admin Avancé
-*   **Sélection Bibliothèques** : Cochez les bibliothèques actives.
-*   **Mode Manuel** : Si la détection automatique échoue, entrez simplement les IDs manuellement.
+### 👁️ Synchronisation "Chirurgicale"
+* **Vérification Réelle** : Le plugin interroge la base de données Jellyfin item par item pour savoir si vous avez *vraiment* vu un épisode.
+* **Gestion des Groupes** : Si vous avez vu le dernier épisode d'une série, le groupe entier est marqué comme "Vu".
+* **Persistance** : Même les vieux ajouts sont correctement marqués comme "Vus" ou "Non Vus".
 
-### ⚡ Performances (v4.0)
-*   **JSON Backend** : Stockage fichier plat pour une rapidité extrême.
-*   **Lazy Loading & Skeleton** : Chargement visuel instantané et optimisé.
+### 🎨 Interface "Clean Mode" (Zen)
+* **Zéro Stress** : Plus de pastille rouge "9+" sur la cloche.
+* **Indicateurs Discrets** :
+    * **Non Vu** : Fine bordure rouge à gauche + Badge "NOUVEAU" sur la bannière.
+    * **Déjà Vu** : Affichage normal et propre (sans être grisé/illisible), pour garder un historique clair.
+* **Hero Banner Dynamique** : Le dernier média ajouté s'affiche en grand en haut du panneau.
 
-
-### 🛡️ Interface Robuste (Overlay)
-*   **Backdrop** : Protection contre les fermetures accidentelles (Cliquez dehors pour fermer).
-*   **Skeleton UI** : Interface de chargement élégante pendant la récupération des données.
-
-
-
-### 🌟 Expérience Visuelle "Hero"
-*   **Hero Banner** : Le dernier média ajouté s'affiche en grand en haut du panneau.
-*   **Cartes Interactives** : Liste verticale avec images larges (Backdrop) pour un look plus cinéma.
-
-### 🧭 Navigation & Filtres
-*   **Filtres Intelligents** : `[Tout]`, `[Films]`, `[Séries]`, `[Animes]`.
-*   **Contrôles** : Boutons "Actualiser" et "Tout marquer comme vu" accessibles.
-
-### 🛎️ Centre de Notification
-*   **Intégration transparente** : Ajoute une icône "Cloche" dans la barre de navigation.
-*   **Indicateur visuel** : Badge rouge dynamique affichant le nombre d'éléments non vus.
-*   **Design Glassmorphism** : Interface sombre et transparente.
-
-### 🧠 Gestion Intelligente
-*   **Regroupement** : Les épisodes d'une même série ajouté simultanément sont regroupés (ex: "3 nouveaux épisodes").
-*   **Indicateur "Nouveau"** : Badge clignotant pour les médias ajoutés il y a moins de 48h.
-*   **Suivi de lecture** : Barre de progression visible pour les médias en cours.
-
-### 🎮 Expérience Utilisateur (UX)
-*   **Mobile Friendly** : Glissez vers la droite (*Swipe*) pour marquer une notification comme vue sur mobile.
-*   **Lecture Directe** : Lancez la lecture immédiatement depuis la notification (bouton Play et Hero Banner).
-
-### ⚙️ Performance & Synchronisation
-*   **Par utilisateur** : Le statut "Vu" est synchronisé et propre à chaque utilisateur.
-*   **Optimisé** : Chargement asynchrone avec effet "Skeleton" pour une fluidité maximale.
+### 🛠️ Robustesse Technique
+* **Détection "Bulldozer"** : Détection des bibliothèques infaillible (par ID ou par NOM de dossier), idéal pour les configurations Docker/Samba complexes.
+* **Scan Profond** : Analyse jusqu'à 300 éléments en arrière pour remplir vos quotas par catégorie.
 
 ---
 
@@ -65,7 +40,7 @@
 1.  Téléchargez la dernière version (`.dll`) depuis la page des [Releases](https://github.com/peterdu1109/NotifySync/releases).
 2.  Copiez le fichier `NotifySync.dll` dans le dossier `plugins` de votre serveur Jellyfin.
 3.  Redémarrez votre serveur Jellyfin.
-4.  L'icône de notification devrait apparaître dans la barre supérieure !
+4.  L'icône de notification apparaîtra dans la barre supérieure (pensez à vider le cache navigateur `CTRL+F5`).
 
 ---
 
@@ -75,8 +50,10 @@ Une page de configuration est disponible dans votre Tableau de Bord Jellyfin :
 `Tableau de bord > Extensions > NotifySync`
 
 Vous pouvez y configurer :
-*   Le nombre maximum d'éléments à afficher dans le menu (Défaut : 5).
-*   L'activation des notifications sonores.
+* **Quota par catégorie** : Le nombre d'éléments à garder pour *chaque* type de média (Défaut : 5).
+* **Bibliothèques** : Cochez celles à surveiller ou entrez leurs noms manuellement (ex: "Animes").
+* **Catégories** : Renommez vos bibliothèques (ex: La bibliothèque "Jap-Anim" -> Affiche "Anime").
+* **Maintenance** : Bouton "Régénérer" pour forcer un nouveau scan complet.
 
 ---
 
@@ -85,14 +62,9 @@ Vous pouvez y configurer :
 Ce projet est construit avec **.NET 9.0**.
 
 ### Pré-requis
-*   .NET 9.0 SDK
-*   Jellyfin 10.11.5+ (Binaries for reference)
+* .NET 9.0 SDK
+* Jellyfin 10.11.5+ (Binaries for reference)
 
 ### Compilation
 ```bash
 dotnet build --configuration Release
-```
-
----
-
-*Créé avec ❤️ pour la communauté Jellyfin.*

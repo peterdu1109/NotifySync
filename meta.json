@@ -4,16 +4,16 @@
   "name": "NotifySync",
   "description": "Centre de notifications intelligent (Quotas, Musique, Synchro 'Vu' réelle).",
   "owner": "NotifySync",
-  "overview": "Cloche de notification avancée. Fonctionnalités : Quotas par catégorie (ex: 5 films + 5 séries), Support Musique, Synchro 'Vu' chirurgicale, Interface Clean.",
+  "overview": "Cloche de notification avancée. Fonctionnalités : Quotas par catégorie, Support Musique, Synchro 'Vu' chirurgicale, Interface Clean.",
   "url": "https://github.com/peterdu1109/NotifySync",
   "versions": [
     {
-      "version": "4.3.18",
-      "changelog": "- **Synchro Chirurgicale**: Vérification individuelle du statut 'Vu' auprès de la base de données (100% fiable).\n- **Clean UI**: Suppression du badge rouge global. Indication visuelle discrète (bordure rouge) pour les non-vus.\n- **Quotas Intelligents**: Garde les N derniers éléments de CHAQUE catégorie (Films, Séries, Musique).\n- **Support Musique**: Gestion des albums et pochettes carrées.\n- **Bulldozer**: Détection des bibliothèques par Nom ou ID.",
+      "version": "4.4.0",
+      "changelog": "- **Synchro Chirurgicale**: Vérification individuelle du statut 'Vu' (100% fiable).\n- **Clean UI**: Indication visuelle discrète pour les non-vus.\n- **Quotas Intelligents**: Garde les N derniers éléments de CHAQUE catégorie.\n- **Support Musique**: Gestion des albums et pochettes carrées.",
       "targetAbi": "10.11.5.0",
       "sourceUrl": "",
       "checksum": "",
-      "timestamp": "2026-01-12T18:00:00Z"
+      "timestamp": "2026-01-13T10:00:00Z"
     }
   ]
 }

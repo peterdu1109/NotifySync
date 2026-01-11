@@ -3,11 +3,11 @@
     <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <Version>4.3.9</Version>
+    <Version>4.4.0</Version>
     <Authors>NotifySync</Authors>
     <Company>NotifySync</Company>
     <Product>NotifySync</Product>
-    <Description>Notification center with Per-Category Quotas</Description>
+    <Description>Notification center with Surgical Watch Sync &amp; Category Quotas</Description>
   </PropertyGroup>
 
   <ItemGroup>

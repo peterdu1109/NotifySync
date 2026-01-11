@@ -18,21 +18,21 @@ namespace NotifySync
         
         public static Plugin? Instance { get; private set; }
 
-        private readonly ILibraryManager _libraryManager;
-        private readonly IFileSystem _fileSystem;
-        private readonly ILogger<NotificationManager> _logger;
+        private readonly NotificationManager _notificationManager;
 
         public Plugin(IApplicationPaths applicationPaths, IXmlSerializer xmlSerializer, ILibraryManager libraryManager, IFileSystem fileSystem, ILogger<NotificationManager> logger)
             : base(applicationPaths, xmlSerializer)
         {
             Instance = this;
-            _libraryManager = libraryManager;
-            _fileSystem = fileSystem;
-            _logger = logger;
 
+            // Optimisation : On stocke l'instance pour éviter le Garbage Collection
             if (NotificationManager.Instance == null)
             {
-                new NotificationManager(_libraryManager, _logger, _fileSystem);
+                _notificationManager = new NotificationManager(libraryManager, logger, fileSystem);
+            }
+            else
+            {
+                _notificationManager = NotificationManager.Instance;
             }
         }
 
@@ -43,7 +43,7 @@ namespace NotifySync
 
         public void Dispose()
         {
-            NotificationManager.Instance?.Dispose();
+            _notificationManager?.Dispose();
             Instance = null;
         }
     }

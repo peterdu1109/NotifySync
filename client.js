@@ -1,4 +1,4 @@
-/* NOTIFYSYNC V4.9 - AUTHENTICATED CHECK */
+/* NOTIFYSYNC V4.5 */
 (function () {
     let currentData = [];
     let groupedData = [];

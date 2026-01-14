@@ -1,55 +1,68 @@
-# 🔔 NotifySync
-
-![Version](https://img.shields.io/badge/Version-4.5.0-blue?style=flat-square)
-![Jellyfin](https://img.shields.io/badge/Jellyfin-10.11.5%2B-purple?style=flat-square)
-![Framework](https://img.shields.io/badge/.NET-9.0-512bd4?style=flat-square)
-
-**NotifySync** est un centre de notifications avancé pour Jellyfin. Il remplace la cloche par défaut par un tableau de bord moderne, performant et intelligent.
+**NotifySync** est un centre de notifications avancé pour Jellyfin. Il remplace la cloche par défaut par un tableau de bord moderne, performant et intelligent, inspiré des plateformes de streaming majeures.
 
 > [!IMPORTANT]
-> **Mise à jour v4.5 "Glassmorphism & Batch Performance"**
-> Nouvelle interface translucide, groupement intelligent des épisodes, et correction définitive du statut "Vu" (Point rouge) via requêtes par lots.
+> **Mise à jour v4.5.2 **
+> Ajout des dates relatives ("il y a 5 min"), optimisation pour l'affichage mobile, et correction critique de la détection utilisateur via requêtes par lots.
 
 ---
 
-## ✨ Nouveautés de la v4.5
+## ✨ Nouveautés de la v4.5.2
+
+### 🕒 Time Ago & Sous-titres Riches
+* **Dates Relatives** : Fini les dates brutes. Le plugin affiche désormais le temps écoulé : *"à l'instant"*, *"il y a 2 h"*, *"il y a 5 jours"*.
+* **Métadonnées Contextuelles** : Les sous-titres combinent intelligemment le nom de la série, le numéro de saison/épisode et le temps écoulé (ex: *S02E04 - Arcane • il y a 2 h*).
+
+### 📱 Optimisation Mobile
+* **Interface Réactive** : Le panneau de notification s'adapte désormais parfaitement aux écrans mobiles (largeur dynamique, hauteur ajustée).
+* **Navigation Tactile** : Amélioration du scrolling et de la taille des zones tactiles pour une utilisation fluide sur smartphone.
 
 ### 🎨 Interface "Glassmorphism" & Hero Banner
-* **Design Translucide** : L'interface utilise désormais un effet de flou moderne (Glassmorphism) qui s'adapte à votre arrière-plan.
+* **Design Translucide** : L'interface utilise un effet de flou moderne (Glassmorphism) qui s'adapte à votre arrière-plan.
 * **Hero Banner Dynamique** : Le contenu le plus récent s'affiche en grand en haut de la liste avec son image "Backdrop".
-* **Groupement Intelligent** : Les épisodes d'une même série sont regroupés en une seule ligne (ex: "Arcane - 3 nouveaux épisodes") pour ne pas polluer l'affichage.
+* **Groupement Intelligent** : Les épisodes d'une même série sont regroupés en une seule ligne pour ne pas polluer l'affichage.
 
-### ⚡ Performance & Synchronisation (Batch Fix)
-* **Vérification "Batch"** : Le plugin vérifie désormais le statut de lecture de tous les éléments en **une seule requête** ultra-rapide, au lieu de faire une boucle lente.
-* **Correction "Point Rouge"** : L'identification de l'utilisateur est forcée explicitement, garantissant que le statut "Vu" est correctement détecté même sans recharger la page.
-* **Règle des 90%** : Si Jellyfin n'a pas encore marqué un élément comme "Vu", le plugin le force si la lecture dépasse 90% de la durée.
-
----
-
-## 🧠 Fonctionnalités Clés
-
-### 📊 Intelligence & Quotas
-* **Quotas par Catégorie** : Configurez des limites strictes (ex: 5 Films + 5 Séries + 5 Albums). Le plugin scanne jusqu'à **500 éléments** dans l'historique pour garantir que vos quotas sont toujours remplis.
-* **Support Multi-Média** : Gestion native des Films, Séries, Animes et Albums de Musique.
-
-### 👁️ Gestion "Zen"
-* **Zéro Stress** : Plus de badge "9+" anxiogène.
-* **Indicateurs Discrets** :
-    * **Non Vu** : Badge "NOUVEAU" et point rouge (qui disparaît vraiment une fois vu).
-    * **Déjà Vu** : Affichage propre pour garder un historique clair.
-
-### 🛠️ Robustesse Technique
-* **Détection "Bulldozer"** : Identification des bibliothèques par ID ou par NOM de dossier (idéal pour Docker/Samba).
-* **Tampon d'événements** : Les ajouts rapides sont mis en file d'attente pour ne jamais manquer une notification.
+### ⚡ Performance & Correctifs (Batch Fix)
+* **Correction UserID** : L'identification de l'utilisateur est maintenant explicite, corrigeant les problèmes de statut "Vu" sur les profils multiples.
+* **Vérification "Batch"** : Le plugin vérifie le statut de lecture de tous les éléments en **une seule requête** ultra-rapide.
 
 ---
 
 ## 🚀 Installation
 
-1.  Téléchargez la dernière version (`.dll`) depuis la page des [Releases](https://github.com/peterdu1109/NotifySync/releases).
-2.  Copiez le fichier `NotifySync.dll` dans le dossier `plugins` de votre serveur Jellyfin.
-3.  Redémarrez votre serveur Jellyfin.
-4.  L'icône de notification apparaîtra dans la barre supérieure (pensez à vider le cache navigateur `CTRL+F5`).
+### 1. Pré-requis
+* Avoir installé le plugin **"JavaScript Injector"** (disponible dans le catalogue officiel de Jellyfin sous la section "Général").
+
+### 2. Installation du Backend (DLL)
+1.  Téléchargez `NotifySync.dll` depuis les [Releases](https://github.com/peterdu1109/NotifySync/releases).
+2.  Créez un dossier nommé `NotifySync` dans le répertoire des plugins de votre serveur.
+3.  Copiez le fichier `.dll` à l'intérieur.
+
+**Chemins par défaut des plugins :**
+
+| OS | Chemin typique |
+| :--- | :--- |
+| **🐳 Docker** | `/config/plugins/NotifySync` (ou `/var/lib/jellyfin/plugins/NotifySync`) |
+| **🐧 Linux** | `/var/lib/jellyfin/plugins/NotifySync` |
+| **🪟 Windows** | `%ProgramData%\Jellyfin\Server\plugins\NotifySync` |
+| **🍎 macOS** | `~/.local/share/jellyfin/plugins/NotifySync` |
+
+> ⚠️ **Note Linux/Docker :** Assurez-vous que l'utilisateur `jellyfin` a les droits de lecture/écriture sur ce dossier (`chown -R jellyfin:jellyfin ...`).
+
+### 3. Activation du Frontend (JS Injector)
+Pour que la cloche apparaisse, vous devez injecter le script client via l'interface d'administration.
+
+1.  Redémarrez votre serveur Jellyfin pour charger la DLL.
+2.  Allez dans **Tableau de bord > JS Injector**.
+3.  Ajoutez un nouveau script avec les paramètres suivants :
+    * **Script Name** : `Cloche` (ou NotifySync)
+    * **Requires Authentication** : ☑️ **Cochez OBLIGATOIREMENT cette case** (nécessaire pour l'API utilisateur).
+    * **Code Javascript** : Copiez-collez le bloc ci-dessous :
+
+		```javascript
+		var script = document.createElement('script');
+		script.src = '/NotifySync/Client.js';
+		script.defer = true;
+		document.head.appendChild(script);
 
 ---
 
@@ -69,8 +82,8 @@ Une page de configuration est disponible dans `Tableau de bord > Extensions > No
 Ce projet est construit avec **.NET 9.0**.
 
 ### Pré-requis
-* [cite_start].NET 9.0 SDK [cite: 1]
-* [cite_start]Jellyfin 10.11.5+ [cite: 1]
+* .NET 9.0 SDK
+* Jellyfin 10.11.5+
 
 ### Compilation
 ```bash

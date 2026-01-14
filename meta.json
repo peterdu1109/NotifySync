@@ -2,17 +2,17 @@
   "category": "UI",
   "guid": "95655672-2342-4321-8291-321312312312",
   "name": "NotifySync",
-  "description": "Centre de notifications (Performance Batch, Zen UI & Glassmorphism).",
+  "description": "Centre de notifications (Time Ago, Glassmorphism & Batch Performance).",
   "owner": "NotifySync",
-  "overview": "Cloche de notification avancée. Optimisée pour les grandes bibliothèques avec vérification par lot, tampons d'événements et interface moderne.",
+  "overview": "Cloche de notification avancée type Netflix. Inclut dates relatives, groupement intelligent, et optimisation mobile.",
   "url": "https://github.com/peterdu1109/NotifySync",
   "versions": [
     {
       "version": "4.5.2",
-      "changelog": "- **Performance**: Batch Request pour les statuts 'Vu' (N+1 fix).\n- **Glassmorphism UI**: Nouvelle interface translucide et badge numérique.\n- **Robustesse**: Isolation des données utilisateur et tampon d'écriture.",
+      "changelog": "- **New Feature**: Ajout du format 'Time Ago' (il y a X min) et sous-titres riches (Saison/Episode).\n- **Mobile**: Optimisation CSS complète pour l'affichage sur smartphone.\n- **Fix**: Passage explicite du UserID pour la correction du statut 'Vu' en multi-comptes.\n- **UI**: Badge 'Nouveau' animé et amélioration du layout Glassmorphism.",
       "targetAbi": "10.11.5.0",
-      "sourceUrl": "",
-      "checksum": "",
+      "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/v4.5.2/NotifySync.dll",
+      "checksum": "97E398975D4D99099369074448C74136",
       "timestamp": "2026-01-14T00:00:00Z"
     }
   ]

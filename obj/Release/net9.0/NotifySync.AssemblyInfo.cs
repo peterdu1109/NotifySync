@@ -12,12 +12,12 @@ using System.Reflection;
 
 [assembly: System.Reflection.AssemblyCompanyAttribute("NotifySync")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
-[assembly: System.Reflection.AssemblyDescriptionAttribute("Notification center with Surgical Watch Sync & Category Quotas")]
-[assembly: System.Reflection.AssemblyFileVersionAttribute("4.4.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("4.4.0+a5f75da83b334cd134d22a596889f24bae5966fe")]
+[assembly: System.Reflection.AssemblyDescriptionAttribute("Notification center with Surgical Watch Sync, Batch Performance & Zen UI")]
+[assembly: System.Reflection.AssemblyFileVersionAttribute("4.5.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("4.5.0+64268d3b31f69ddfccc10f90bdba3e68bc03d427")]
 [assembly: System.Reflection.AssemblyProductAttribute("NotifySync")]
 [assembly: System.Reflection.AssemblyTitleAttribute("NotifySync")]
-[assembly: System.Reflection.AssemblyVersionAttribute("4.4.0.0")]
+[assembly: System.Reflection.AssemblyVersionAttribute("4.5.0.0")]
 
 // Généré par la classe MSBuild WriteCodeFragment.
 

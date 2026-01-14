@@ -1603,7 +1603,7 @@
     "C:\\Users\\eliem\\.nuget\\packages\\": {}
   },
   "project": {
-    "version": "4.4.0",
+    "version": "4.5.0",
     "restore": {
       "projectUniqueName": "C:\\Users\\eliem\\Documents\\GitHub\\NotifySync\\NotifySync.csproj",
       "projectName": "NotifySync",

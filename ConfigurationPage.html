@@ -163,7 +163,6 @@
 
                 renderMap: function(page) {
                     var l = page.querySelector('#mappingList'); l.innerHTML = '';
-                    
                     if (this.config.CategoryMappings.length === 0) {
                         l.innerHTML = '<div style="padding:10px; color:#888; font-style:italic;">Aucune catégorie personnalisée définie.</div>';
                         return;
@@ -196,7 +195,6 @@
                         btn.onclick = function(e) { 
                             NotifySyncConf.delMap(parseInt(e.target.getAttribute('data-index'))); 
                         };
-                        
                         div.appendChild(btn);
                         l.appendChild(div);
                     }

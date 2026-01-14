@@ -2,18 +2,18 @@
   "category": "UI",
   "guid": "95655672-2342-4321-8291-321312312312",
   "name": "NotifySync",
-  "description": "Centre de notifications intelligent (Quotas, Musique, Synchro 'Vu' réelle).",
+  "description": "Centre de notifications (Performance Batch, Zen UI & Glassmorphism).",
   "owner": "NotifySync",
-  "overview": "Cloche de notification avancée. Fonctionnalités : Quotas par catégorie, Support Musique, Synchro 'Vu' chirurgicale, Interface Clean.",
+  "overview": "Cloche de notification avancée. Optimisée pour les grandes bibliothèques avec vérification par lot, tampons d'événements et interface moderne.",
   "url": "https://github.com/peterdu1109/NotifySync",
   "versions": [
     {
-      "version": "4.4.0",
-      "changelog": "- **Synchro Chirurgicale**: Vérification individuelle du statut 'Vu' (100% fiable).\n- **Clean UI**: Indication visuelle discrète pour les non-vus.\n- **Quotas Intelligents**: Garde les N derniers éléments de CHAQUE catégorie.\n- **Support Musique**: Gestion des albums et pochettes carrées.",
+      "version": "4.5.0",
+      "changelog": "- **Performance**: Batch Request pour les statuts 'Vu' (N+1 fix).\n- **Glassmorphism UI**: Nouvelle interface translucide et badge numérique.\n- **Robustesse**: Isolation des données utilisateur et tampon d'écriture.",
       "targetAbi": "10.11.5.0",
       "sourceUrl": "",
       "checksum": "",
-      "timestamp": "2026-01-13T10:00:00Z"
+      "timestamp": "2026-01-14T00:00:00Z"
     }
   ]
 }

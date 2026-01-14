@@ -3,11 +3,11 @@
     <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <Version>4.5.0</Version>
+    <Version>4.5.2</Version>
     <Authors>NotifySync</Authors>
     <Company>NotifySync</Company>
     <Product>NotifySync</Product>
-    <Description>Notification center with Surgical Watch Sync, Batch Performance &amp; Zen UI</Description>
+    <Description>Notification center</Description>
   </PropertyGroup>
 
   <ItemGroup>

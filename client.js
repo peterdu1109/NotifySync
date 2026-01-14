@@ -1,4 +1,4 @@
-/* NOTIFYSYNC V4.5 */
+/* NOTIFYSYNC V4.5.2 - TIME AGO & RICH SUBTITLES */
 (function () {
     let currentData = [];
     let groupedData = [];
@@ -14,12 +14,28 @@
     const userLang = navigator.language || navigator.userLanguage;
     const T = userLang.startsWith('fr') ? STRINGS.fr : STRINGS.en;
 
-    // --- HELPER AUTH ---
-    // Récupère le token Jellyfin actuel pour s'identifier auprès du plugin
+    // --- NOUVELLE FONCTION DATE RELATIVE ---
+    const timeAgo = (date) => {
+        const seconds = Math.floor((new Date() - new Date(date)) / 1000);
+        const isFr = userLang.startsWith('fr');
+        
+        let interval = seconds / 31536000;
+        if (interval > 1) return isFr ? `il y a ${Math.floor(interval)} an(s)` : `${Math.floor(interval)}y ago`;
+        interval = seconds / 2592000;
+        if (interval > 1) return isFr ? `il y a ${Math.floor(interval)} mois` : `${Math.floor(interval)}mo ago`;
+        interval = seconds / 86400;
+        if (interval > 1) return isFr ? `il y a ${Math.floor(interval)} j` : `${Math.floor(interval)}d ago`;
+        interval = seconds / 3600;
+        if (interval > 1) return isFr ? `il y a ${Math.floor(interval)} h` : `${Math.floor(interval)}h ago`;
+        interval = seconds / 60;
+        if (interval > 1) return isFr ? `il y a ${Math.floor(interval)} min` : `${Math.floor(interval)}m ago`;
+        return isFr ? "à l'instant" : "just now";
+    };
+
     const getAuthHeaders = () => {
         return {
             'Content-Type': 'application/json',
-            'X-Emby-Token': window.ApiClient.accessToken() // LA CLE DU PROBLEME EST ICI
+            'X-Emby-Token': window.ApiClient.accessToken()
         };
     };
 
@@ -40,7 +56,10 @@
                 transform: scale(0.5); pointer-events: none;
             }
             .ns-badge.visible { opacity: 1; transform: scale(1); }
+            
             #notify-backdrop { position: fixed; inset: 0; z-index: 999998; display: none; }
+            
+            /* DESKTOP */
             #notification-dropdown {
                 position: fixed; top: 70px; right: 20px; width: 380px; max-width: 90vw;
                 background: var(--ns-glass); backdrop-filter: blur(var(--ns-blur)); -webkit-backdrop-filter: blur(var(--ns-blur));
@@ -50,22 +69,37 @@
                 font-family: 'Noto Sans', sans-serif; 
                 animation: slideDown 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
                 overflow: hidden;
+                display: flex; flex-direction: column; 
             }
+
+            /* MOBILE */
+            @media (max-width: 600px) {
+                #notification-dropdown {
+                    top: 60px; right: 10px; left: 10px; width: auto; max-width: none; max-height: 80vh;    
+                }
+                .hero-section { height: 130px !important; }
+                .list-container { flex: 1; max-height: none !important; } 
+            }
+
             @keyframes slideDown { from { opacity:0; transform:translateY(-10px); } to { opacity:1; transform:translateY(0); } }
             @keyframes spin { 100% { transform: rotate(360deg); } }
             .spinning { animation: spin 1s linear infinite; opacity: 1!important; }
 
-            .dropdown-header { display:flex; justify-content:space-between; padding:16px 20px; border-bottom: 1px solid var(--ns-border); background: rgba(0,0,0,0.3); align-items:center; }
+            .dropdown-header { display:flex; justify-content:space-between; padding:16px 20px; border-bottom: 1px solid var(--ns-border); background: rgba(0,0,0,0.3); align-items:center; flex-shrink: 0; }
             .header-title { font-weight: 700; font-size: 15px; letter-spacing: 0.5px; }
             .header-tools { display:flex; gap:15px; }
             .tool-icon { cursor:pointer; opacity:0.6; transition:opacity 0.2s; font-size: 18px; }
             .tool-icon:hover { opacity:1; }
-            .filter-bar { padding: 10px 20px; display: flex; gap: 8px; border-bottom: 1px solid var(--ns-border); overflow-x: auto; scrollbar-width: none; }
-            .filter-pill { font-size: 11px; padding: 4px 12px; border-radius: 20px; background: rgba(255,255,255,0.05); cursor: pointer; transition: all 0.2s; border: 1px solid transparent; }
+            
+            .filter-bar { padding: 10px 20px; display: flex; gap: 8px; border-bottom: 1px solid var(--ns-border); overflow-x: auto; scrollbar-width: none; flex-shrink: 0; }
+            .filter-pill { font-size: 11px; padding: 4px 12px; border-radius: 20px; background: rgba(255,255,255,0.05); cursor: pointer; transition: all 0.2s; border: 1px solid transparent; white-space: nowrap; }
             .filter-pill.active { background: #fff; color: #000; font-weight: 700; box-shadow: 0 0 10px rgba(255,255,255,0.2); }
-            .list-container { max-height: 500px; overflow-y: auto; }
+            
+            .list-container { max-height: 500px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+            
             .dropdown-item { display:flex; padding:12px 20px; border-bottom:1px solid var(--ns-border); cursor:pointer; transition: background .2s; position: relative; }
             .dropdown-item:hover { background: rgba(255,255,255,0.08); }
+            
             .status-dot {
                 position: absolute; left: 6px; top: 50%; transform: translateY(-50%);
                 width: 4px; height: 4px; border-radius: 50%; background: var(--ns-red);
@@ -74,19 +108,28 @@
             }
             .style-new .status-dot { display: block; }
             .style-new { background: rgba(229, 9, 20, 0.05); }
+            
             .thumb-wrapper { width:90px; height:50px; margin-right:15px; flex-shrink:0; background:#222; border-radius:6px; overflow:hidden; display:flex; justify-content:center; align-items:center; box-shadow: 0 2px 5px rgba(0,0,0,0.3); }
             .dropdown-thumb { width:100%; height:100%; object-fit:cover; opacity:0; transition:opacity 0.3s; }
             .dropdown-thumb.music { object-fit:contain; }
             .dropdown-thumb.loaded { opacity:1; }
+            
             .dropdown-info { flex:1; display:flex; flex-direction:column; justify-content:center; min-width: 0; }
-            .dropdown-title { font-weight:600; font-size:13px; margin-bottom:4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-            .dropdown-subtitle { font-size:11px; color:#aaa; }
-            .hero-section { height: 160px; position: relative; cursor: pointer; display: flex; align-items: flex-end; margin-bottom: -1px; }
+            
+            .dropdown-title { 
+                font-weight:600; font-size:13px; margin-bottom:4px; 
+                white-space: normal; line-height: 1.2;
+                display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+            }
+            .dropdown-subtitle { font-size:11px; color:#aaa; white-space: normal; line-height: 1.3; }
+            
+            .hero-section { height: 160px; position: relative; cursor: pointer; display: flex; align-items: flex-end; margin-bottom: -1px; flex-shrink: 0; }
             .hero-bg { position: absolute; inset: 0; background-size: cover; background-position: center top; transition: transform 5s ease; }
             .hero-overlay { position: absolute; inset: 0; background: linear-gradient(to top, var(--ns-glass) 5%, transparent 100%); }
             .hero-content { position: relative; z-index: 2; padding: 20px; width: 100%; }
             .hero-badge { background: var(--ns-red); color: #fff; font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 3px; display: inline-block; margin-bottom: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.5); }
-            .footer-tools { padding: 10px; text-align: center; border-top: 1px solid var(--ns-border); font-size: 11px; color: #888; cursor: pointer; transition: color 0.2s; }
+            
+            .footer-tools { padding: 10px; text-align: center; border-top: 1px solid var(--ns-border); font-size: 11px; color: #888; cursor: pointer; transition: color 0.2s; flex-shrink: 0; }
             .footer-tools:hover { color: #fff; text-decoration: underline; }
         `;
         const style = document.createElement('style'); style.id = 'notifysync-css'; style.textContent = css; document.head.appendChild(style);
@@ -107,6 +150,10 @@
                     if(new Date(i.DateCreated) > new Date(g[i.SeriesName].LatestDate)) {
                         g[i.SeriesName].LatestDate = i.DateCreated;
                         g[i.SeriesName].Id = i.Id; 
+                        g[i.SeriesName].Name = i.Name;
+                        g[i.SeriesName].IndexNumber = i.IndexNumber;
+                        g[i.SeriesName].ParentIndexNumber = i.ParentIndexNumber;
+                        g[i.SeriesName].PrimaryImageTag = i.PrimaryImageTag;
                     }
                 }
             } else { 
@@ -118,7 +165,6 @@
 
     const fetchLastSeen = async () => {
         try {
-            // AUTH HEADERS AJOUTES
             const res = await fetch(`/NotifySync/LastSeen/${getUserId()}`, { headers: getAuthHeaders() });
             const dateStr = await res.text();
             lastSeenDate = new Date(JSON.parse(dateStr));
@@ -127,21 +173,19 @@
 
     const updateLastSeen = async () => {
         const now = new Date().toISOString();
-        // AUTH HEADERS AJOUTES
         await fetch(`/NotifySync/LastSeen/${getUserId()}?date=${encodeURIComponent(now)}`, { 
             method: 'POST',
             headers: getAuthHeaders()
         });
         lastSeenDate = new Date();
         updateBadge();
-        updateList(document.getElementById('notification-dropdown'));
+        closeDropdown();
     };
 
     const refreshPlayStates = async () => {
         if (!currentData.length) return;
         const ids = currentData.map(i => i.Id);
         try {
-            // --- C'EST ICI QUE CA SE JOUE : AUTHENTICATION ---
             const res = await fetch(`/NotifySync/BulkUserData?userId=${getUserId()}`, {
                 method: 'POST',
                 headers: getAuthHeaders(),
@@ -152,7 +196,6 @@
                 const statusMap = await res.json();
                 currentData.forEach(item => {
                     if (statusMap.hasOwnProperty(item.Id)) item.Played = statusMap[item.Id];
-                    // Si item.Played est true (vient du serveur), IsNew sera false
                     item.IsNew = !item.Played && (new Date(item.DateCreated) > lastSeenDate);
                 });
 
@@ -173,7 +216,6 @@
         isFetching = true;
         try {
             await fetchLastSeen();
-            // AUTH HEADERS AJOUTES
             const res = await fetch('/NotifySync/Data?t=' + Date.now(), { headers: getAuthHeaders() });
             if (res.ok) {
                 currentData = await res.json();
@@ -186,11 +228,9 @@
         } finally { isFetching = false; }
     };
     
-    // Hard Refresh avec la flèche
     const triggerHardRefresh = async () => {
         const btn = document.querySelector('.tool-icon.refresh-icon');
         if(btn) btn.classList.add('spinning');
-        
         try {
             await fetch('/NotifySync/Refresh', { method: 'POST', headers: getAuthHeaders() });
             await new Promise(r => setTimeout(r, 500));
@@ -239,34 +279,73 @@
         const hero = filtered.find(i => i.IsNew) || filtered[0];
         
         if (hero) {
+            const isMultiGroup = hero.IsGroup && hero.GroupCount > 1;
             const tag = (hero.BackdropImageTags && hero.BackdropImageTags[0]) || '';
             let heroImg = tag ? client.getUrl(`Items/${hero.Id}/Images/Backdrop/0?tag=${tag}&quality=70&maxWidth=600`) : client.getUrl(`Items/${hero.SeriesId || hero.Id}/Images/Primary?quality=70&maxWidth=400`);
-            if(hero.IsGroup && hero.SeriesId) heroImg = client.getUrl(`Items/${hero.SeriesId}/Images/Backdrop/0?quality=70&maxWidth=600`);
+            if(isMultiGroup && hero.SeriesId) heroImg = client.getUrl(`Items/${hero.SeriesId}/Images/Backdrop/0?quality=70&maxWidth=600`);
 
+            let heroTitle = hero.Name;
+            if (hero.IsGroup) {
+                if (hero.GroupCount > 1) heroTitle = hero.SeriesName; 
+                else heroTitle = `${hero.SeriesName}`; 
+            }
+
+            // DATE POUR LE HERO
+            const timeStr = timeAgo(hero.DateCreated);
+            const targetId = isMultiGroup ? hero.SeriesId : hero.Id;
+            
             html += `
-            <div class="hero-section" onclick="window.location.hash='#!/details?id=${hero.IsGroup ? hero.SeriesId : hero.Id}'">
+            <div class="hero-section" onclick="document.dispatchEvent(new CustomEvent('ns-navigate', {detail: '${targetId}'}))">
                 <div class="hero-bg" style="background-image:url('${heroImg}')"></div>
                 <div class="hero-overlay"></div>
                 <div class="hero-content">
                     ${hero.IsNew ? `<span class="hero-badge">${T.badgeNew}</span>` : ''}
                     <div style="font-size:18px;font-weight:700;text-shadow:0 2px 4px #000;line-height:1.2;">
-                        ${hero.IsGroup ? hero.SeriesName : (hero.SeriesName || hero.Name)}
+                        ${heroTitle}
                     </div>
-                    <div style="font-size:12px;opacity:0.8;margin-top:4px;">${hero.IsGroup ? `${hero.GroupCount} ${T.newEps}` : hero.ProductionYear}</div>
+                    <div style="font-size:12px;opacity:0.8;margin-top:4px;">
+                        ${isMultiGroup ? `${hero.GroupCount} ${T.newEps}` : (hero.GroupCount === 1 ? (hero.Name) : hero.ProductionYear)}
+                        &bull; ${timeStr}
+                    </div>
                 </div>
             </div>`;
         }
 
         filtered.filter(x => x !== hero).forEach(item => {
             const isMusic = item.Category === 'Music';
+            const isMultiGroup = item.IsGroup && item.GroupCount > 1;
+            
             const imgTag = item.PrimaryImageTag || '';
             const imgOpts = isMusic ? 'fillHeight=100&fillWidth=100' : 'fillHeight=112&fillWidth=200';
-            const imgUrl = client.getUrl(`Items/${item.IsGroup ? item.SeriesId : item.Id}/Images/Primary?tag=${imgTag}&${imgOpts}&quality=80`);
-            const title = item.IsGroup ? item.SeriesName : (item.SeriesName || item.Name);
-            const sub = item.IsGroup ? `${item.GroupCount} ${T.newEps}` : (item.SeriesName ? item.Name : item.ProductionYear);
+            let targetId = item.Id;
+            if (isMultiGroup) targetId = item.SeriesId;
+
+            const imgUrl = client.getUrl(`Items/${targetId}/Images/Primary?tag=${imgTag}&${imgOpts}&quality=80`);
+            
+            let title = item.Name;
+            let sub = item.ProductionYear;
+
+            // Calcul date relative
+            const timeStr = timeAgo(item.DateCreated);
+
+            if (item.IsGroup) {
+                if (isMultiGroup) {
+                    title = item.SeriesName;
+                    sub = `${item.GroupCount} ${T.newEps}`;
+                } else {
+                    const s = item.ParentIndexNumber ? `S${item.ParentIndexNumber.toString().padStart(2,'0')}` : '';
+                    const e = item.IndexNumber ? `E${item.IndexNumber.toString().padStart(2,'0')}` : '';
+                    const se = (s || e) ? `${s}${e} - ` : '';
+                    title = `${se}${item.Name}`; 
+                    sub = item.SeriesName; 
+                }
+            }
+
+            // AJOUT DE LA DATE DANS LE SOUS-TITRE (avec séparateur bullet)
+            const finalSub = `${sub} &bull; ${timeStr}`;
 
             html += `
-            <div class="dropdown-item ${item.IsNew ? 'style-new' : 'style-seen'}" onclick="window.location.hash='#!/details?id=${item.IsGroup ? item.SeriesId : item.Id}'">
+            <div class="dropdown-item ${item.IsNew ? 'style-new' : 'style-seen'}" onclick="document.dispatchEvent(new CustomEvent('ns-navigate', {detail: '${targetId}'}))">
                 <div class="status-dot"></div>
                 <div class="thumb-wrapper">
                     <img data-src="${imgUrl}" class="dropdown-thumb ${isMusic?'music':''}" loading="lazy" onerror="this.style.display='none'">
@@ -274,7 +353,7 @@
                 </div>
                 <div class="dropdown-info">
                     <div class="dropdown-title">${title}</div>
-                    <div class="dropdown-subtitle">${sub}</div>
+                    <div class="dropdown-subtitle">${finalSub}</div>
                 </div>
             </div>`;
         });
@@ -288,6 +367,13 @@
         container.querySelectorAll('img[data-src]').forEach(i => obs.observe(i));
     };
 
+    const closeDropdown = () => {
+        const drop = document.getElementById('notification-dropdown');
+        const back = document.getElementById('notify-backdrop');
+        if(drop) drop.style.display = 'none';
+        if(back) back.style.display = 'none';
+    };
+
     const toggleDropdown = () => {
         let drop = document.getElementById('notification-dropdown');
         const backdrop = document.getElementById('notify-backdrop');
@@ -296,8 +382,12 @@
             drop = document.createElement('div'); drop.id = 'notification-dropdown';
             document.body.appendChild(drop);
             document.addEventListener('ns-filter', (e) => { activeFilter = e.detail; updateList(drop); });
-            document.addEventListener('ns-markall', () => { updateLastSeen(); drop.style.display='none'; backdrop.style.display='none'; });
+            document.addEventListener('ns-markall', () => { updateLastSeen(); closeDropdown(); });
             document.addEventListener('ns-refresh', () => { triggerHardRefresh(); });
+            document.addEventListener('ns-navigate', (e) => {
+                window.location.hash = '#!/details?id=' + e.detail;
+                closeDropdown();
+            });
 
             drop.innerHTML = `
                 <div class="dropdown-header">
@@ -311,17 +401,16 @@
             `;
         }
         if(!backdrop) {
-            const b = document.createElement('div'); b.id = 'notify-backdrop'; b.onclick = toggleDropdown; document.body.appendChild(b);
+            const b = document.createElement('div'); b.id = 'notify-backdrop'; b.onclick = closeDropdown; document.body.appendChild(b);
         }
 
         const isOpen = drop.style.display === 'block';
         if (!isOpen) {
             fetchData().then(() => updateList(drop));
             document.getElementById('notify-backdrop').style.display = 'block';
-            drop.style.display = 'block';
+            drop.style.display = 'flex'; 
         } else {
-            drop.style.display = 'none';
-            document.getElementById('notify-backdrop').style.display = 'none';
+            closeDropdown();
         }
     };
 

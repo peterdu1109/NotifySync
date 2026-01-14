@@ -8,7 +8,7 @@
   "url": "https://github.com/peterdu1109/NotifySync",
   "versions": [
     {
-      "version": "4.5.0",
+      "version": "4.5.2",
       "changelog": "- **Performance**: Batch Request pour les statuts 'Vu' (N+1 fix).\n- **Glassmorphism UI**: Nouvelle interface translucide et badge numérique.\n- **Robustesse**: Isolation des données utilisateur et tampon d'écriture.",
       "targetAbi": "10.11.5.0",
       "sourceUrl": "",

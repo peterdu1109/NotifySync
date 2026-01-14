@@ -67,7 +67,6 @@ namespace NotifySync
                     {
                         IncludeItemTypes = new[] { type },
                         OrderBy = new[] { (Jellyfin.Data.Enums.ItemSortBy.DateCreated, Jellyfin.Database.Implementations.Enums.SortOrder.Descending) },
-                        // MODIFICATION : Scan large (50) pour remplir le quota de 10 même si mixité
                         Limit = 500, 
                         Recursive = true,
                         IsVirtualItem = false
@@ -120,7 +119,6 @@ namespace NotifySync
         private void ApplyCategoryQuotas(List<NotificationItem> incoming, bool isInitialLoad = false)
         {
             var config = Plugin.Instance?.Configuration;
-            // On s'assure que le minimum est 3, sinon valeur config (défaut 10)
             int limitPerCat = config?.MaxItems ?? 10; 
             if (limitPerCat < 3) limitPerCat = 3;
 
@@ -150,7 +148,6 @@ namespace NotifySync
             var config = Plugin.Instance?.Configuration;
             if (config == null) return null;
 
-            // --- FILTRAGE ROBUSTE ---
             bool hasRestrictions = (config.EnabledLibraries?.Any() == true) || (config.ManualLibraryIds?.Any() == true);
             string? matchedLibraryId = null;
 
@@ -182,7 +179,6 @@ namespace NotifySync
                 matchedLibraryId = rootLibrary.Id.ToString();
             }
 
-            // --- MAPPING CATEGORIES (Normalisé) ---
             string category = "Movie";
             if (isEpisode) category = "Series";
             else if (isMusic) category = "Music";
@@ -200,19 +196,23 @@ namespace NotifySync
             var imgInfo = item.GetImageInfo(ImageType.Backdrop, 0);
             if (imgInfo != null) backdropTags.Add(imgInfo.DateModified.Ticks.ToString("x"));
 
+            var episode = item as MediaBrowser.Controller.Entities.TV.Episode;
+
             return new NotificationItem
             {
                 Id = item.Id.ToString(),
                 Name = item.Name,
                 Category = category,
-                SeriesName = (item as MediaBrowser.Controller.Entities.TV.Episode)?.SeriesName,
-                SeriesId = (item as MediaBrowser.Controller.Entities.TV.Episode)?.SeriesId.ToString(),
+                SeriesName = episode?.SeriesName,
+                SeriesId = episode?.SeriesId.ToString(),
                 DateCreated = item.DateCreated,
                 Type = item.GetType().Name,
                 RunTimeTicks = item.RunTimeTicks,
                 ProductionYear = item.ProductionYear,
                 BackdropImageTags = backdropTags,
-                PrimaryImageTag = item.GetImageInfo(ImageType.Primary, 0)?.DateModified.Ticks.ToString("x")
+                PrimaryImageTag = item.GetImageInfo(ImageType.Primary, 0)?.DateModified.Ticks.ToString("x"),
+                IndexNumber = episode?.IndexNumber,
+                ParentIndexNumber = episode?.ParentIndexNumber
             };
         }
 
@@ -283,5 +283,7 @@ namespace NotifySync
         public int? ProductionYear { get; set; }
         public List<string> BackdropImageTags { get; set; } = new List<string>();
         public string? PrimaryImageTag { get; set; }
+        public int? IndexNumber { get; set; } 
+        public int? ParentIndexNumber { get; set; } 
     }
 }

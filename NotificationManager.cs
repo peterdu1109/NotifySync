@@ -36,6 +36,7 @@ namespace NotifySync
             Instance = this;
             
             LoadNotifications();
+            
             _bufferProcessTimer = new Timer(ProcessBuffer, null, 2000, 2000);
 
             if (_notifications.Count == 0)
@@ -67,7 +68,8 @@ namespace NotifySync
                     {
                         IncludeItemTypes = new[] { type },
                         OrderBy = new[] { (Jellyfin.Data.Enums.ItemSortBy.DateCreated, Jellyfin.Database.Implementations.Enums.SortOrder.Descending) },
-                        Limit = 500, 
+                        // LIMIT À 5000 : Crucial pour voir au-delà de vos 300 épisodes d'animés
+                        Limit = 5000, 
                         Recursive = true,
                         IsVirtualItem = false
                     };
@@ -119,19 +121,51 @@ namespace NotifySync
         private void ApplyCategoryQuotas(List<NotificationItem> incoming, bool isInitialLoad = false)
         {
             var config = Plugin.Instance?.Configuration;
-            int limitPerCat = config?.MaxItems ?? 10; 
-            if (limitPerCat < 3) limitPerCat = 3;
+            int limitPerCat = config?.MaxItems ?? 5; 
+            if (limitPerCat < 1) limitPerCat = 5;
 
             lock (_lock)
             {
                 if (isInitialLoad) _notifications.Clear();
                 _notifications.AddRange(incoming);
 
-                _notifications = _notifications
-                    .GroupBy(n => n.Category)
-                    .SelectMany(g => g.OrderByDescending(x => x.DateCreated).Take(limitPerCat))
-                    .OrderByDescending(x => x.DateCreated)
-                    .ToList();
+                var filteredResults = new List<NotificationItem>();
+                
+                // On groupe par vos catégories ("animés", "séries", "Films")
+                var categoryGroups = _notifications.GroupBy(n => n.Category);
+
+                foreach (var catGroup in categoryGroups)
+                {
+                    // LE SECRET EST ICI : On regarde si ça contient des ÉPISODES.
+                    // Peu importe que la catégorie s'appelle "animés", "séries" ou "Mangas".
+                    bool containsEpisodes = catGroup.Any(x => x.Type == "Episode");
+
+                    if (containsEpisodes)
+                    {
+                        // Mode Série : 1 Série = 1 Slot
+                        var seriesClusters = catGroup
+                            .GroupBy(x => x.SeriesId ?? x.Name) 
+                            .Select(g => new 
+                            { 
+                                SeriesGroup = g, 
+                                LatestDate = g.Max(x => x.DateCreated) 
+                            })
+                            .OrderByDescending(x => x.LatestDate)
+                            .Take(limitPerCat); // Garde 10 SÉRIES
+
+                        foreach (var cluster in seriesClusters)
+                        {
+                            filteredResults.AddRange(cluster.SeriesGroup);
+                        }
+                    }
+                    else
+                    {
+                        // Mode Film/Musique : 1 Fichier = 1 Slot
+                        filteredResults.AddRange(catGroup.OrderByDescending(x => x.DateCreated).Take(limitPerCat));
+                    }
+                }
+
+                _notifications = filteredResults.OrderByDescending(x => x.DateCreated).ToList();
             }
         }
 
@@ -206,7 +240,7 @@ namespace NotifySync
                 SeriesName = episode?.SeriesName,
                 SeriesId = episode?.SeriesId.ToString(),
                 DateCreated = item.DateCreated,
-                Type = item.GetType().Name,
+                Type = item.GetType().Name, // C'est ici qu'on stocke "Episode" utilisé pour la détection
                 RunTimeTicks = item.RunTimeTicks,
                 ProductionYear = item.ProductionYear,
                 BackdropImageTags = backdropTags,

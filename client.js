@@ -1,4 +1,4 @@
-/* NOTIFYSYNC V4.5.2 - TIME AGO & RICH SUBTITLES */
+/* NOTIFYSYNC V4.5.3 - STRICT NEW GROUPING */
 (function () {
     let currentData = [];
     let groupedData = [];
@@ -8,13 +8,12 @@
     let activeFilter = 'All';
     
     const STRINGS = {
-        fr: { header: "Quoi de neuf ?", empty: "Vous êtes à jour !", markAll: "Tout marquer comme vu", badgeNew: "NOUVEAU", newEps: "épisodes", filterAll: "Tout" },
-        en: { header: "What's New?", empty: "You're all caught up!", markAll: "Mark all read", badgeNew: "NEW", newEps: "episodes", filterAll: "All" }
+        fr: { header: "Quoi de neuf ?", empty: "Vous êtes à jour !", markAll: "Tout marquer comme vu", badgeNew: "NOUVEAU", newEps: "nouveaux épisodes", eps: "épisodes", filterAll: "Tout" },
+        en: { header: "What's New?", empty: "You're all caught up!", markAll: "Mark all read", badgeNew: "NEW", newEps: "new episodes", eps: "episodes", filterAll: "All" }
     };
     const userLang = navigator.language || navigator.userLanguage;
     const T = userLang.startsWith('fr') ? STRINGS.fr : STRINGS.en;
 
-    // --- NOUVELLE FONCTION DATE RELATIVE ---
     const timeAgo = (date) => {
         const seconds = Math.floor((new Date() - new Date(date)) / 1000);
         const isFr = userLang.startsWith('fr');
@@ -56,10 +55,7 @@
                 transform: scale(0.5); pointer-events: none;
             }
             .ns-badge.visible { opacity: 1; transform: scale(1); }
-            
             #notify-backdrop { position: fixed; inset: 0; z-index: 999998; display: none; }
-            
-            /* DESKTOP */
             #notification-dropdown {
                 position: fixed; top: 70px; right: 20px; width: 380px; max-width: 90vw;
                 background: var(--ns-glass); backdrop-filter: blur(var(--ns-blur)); -webkit-backdrop-filter: blur(var(--ns-blur));
@@ -71,35 +67,25 @@
                 overflow: hidden;
                 display: flex; flex-direction: column; 
             }
-
-            /* MOBILE */
             @media (max-width: 600px) {
-                #notification-dropdown {
-                    top: 60px; right: 10px; left: 10px; width: auto; max-width: none; max-height: 80vh;    
-                }
+                #notification-dropdown { top: 60px; right: 10px; left: 10px; width: auto; max-width: none; max-height: 80vh; }
                 .hero-section { height: 130px !important; }
                 .list-container { flex: 1; max-height: none !important; } 
             }
-
             @keyframes slideDown { from { opacity:0; transform:translateY(-10px); } to { opacity:1; transform:translateY(0); } }
             @keyframes spin { 100% { transform: rotate(360deg); } }
             .spinning { animation: spin 1s linear infinite; opacity: 1!important; }
-
             .dropdown-header { display:flex; justify-content:space-between; padding:16px 20px; border-bottom: 1px solid var(--ns-border); background: rgba(0,0,0,0.3); align-items:center; flex-shrink: 0; }
             .header-title { font-weight: 700; font-size: 15px; letter-spacing: 0.5px; }
             .header-tools { display:flex; gap:15px; }
             .tool-icon { cursor:pointer; opacity:0.6; transition:opacity 0.2s; font-size: 18px; }
             .tool-icon:hover { opacity:1; }
-            
             .filter-bar { padding: 10px 20px; display: flex; gap: 8px; border-bottom: 1px solid var(--ns-border); overflow-x: auto; scrollbar-width: none; flex-shrink: 0; }
             .filter-pill { font-size: 11px; padding: 4px 12px; border-radius: 20px; background: rgba(255,255,255,0.05); cursor: pointer; transition: all 0.2s; border: 1px solid transparent; white-space: nowrap; }
             .filter-pill.active { background: #fff; color: #000; font-weight: 700; box-shadow: 0 0 10px rgba(255,255,255,0.2); }
-            
             .list-container { max-height: 500px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
-            
             .dropdown-item { display:flex; padding:12px 20px; border-bottom:1px solid var(--ns-border); cursor:pointer; transition: background .2s; position: relative; }
             .dropdown-item:hover { background: rgba(255,255,255,0.08); }
-            
             .status-dot {
                 position: absolute; left: 6px; top: 50%; transform: translateY(-50%);
                 width: 4px; height: 4px; border-radius: 50%; background: var(--ns-red);
@@ -108,27 +94,22 @@
             }
             .style-new .status-dot { display: block; }
             .style-new { background: rgba(229, 9, 20, 0.05); }
-            
             .thumb-wrapper { width:90px; height:50px; margin-right:15px; flex-shrink:0; background:#222; border-radius:6px; overflow:hidden; display:flex; justify-content:center; align-items:center; box-shadow: 0 2px 5px rgba(0,0,0,0.3); }
             .dropdown-thumb { width:100%; height:100%; object-fit:cover; opacity:0; transition:opacity 0.3s; }
             .dropdown-thumb.music { object-fit:contain; }
             .dropdown-thumb.loaded { opacity:1; }
-            
             .dropdown-info { flex:1; display:flex; flex-direction:column; justify-content:center; min-width: 0; }
-            
             .dropdown-title { 
                 font-weight:600; font-size:13px; margin-bottom:4px; 
                 white-space: normal; line-height: 1.2;
                 display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
             }
             .dropdown-subtitle { font-size:11px; color:#aaa; white-space: normal; line-height: 1.3; }
-            
             .hero-section { height: 160px; position: relative; cursor: pointer; display: flex; align-items: flex-end; margin-bottom: -1px; flex-shrink: 0; }
             .hero-bg { position: absolute; inset: 0; background-size: cover; background-position: center top; transition: transform 5s ease; }
             .hero-overlay { position: absolute; inset: 0; background: linear-gradient(to top, var(--ns-glass) 5%, transparent 100%); }
             .hero-content { position: relative; z-index: 2; padding: 20px; width: 100%; }
             .hero-badge { background: var(--ns-red); color: #fff; font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 3px; display: inline-block; margin-bottom: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.5); }
-            
             .footer-tools { padding: 10px; text-align: center; border-top: 1px solid var(--ns-border); font-size: 11px; color: #888; cursor: pointer; transition: color 0.2s; flex-shrink: 0; }
             .footer-tools:hover { color: #fff; text-decoration: underline; }
         `;
@@ -137,30 +118,68 @@
 
     const getUserId = () => window.ApiClient.getCurrentUserId();
 
+    // --- LOGIQUE DE GROUPEMENT STRICTE ---
     const processGrouping = (items) => {
-        const g = {}; const r = [];
+        const others = [];
+        const episodes = [];
+
+        // Séparation Épisodes vs Autres (Films/Musique)
         items.forEach(i => {
-            if (i.Type === 'Episode' && i.SeriesName) {
-                if (!g[i.SeriesName]) { 
-                    g[i.SeriesName] = { ...i, IsGroup: true, GroupCount: 1, LatestDate: i.DateCreated, GroupIds: [i.Id] }; 
-                    r.push(g[i.SeriesName]); 
-                } else { 
-                    g[i.SeriesName].GroupCount++; 
-                    g[i.SeriesName].GroupIds.push(i.Id);
-                    if(new Date(i.DateCreated) > new Date(g[i.SeriesName].LatestDate)) {
-                        g[i.SeriesName].LatestDate = i.DateCreated;
-                        g[i.SeriesName].Id = i.Id; 
-                        g[i.SeriesName].Name = i.Name;
-                        g[i.SeriesName].IndexNumber = i.IndexNumber;
-                        g[i.SeriesName].ParentIndexNumber = i.ParentIndexNumber;
-                        g[i.SeriesName].PrimaryImageTag = i.PrimaryImageTag;
-                    }
-                }
-            } else { 
-                r.push(i); 
+            if (i.Type === 'Episode' && i.SeriesId) {
+                episodes.push(i);
+            } else {
+                others.push(i);
             }
         });
-        return r.sort((a,b) => new Date(b.DateCreated) - new Date(a.DateCreated));
+
+        // Groupement temporaire par ID de série
+        const seriesMap = {};
+        episodes.forEach(ep => {
+            if (!seriesMap[ep.SeriesId]) seriesMap[ep.SeriesId] = [];
+            seriesMap[ep.SeriesId].push(ep);
+        });
+
+        const result = [...others];
+
+        Object.keys(seriesMap).forEach(sId => {
+            const eps = seriesMap[sId];
+            // Tri du plus récent au plus vieux
+            eps.sort((a,b) => new Date(b.DateCreated) - new Date(a.DateCreated));
+
+            // Compte SEULEMENT les vrais nouveaux (Non vu + récent)
+            const newEps = eps.filter(e => e.IsNew);
+            const newCount = newEps.length;
+
+            if (newCount > 1) {
+                // CAS 1: Plusieurs NOUVEAUX épisodes -> On GROUPE
+                const latest = newEps[0];
+                result.push({
+                    ...latest,
+                    IsGroup: true,
+                    GroupCount: newCount,
+                    GroupIds: newEps.map(e => e.Id),
+                    Name: latest.SeriesName, 
+                    Id: latest.SeriesId,
+                    BackdropImageTags: latest.BackdropImageTags,
+                    IsNew: true
+                });
+            } 
+            else if (newCount === 1) {
+                // CAS 2: Exactement 1 nouveau -> On affiche l'épisode SEUL
+                result.push(newEps[0]);
+            } 
+            else {
+                // CAS 3: Aucun nouveau (Tout est vu ou ancien)
+                // CORRECTION ICI : On ne groupe PAS. On prend juste le dernier épisode.
+                // Cela évite d'afficher "Série X - 2 épisodes" quand tout est vu.
+                if (eps.length > 0) {
+                    result.push(eps[0]); // Affiche juste le dernier épisode de l'historique
+                }
+            }
+        });
+
+        // Tri final de toute la liste par date
+        return result.sort((a,b) => new Date(b.DateCreated) - new Date(a.DateCreated));
     };
 
     const fetchLastSeen = async () => {
@@ -184,7 +203,7 @@
 
     const refreshPlayStates = async () => {
         if (!currentData.length) return;
-        const ids = currentData.map(i => i.Id);
+        const ids = currentData.map(i => i.Id); 
         try {
             const res = await fetch(`/NotifySync/BulkUserData?userId=${getUserId()}`, {
                 method: 'POST',
@@ -198,14 +217,7 @@
                     if (statusMap.hasOwnProperty(item.Id)) item.Played = statusMap[item.Id];
                     item.IsNew = !item.Played && (new Date(item.DateCreated) > lastSeenDate);
                 });
-
                 groupedData = processGrouping(currentData);
-                groupedData.forEach(g => {
-                    if(g.IsGroup) {
-                        const latest = currentData.find(x => x.Id === g.Id);
-                        g.IsNew = latest ? latest.IsNew : false;
-                    }
-                });
                 updateBadge();
             }
         } catch(e) { console.error("Bulk check failed", e); }
@@ -257,6 +269,14 @@
         }
     };
 
+    const formatEpisodeTitle = (item) => {
+        const s = item.ParentIndexNumber ? `S${item.ParentIndexNumber.toString().padStart(2,'0')}` : '';
+        const e = item.IndexNumber ? `E${item.IndexNumber.toString().padStart(2,'0')}` : '';
+        const se = (s || e) ? `${s}${e}` : '';
+        if (se && item.Name.indexOf(se) !== -1) return item.Name;
+        return se ? `${se} - ${item.Name}` : item.Name;
+    };
+
     const updateList = (drop) => {
         if(!drop) return;
         const container = drop.querySelector('.list-container');
@@ -278,24 +298,32 @@
         const client = window.ApiClient;
         const hero = filtered.find(i => i.IsNew) || filtered[0];
         
+        // --- HERO ---
         if (hero) {
-            const isMultiGroup = hero.IsGroup && hero.GroupCount > 1;
+            const isGroup = !!hero.IsGroup; 
             const tag = (hero.BackdropImageTags && hero.BackdropImageTags[0]) || '';
+            
             let heroImg = tag ? client.getUrl(`Items/${hero.Id}/Images/Backdrop/0?tag=${tag}&quality=70&maxWidth=600`) : client.getUrl(`Items/${hero.SeriesId || hero.Id}/Images/Primary?quality=70&maxWidth=400`);
-            if(isMultiGroup && hero.SeriesId) heroImg = client.getUrl(`Items/${hero.SeriesId}/Images/Backdrop/0?quality=70&maxWidth=600`);
+            if(isGroup && hero.SeriesId) heroImg = client.getUrl(`Items/${hero.Id}/Images/Backdrop/0?quality=70&maxWidth=600`);
 
             let heroTitle = hero.Name;
-            if (hero.IsGroup) {
-                if (hero.GroupCount > 1) heroTitle = hero.SeriesName; 
-                else heroTitle = `${hero.SeriesName}`; 
+            let heroSub = '';
+            
+            if (isGroup) {
+                // MODE GROUPÉ (Uniquement pour >1 Nouveaux)
+                heroSub = `${hero.GroupCount} ${T.newEps}`;
+            } else if (hero.Type === 'Episode') {
+                // MODE SINGLE (Nouveau ou Historique)
+                heroTitle = formatEpisodeTitle(hero);
+                heroSub = hero.SeriesName; 
+            } else {
+                heroSub = hero.ProductionYear;
             }
 
-            // DATE POUR LE HERO
             const timeStr = timeAgo(hero.DateCreated);
-            const targetId = isMultiGroup ? hero.SeriesId : hero.Id;
             
             html += `
-            <div class="hero-section" onclick="document.dispatchEvent(new CustomEvent('ns-navigate', {detail: '${targetId}'}))">
+            <div class="hero-section" onclick="document.dispatchEvent(new CustomEvent('ns-navigate', {detail: '${hero.Id}'}))">
                 <div class="hero-bg" style="background-image:url('${heroImg}')"></div>
                 <div class="hero-overlay"></div>
                 <div class="hero-content">
@@ -303,45 +331,34 @@
                     <div style="font-size:18px;font-weight:700;text-shadow:0 2px 4px #000;line-height:1.2;">
                         ${heroTitle}
                     </div>
-                    <div style="font-size:12px;opacity:0.8;margin-top:4px;">
-                        ${isMultiGroup ? `${hero.GroupCount} ${T.newEps}` : (hero.GroupCount === 1 ? (hero.Name) : hero.ProductionYear)}
-                        &bull; ${timeStr}
+                    <div style="font-size:12px;opacity:0.8;margin-top:4px">
+                        ${heroSub} &bull; ${timeStr}
                     </div>
                 </div>
             </div>`;
         }
 
+        // --- LISTE ---
         filtered.filter(x => x !== hero).forEach(item => {
             const isMusic = item.Category === 'Music';
-            const isMultiGroup = item.IsGroup && item.GroupCount > 1;
+            const isGroup = !!item.IsGroup; 
             
             const imgTag = item.PrimaryImageTag || '';
             const imgOpts = isMusic ? 'fillHeight=100&fillWidth=100' : 'fillHeight=112&fillWidth=200';
-            let targetId = item.Id;
-            if (isMultiGroup) targetId = item.SeriesId;
-
+            const targetId = item.Id; 
             const imgUrl = client.getUrl(`Items/${targetId}/Images/Primary?tag=${imgTag}&${imgOpts}&quality=80`);
             
             let title = item.Name;
             let sub = item.ProductionYear;
-
-            // Calcul date relative
             const timeStr = timeAgo(item.DateCreated);
 
-            if (item.IsGroup) {
-                if (isMultiGroup) {
-                    title = item.SeriesName;
-                    sub = `${item.GroupCount} ${T.newEps}`;
-                } else {
-                    const s = item.ParentIndexNumber ? `S${item.ParentIndexNumber.toString().padStart(2,'0')}` : '';
-                    const e = item.IndexNumber ? `E${item.IndexNumber.toString().padStart(2,'0')}` : '';
-                    const se = (s || e) ? `${s}${e} - ` : '';
-                    title = `${se}${item.Name}`; 
-                    sub = item.SeriesName; 
-                }
+            if (isGroup) {
+                sub = `${item.GroupCount} ${T.newEps}`;
+            } else if (item.Type === 'Episode') {
+                title = formatEpisodeTitle(item);
+                sub = item.SeriesName; 
             }
 
-            // AJOUT DE LA DATE DANS LE SOUS-TITRE (avec séparateur bullet)
             const finalSub = `${sub} &bull; ${timeStr}`;
 
             html += `

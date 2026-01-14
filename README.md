@@ -1,12 +1,12 @@
 **NotifySync** est un centre de notifications avancé pour Jellyfin. Il remplace la cloche par défaut par un tableau de bord moderne, performant et intelligent, inspiré des plateformes de streaming majeures.
 
 > [!IMPORTANT]
-> **Mise à jour v4.5.2 **
+> **Mise à jour v4.5.3 **
 > Ajout des dates relatives ("il y a 5 min"), optimisation pour l'affichage mobile, et correction critique de la détection utilisateur via requêtes par lots.
-
+> Correction sur le regroupement d'épisode
 ---
 
-## ✨ Nouveautés de la v4.5.2
+## ✨ Nouveautés de la v4.5.3
 
 ### 🕒 Time Ago & Sous-titres Riches
 * **Dates Relatives** : Fini les dates brutes. Le plugin affiche désormais le temps écoulé : *"à l'instant"*, *"il y a 2 h"*, *"il y a 5 jours"*.

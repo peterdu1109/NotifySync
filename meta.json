@@ -8,11 +8,11 @@
   "url": "https://github.com/peterdu1109/NotifySync",
   "versions": [
     {
-      "version": "4.5.2",
-      "changelog": "- **New Feature**: Ajout du format 'Time Ago' (il y a X min) et sous-titres riches (Saison/Episode).\n- **Mobile**: Optimisation CSS complète pour l'affichage sur smartphone.\n- **Fix**: Passage explicite du UserID pour la correction du statut 'Vu' en multi-comptes.\n- **UI**: Badge 'Nouveau' animé et amélioration du layout Glassmorphism.",
+      "version": "4.5.3",
+      "changelog": "Correction sur les regroupements",
       "targetAbi": "10.11.5.0",
-      "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/4.5.2/NotifySync.dll",
-      "checksum": "97E398975D4D99099369074448C74136",
+      "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/4.5.3/NotifySync.dll",
+      "checksum": "48C5B337484A4B23B9C315860C6EDAA9",
       "timestamp": "2026-01-14T00:00:00Z"
     }
   ]

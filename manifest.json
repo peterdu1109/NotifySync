@@ -8,12 +8,12 @@
   "url": "https://github.com/peterdu1109/NotifySync",
   "versions": [
     {
-      "version": "4.5.5",
-      "changelog": "Optimisations performances",
+      "version": "4.5.6",
+      "changelog": "Optimisation E/S (Cache RAM LastSeen), Lock non-bloquant et chargement client parallèle.",
       "targetAbi": "10.11.5.0",
-      "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/4.5.4/NotifySync.dll",
+      "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/4.5.6/NotifySync.dll",
       "checksum": "00000000000000000000000000000000",
-      "timestamp": "2026-01-15T00:00:00Z"
+      "timestamp": "2026-01-16T00:00:00Z"
     }
   ]
 }

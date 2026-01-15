@@ -12,7 +12,7 @@ using Microsoft.Extensions.Logging;
 using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.Querying;
 using Jellyfin.Data.Enums;
-using System.Text.Json.Serialization; // NOUVEAU : Nécessaire pour l'optimisation JSON
+using System.Text.Json.Serialization;
 
 namespace NotifySync
 {
@@ -81,7 +81,6 @@ namespace NotifySync
                 var tempNotifs = new List<NotificationItem>();
                 var typesToScan = new[] { BaseItemKind.Movie, BaseItemKind.Episode, BaseItemKind.MusicAlbum };
                 
-                // CORRECTIF MAJEUR : Limite haute pour capturer les longues séries
                 int fetchLimit = 5000;
 
                 foreach (var type in typesToScan)
@@ -94,7 +93,6 @@ namespace NotifySync
                         Recursive = true,
                         IsVirtualItem = false,
                         EnableTotalRecordCount = false
-                        // CORRECTIF : Pas de DtoOptions pour garantir les infos Parents/Séries
                     };
                     
                     var items = _libraryManager.GetItemList(query);
@@ -141,58 +139,66 @@ namespace NotifySync
             }
         }
 
+        // --- OPTIMISATION COPY-ON-WRITE ---
         private void ApplyCategoryQuotas(List<NotificationItem> incoming, bool isInitialLoad = false)
         {
             var config = Plugin.Instance?.Configuration;
             int limitPerCat = config?.MaxItems ?? 5; 
             if (limitPerCat < 1) limitPerCat = 5;
 
-            _dataLock.EnterWriteLock();
-            try
+            // 1. Copie des données (Lecture rapide)
+            List<NotificationItem> workingList;
+            _dataLock.EnterReadLock();
+            try 
+            { 
+                workingList = isInitialLoad ? new List<NotificationItem>() : new List<NotificationItem>(_notifications);
+            }
+            finally { _dataLock.ExitReadLock(); }
+
+            // 2. Traitement LOURD (Tri, Groupement, Filtrage) SANS BLOQUER l'API
+            workingList.AddRange(incoming);
+
+            var finalResults = new List<NotificationItem>();
+            var categoryGroups = workingList.GroupBy(n => n.Category);
+
+            foreach (var catGroup in categoryGroups)
             {
-                if (isInitialLoad) _notifications.Clear();
-                _notifications.AddRange(incoming);
+                bool containsEpisodes = catGroup.Any(x => x.Type == "Episode");
 
-                var filteredResults = new List<NotificationItem>();
-                var categoryGroups = _notifications.GroupBy(n => n.Category);
-
-                foreach (var catGroup in categoryGroups)
+                if (containsEpisodes)
                 {
-                    bool containsEpisodes = catGroup.Any(x => x.Type == "Episode");
+                    var seriesClusters = catGroup
+                        .GroupBy(x => x.SeriesId ?? x.Name) 
+                        .Select(g => new 
+                        { 
+                            SeriesGroup = g, 
+                            LatestDate = g.Max(x => x.DateCreated) 
+                        })
+                        .OrderByDescending(x => x.LatestDate)
+                        .Take(limitPerCat); 
 
-                    if (containsEpisodes)
+                    foreach (var cluster in seriesClusters)
                     {
-                        var seriesClusters = catGroup
-                            .GroupBy(x => x.SeriesId ?? x.Name) 
-                            .Select(g => new 
-                            { 
-                                SeriesGroup = g, 
-                                LatestDate = g.Max(x => x.DateCreated) 
-                            })
-                            .OrderByDescending(x => x.LatestDate)
-                            .Take(limitPerCat); 
-
-                        foreach (var cluster in seriesClusters)
-                        {
-                            filteredResults.AddRange(cluster.SeriesGroup);
-                        }
+                        finalResults.AddRange(cluster.SeriesGroup);
                     }
-                    else
-                    {
-                        filteredResults.AddRange(catGroup.OrderByDescending(x => x.DateCreated).Take(limitPerCat));
-                    }
-                }
-
-                _notifications = filteredResults.OrderByDescending(x => x.DateCreated).ToList();
-                
-                if (_notifications.Count > 0)
-                {
-                    _currentVersionHash = _notifications[0].DateCreated.Ticks.ToString() + "-" + _notifications.Count;
                 }
                 else
                 {
-                    _currentVersionHash = "empty";
+                    finalResults.AddRange(catGroup.OrderByDescending(x => x.DateCreated).Take(limitPerCat));
                 }
+            }
+
+            var sortedFinal = finalResults.OrderByDescending(x => x.DateCreated).ToList();
+            var newHash = sortedFinal.Count > 0 
+                ? sortedFinal[0].DateCreated.Ticks.ToString() + "-" + sortedFinal.Count 
+                : "empty";
+
+            // 3. Échange rapide (Verrou d'écriture très court)
+            _dataLock.EnterWriteLock();
+            try
+            {
+                _notifications = sortedFinal;
+                _currentVersionHash = newHash;
             }
             finally
             {
@@ -317,8 +323,6 @@ namespace NotifySync
                     }
                     finally { _dataLock.ExitReadLock(); }
 
-                    // OPTIMISATION .NET 9 : Source Generator
-                    // Plus rapide que JsonSerializer.Serialize(copy) car le code est pré-compilé
                     var json = JsonSerializer.Serialize(copy, NotificationJsonContext.Default.ListNotificationItem);
                     
                     var tempPath = _jsonPath + ".tmp";
@@ -337,7 +341,6 @@ namespace NotifySync
                 if (File.Exists(_jsonPath))
                 {
                     var json = File.ReadAllText(_jsonPath);
-                    // OPTIMISATION .NET 9 : Source Generator pour la lecture
                     _notifications = JsonSerializer.Deserialize(json, NotificationJsonContext.Default.ListNotificationItem) ?? new List<NotificationItem>();
                     
                     if (_notifications.Count > 0)
@@ -387,7 +390,6 @@ namespace NotifySync
         public int? ParentIndexNumber { get; set; } 
     }
 
-    // --- OPTIMISATION JSON CONTEXT ---
     [JsonSerializable(typeof(List<NotificationItem>))]
     internal partial class NotificationJsonContext : JsonSerializerContext
     {

@@ -1,6 +1,7 @@
 using System;
 using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
+using System.Collections.Concurrent; // Nécessaire pour le cache
 using System.Linq;
 using MediaBrowser.Controller.Library;
 using System.Threading.Tasks;
@@ -8,7 +9,7 @@ using System.IO;
 using System.Text.Json;
 using System.Security.Claims;
 using MediaBrowser.Controller.Entities;
-using Microsoft.AspNetCore.Http; // Ajouté par sécurité, mais on utilise l'indexeur ci-dessous
+using Microsoft.AspNetCore.Http;
 
 namespace NotifySync
 {
@@ -19,6 +20,9 @@ namespace NotifySync
         private readonly IUserManager _userManager;
         private readonly ILibraryManager _libraryManager;
         private readonly IUserDataManager _userDataManager;
+        
+        // OPTIMISATION : Cache mémoire statique pour éviter les E/S disque répétées
+        private static ConcurrentDictionary<string, string>? _userDataCache;
         private static readonly object _fileLock = new object();
 
         public NotifyController(IUserManager userManager, ILibraryManager libraryManager, IUserDataManager userDataManager)
@@ -45,21 +49,14 @@ namespace NotifySync
         {
             if (NotificationManager.Instance == null) return Ok(new List<object>());
 
-            // 1. Récupération légère du hash
             var serverVersion = NotificationManager.Instance.GetVersionHash();
             
-            // 2. Vérification ETag
             if (Request.Headers.TryGetValue("If-None-Match", out var clientTag))
             {
-                if (clientTag.ToString() == serverVersion) 
-                {
-                    return StatusCode(304); // Not Modified
-                }
+                if (clientTag.ToString() == serverVersion) return StatusCode(304);
             }
 
-            // 3. Ajout du nouvel ETag (CORRECTION ICI : Utilisation de l'indexeur)
             Response.Headers["ETag"] = serverVersion;
-            
             return Ok(NotificationManager.Instance.GetRecentNotifications());
         }
 
@@ -82,30 +79,21 @@ namespace NotifySync
                 if (Guid.TryParse(idStr, out var guid))
                 {
                     var item = _libraryManager.GetItemById(guid);
-                    
                     if (item != null)
                     {
                         var userData = _userDataManager.GetUserData(user, item);
                         bool isPlayed = false;
                         if (userData != null)
                         {
-                            if (userData.Played) 
-                            {
-                                isPlayed = true;
-                            }
+                            if (userData.Played) isPlayed = true;
                             else if (item.RunTimeTicks.HasValue && item.RunTimeTicks > 0)
                             {
-                                double position = userData.PlaybackPositionTicks;
-                                double duration = item.RunTimeTicks.Value;
-                                if ((position / duration) * 100 > 90) isPlayed = true;
+                                if ((userData.PlaybackPositionTicks / (double)item.RunTimeTicks.Value) * 100 > 90) isPlayed = true;
                             }
                         }
                         result[idStr] = isPlayed;
                     }
-                    else
-                    {
-                        result[idStr] = false; 
-                    }
+                    else result[idStr] = false; 
                 }
             }
             return Ok(result);
@@ -114,7 +102,8 @@ namespace NotifySync
         [HttpGet("LastSeen/{userId}")]
         public ActionResult GetLastSeen(string userId)
         {
-            var data = LoadUserData();
+            // OPTIMISATION : Lecture RAM
+            var data = GetCachedUserData();
             if (data.TryGetValue(userId, out var date)) return Ok(date);
             return Ok("2000-01-01T00:00:00.000Z");
         }
@@ -123,28 +112,50 @@ namespace NotifySync
         public ActionResult SetLastSeen(string userId, [FromQuery] string date)
         {
             if (string.IsNullOrEmpty(date)) return BadRequest();
+            
+            // OPTIMISATION : Mise à jour RAM immédiate + Sauvegarde disque sécurisée
+            var data = GetCachedUserData();
+            data[userId] = date;
+            
             lock (_fileLock)
             {
-                var data = LoadUserData();
-                data[userId] = date;
-                SaveUserData(data);
+                SaveUserDataToDisk(data);
             }
             return Ok();
         }
 
-        private Dictionary<string, string> LoadUserData()
+        private ConcurrentDictionary<string, string> GetCachedUserData()
         {
-            try {
+            if (_userDataCache != null) return _userDataCache;
+
+            lock (_fileLock)
+            {
+                if (_userDataCache != null) return _userDataCache;
+
                 var path = Path.Combine(Plugin.Instance!.DataFolderPath, "user_data.json");
-                if (!System.IO.File.Exists(path)) return new Dictionary<string, string>();
-                return JsonSerializer.Deserialize<Dictionary<string, string>>(System.IO.File.ReadAllText(path)) ?? new Dictionary<string, string>();
-            } catch { return new Dictionary<string, string>(); }
+                if (!System.IO.File.Exists(path)) 
+                {
+                    _userDataCache = new ConcurrentDictionary<string, string>();
+                }
+                else
+                {
+                    try 
+                    {
+                        var json = System.IO.File.ReadAllText(path);
+                        var dict = JsonSerializer.Deserialize<Dictionary<string, string>>(json);
+                        _userDataCache = new ConcurrentDictionary<string, string>(dict ?? new Dictionary<string, string>());
+                    }
+                    catch { _userDataCache = new ConcurrentDictionary<string, string>(); }
+                }
+                return _userDataCache;
+            }
         }
 
-        private void SaveUserData(Dictionary<string, string> data)
+        private void SaveUserDataToDisk(ConcurrentDictionary<string, string> data)
         {
             try {
                 var path = Path.Combine(Plugin.Instance!.DataFolderPath, "user_data.json");
+                // Conversion en Dict standard pour sérialisation propre
                 System.IO.File.WriteAllText(path, JsonSerializer.Serialize(data));
             } catch { }
         }

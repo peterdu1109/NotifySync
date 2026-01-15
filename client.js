@@ -1,4 +1,4 @@
-/* NOTIFYSYNC V4.5.5 - WEBP + ETAG + FIX */
+/* NOTIFYSYNC V4.5.6 - OPTIMIZED PARALLEL */
 (function () {
     let currentData = [];
     let groupedData = [];
@@ -182,7 +182,6 @@
             headers: getAuthHeaders()
         });
         lastSeenDate = new Date();
-        // Update local state
         currentData.forEach(i => i.IsNew = false);
         groupedData = processGrouping(currentData);
         updateBadge();
@@ -215,14 +214,16 @@
         if (isFetching) return; 
         isFetching = true;
         try {
-            await fetchLastSeen();
+            // OPTIMISATION : Requêtes parallèles
+            const lastSeenPromise = fetchLastSeen();
             
-            // ETAG & CACHE HANDLING
             const lastEtag = localStorage.getItem('ns-etag') || '';
             const headers = getAuthHeaders();
             if(lastEtag) headers['If-None-Match'] = lastEtag;
+            
+            const dataPromise = fetch('/NotifySync/Data', { headers: headers });
 
-            const res = await fetch('/NotifySync/Data', { headers: headers });
+            const [_, res] = await Promise.all([lastSeenPromise, dataPromise]);
             
             if (res.status === 304) {
                 await refreshPlayStates();
@@ -231,12 +232,9 @@
             else if (res.ok) {
                 const json = await res.json();
                 currentData = json;
-                
-                // Save to Cache
                 const newEtag = res.headers.get('ETag');
                 if(newEtag) localStorage.setItem('ns-etag', newEtag);
                 localStorage.setItem('ns-data', JSON.stringify(currentData));
-
                 await refreshPlayStates(); 
                 retryDelay = 2000;
             }
@@ -250,7 +248,6 @@
         } finally { isFetching = false; }
     };
     
-    // Initial Load from Cache (Instant UI)
     const loadFromCache = () => {
         try {
             const cached = localStorage.getItem('ns-data');
@@ -319,12 +316,9 @@
         const client = window.ApiClient;
         const hero = filtered.find(i => i.IsNew) || filtered[0];
         
-        // --- HERO ---
         if (hero) {
             const isGroup = !!hero.IsGroup; 
             const tag = (hero.BackdropImageTags && hero.BackdropImageTags[0]) || '';
-            
-            // OPTIMISATION WEBP : &format=webp ajouté
             let heroImg = tag ? client.getUrl(`Items/${hero.Id}/Images/Backdrop/0?tag=${tag}&quality=70&maxWidth=600&format=webp`) : client.getUrl(`Items/${hero.SeriesId || hero.Id}/Images/Primary?quality=70&maxWidth=400&format=webp`);
             if(isGroup && hero.SeriesId) heroImg = client.getUrl(`Items/${hero.Id}/Images/Backdrop/0?quality=70&maxWidth=600&format=webp`);
 
@@ -358,15 +352,12 @@
             </div>`;
         }
 
-        // --- LISTE ---
         filtered.filter(x => x !== hero).forEach(item => {
             const isMusic = item.Category === 'Music';
             const isGroup = !!item.IsGroup; 
-            
             const imgTag = item.PrimaryImageTag || '';
             const imgOpts = isMusic ? 'fillHeight=100&fillWidth=100' : 'fillHeight=112&fillWidth=200';
             const targetId = item.Id; 
-            // OPTIMISATION WEBP : &format=webp ajouté
             const imgUrl = client.getUrl(`Items/${targetId}/Images/Primary?tag=${imgTag}&${imgOpts}&quality=80&format=webp`);
             
             let title = item.Name;
@@ -397,6 +388,10 @@
         });
 
         html += `<div class="footer-tools" onclick="document.dispatchEvent(new Event('ns-markall'))">${T.markAll}</div>`;
+        
+        // OPTIMISATION : Ne touche pas au DOM si identique
+        if (container.innerHTML === html) return;
+        
         container.innerHTML = html;
 
         const obs = new IntersectionObserver((entries, o) => { 

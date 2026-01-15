@@ -46,52 +46,45 @@ namespace NotifySync
             return Ok(NotificationManager.Instance.GetRecentNotifications());
         }
 
-        // --- CORRECTION APPLIQUÉE ICI ---
-        // Nous acceptons maintenant l'userId explicitement via l'URL
         [HttpPost("BulkUserData")]
         public ActionResult GetBulkUserData([FromBody] List<string> itemIds, [FromQuery] string userId)
         {
-            // 1. Validation de l'ID utilisateur reçu du client JS
             if (string.IsNullOrEmpty(userId) || !Guid.TryParse(userId, out var userGuid))
             {
-                // Si pas d'ID, on ne peut pas vérifier le statut "Vu" -> tout reste "Non vu"
                 return Ok(new Dictionary<string, bool>());
             }
 
-            var result = new Dictionary<string, bool>();
             var user = _userManager.GetUserById(userGuid); 
+            if (user == null || itemIds == null || itemIds.Count == 0) 
+                return Ok(new Dictionary<string, bool>());
 
-            if (user == null || itemIds == null || !itemIds.Any()) 
-                return Ok(result);
+            // Optimisation : Pré-allocation de la taille du dictionnaire
+            var result = new Dictionary<string, bool>(itemIds.Count);
 
             foreach (var idStr in itemIds)
             {
                 if (Guid.TryParse(idStr, out var guid))
                 {
                     var item = _libraryManager.GetItemById(guid);
+                    
                     if (item != null)
                     {
-                        // 2. Récupération des données SPECIFIQUES à cet utilisateur
                         var userData = _userDataManager.GetUserData(user, item);
-                        
                         bool isPlayed = false;
                         if (userData != null)
                         {
-                            // Cas A : Marqué comme lu
                             if (userData.Played) 
                             {
                                 isPlayed = true;
                             }
-                            // Cas B : En cours de lecture mais presque fini (>90%)
+                            // Seuil de 90%
                             else if (item.RunTimeTicks.HasValue && item.RunTimeTicks > 0)
                             {
                                 double position = userData.PlaybackPositionTicks;
                                 double duration = item.RunTimeTicks.Value;
-                                // Calcul du pourcentage
                                 if ((position / duration) * 100 > 90) isPlayed = true;
                             }
                         }
-                        
                         result[idStr] = isPlayed;
                     }
                     else

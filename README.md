@@ -1,29 +1,26 @@
 **NotifySync** est un centre de notifications avancé pour Jellyfin. Il remplace la cloche par défaut par un tableau de bord moderne, performant et intelligent, inspiré des plateformes de streaming majeures.
 
 > [!IMPORTANT]
-> **Mise à jour v4.5.3 **
-> Ajout des dates relatives ("il y a 5 min"), optimisation pour l'affichage mobile, et correction critique de la détection utilisateur via requêtes par lots.
-> Correction sur le regroupement d'épisode
+> **Mise à jour v4.5.4 **
+> Optimisation majeure des performances Backend/Frontend. Ajout de l'écriture différée (debounce) pour protéger le serveur et accélération du calcul de groupement.
+
 ---
 
-## ✨ Nouveautés de la v4.5.3
+## ✨ Nouveautés de la v4.5.4
+
+### ⚡ Performances Backend (C#)
+* **Sauvegarde Différée** : Le fichier `notifications.json` n'est plus écrit à chaque ajout de fichier. Le système attend désormais une pause dans les ajouts ou un délai de 10 secondes. Gain énorme si vous ajoutez une saison entière.
+* **Écriture Atomique** : Utilisation de fichiers temporaires pour éviter toute corruption de données en cas de crash pendant l'écriture.
+
+### 🚀 Optimisation Frontend (JS)
+* **Groupement O(n)** : L'algorithme de regroupement des épisodes a été réécrit pour être instantané, même avec des centaines de notifications.
+* **Rendu Fluide** : Ajout de `content-visibility` CSS pour soulager le navigateur lors du défilement.
 
 ### 🕒 Time Ago & Sous-titres Riches
 * **Dates Relatives** : Fini les dates brutes. Le plugin affiche désormais le temps écoulé : *"à l'instant"*, *"il y a 2 h"*, *"il y a 5 jours"*.
-* **Métadonnées Contextuelles** : Les sous-titres combinent intelligemment le nom de la série, le numéro de saison/épisode et le temps écoulé (ex: *S02E04 - Arcane • il y a 2 h*).
 
 ### 📱 Optimisation Mobile
 * **Interface Réactive** : Le panneau de notification s'adapte désormais parfaitement aux écrans mobiles (largeur dynamique, hauteur ajustée).
-* **Navigation Tactile** : Amélioration du scrolling et de la taille des zones tactiles pour une utilisation fluide sur smartphone.
-
-### 🎨 Interface "Glassmorphism" & Hero Banner
-* **Design Translucide** : L'interface utilise un effet de flou moderne (Glassmorphism) qui s'adapte à votre arrière-plan.
-* **Hero Banner Dynamique** : Le contenu le plus récent s'affiche en grand en haut de la liste avec son image "Backdrop".
-* **Groupement Intelligent** : Les épisodes d'une même série sont regroupés en une seule ligne pour ne pas polluer l'affichage.
-
-### ⚡ Performance & Correctifs (Batch Fix)
-* **Correction UserID** : L'identification de l'utilisateur est maintenant explicite, corrigeant les problèmes de statut "Vu" sur les profils multiples.
-* **Vérification "Batch"** : Le plugin vérifie le statut de lecture de tous les éléments en **une seule requête** ultra-rapide.
 
 ---
 
@@ -63,6 +60,7 @@ Pour que la cloche apparaisse, vous devez injecter le script client via l'interf
 		script.src = '/NotifySync/Client.js';
 		script.defer = true;
 		document.head.appendChild(script);
+        ```
 
 ---
 

@@ -1,4 +1,4 @@
-/* NOTIFYSYNC V4.5.3 - STRICT NEW GROUPING */
+/* NOTIFYSYNC V4.5.4 - OPTIMIZED GROUPING */
 (function () {
     let currentData = [];
     let groupedData = [];
@@ -17,7 +17,6 @@
     const timeAgo = (date) => {
         const seconds = Math.floor((new Date() - new Date(date)) / 1000);
         const isFr = userLang.startsWith('fr');
-        
         let interval = seconds / 31536000;
         if (interval > 1) return isFr ? `il y a ${Math.floor(interval)} an(s)` : `${Math.floor(interval)}y ago`;
         interval = seconds / 2592000;
@@ -83,7 +82,13 @@
             .filter-bar { padding: 10px 20px; display: flex; gap: 8px; border-bottom: 1px solid var(--ns-border); overflow-x: auto; scrollbar-width: none; flex-shrink: 0; }
             .filter-pill { font-size: 11px; padding: 4px 12px; border-radius: 20px; background: rgba(255,255,255,0.05); cursor: pointer; transition: all 0.2s; border: 1px solid transparent; white-space: nowrap; }
             .filter-pill.active { background: #fff; color: #000; font-weight: 700; box-shadow: 0 0 10px rgba(255,255,255,0.2); }
-            .list-container { max-height: 500px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+            .list-container { 
+                max-height: 500px; 
+                overflow-y: auto; 
+                -webkit-overflow-scrolling: touch;
+                content-visibility: auto; /* Optimisation Rendu */
+                contain-intrinsic-size: 500px;
+            }
             .dropdown-item { display:flex; padding:12px 20px; border-bottom:1px solid var(--ns-border); cursor:pointer; transition: background .2s; position: relative; }
             .dropdown-item:hover { background: rgba(255,255,255,0.08); }
             .status-dot {
@@ -118,67 +123,57 @@
 
     const getUserId = () => window.ApiClient.getCurrentUserId();
 
-    // --- LOGIQUE DE GROUPEMENT STRICTE ---
+    // OPTIMISATION : Tri et regroupement en une seule passe logique (O(n))
     const processGrouping = (items) => {
-        const others = [];
-        const episodes = [];
+        const seriesMap = new Map();
+        const result = [];
 
-        // Séparation Épisodes vs Autres (Films/Musique)
-        items.forEach(i => {
-            if (i.Type === 'Episode' && i.SeriesId) {
-                episodes.push(i);
+        // Phase 1 : Séparation
+        for (let i = 0; i < items.length; i++) {
+            const item = items[i];
+            if (item.Type === 'Episode' && item.SeriesId) {
+                let group = seriesMap.get(item.SeriesId);
+                if (!group) {
+                    group = [];
+                    seriesMap.set(item.SeriesId, group);
+                }
+                group.push(item);
             } else {
-                others.push(i);
+                result.push(item);
             }
-        });
+        }
 
-        // Groupement temporaire par ID de série
-        const seriesMap = {};
-        episodes.forEach(ep => {
-            if (!seriesMap[ep.SeriesId]) seriesMap[ep.SeriesId] = [];
-            seriesMap[ep.SeriesId].push(ep);
-        });
-
-        const result = [...others];
-
-        Object.keys(seriesMap).forEach(sId => {
-            const eps = seriesMap[sId];
-            // Tri du plus récent au plus vieux
+        // Phase 2 : Traitement des groupes
+        seriesMap.forEach((eps) => {
+            // Tri par date décroissante
             eps.sort((a,b) => new Date(b.DateCreated) - new Date(a.DateCreated));
 
-            // Compte SEULEMENT les vrais nouveaux (Non vu + récent)
-            const newEps = eps.filter(e => e.IsNew);
-            const newCount = newEps.length;
+            // Compter les "Vraiment Nouveaux"
+            let newCount = 0;
+            for(let e of eps) { if(e.IsNew) newCount++; }
 
             if (newCount > 1) {
-                // CAS 1: Plusieurs NOUVEAUX épisodes -> On GROUPE
-                const latest = newEps[0];
+                // CAS: Groupe multiple
+                const latest = eps[0];
                 result.push({
                     ...latest,
                     IsGroup: true,
                     GroupCount: newCount,
-                    GroupIds: newEps.map(e => e.Id),
+                    GroupIds: eps.filter(e => e.IsNew).map(e => e.Id),
                     Name: latest.SeriesName, 
                     Id: latest.SeriesId,
                     BackdropImageTags: latest.BackdropImageTags,
                     IsNew: true
                 });
             } 
-            else if (newCount === 1) {
-                // CAS 2: Exactement 1 nouveau -> On affiche l'épisode SEUL
-                result.push(newEps[0]);
-            } 
-            else {
-                // CAS 3: Aucun nouveau (Tout est vu ou ancien)
-                // CORRECTION ICI : On ne groupe PAS. On prend juste le dernier épisode.
-                // Cela évite d'afficher "Série X - 2 épisodes" quand tout est vu.
-                if (eps.length > 0) {
-                    result.push(eps[0]); // Affiche juste le dernier épisode de l'historique
-                }
+            else if (eps.length > 0) {
+                // CAS: Un seul nouveau OU Aucun nouveau (juste historique)
+                // On affiche le dernier épisode en date
+                result.push(eps[0]);
             }
         });
 
-        // Tri final de toute la liste par date
+        // Phase 3 : Tri final global
         return result.sort((a,b) => new Date(b.DateCreated) - new Date(a.DateCreated));
     };
 
@@ -310,10 +305,8 @@
             let heroSub = '';
             
             if (isGroup) {
-                // MODE GROUPÉ (Uniquement pour >1 Nouveaux)
                 heroSub = `${hero.GroupCount} ${T.newEps}`;
             } else if (hero.Type === 'Episode') {
-                // MODE SINGLE (Nouveau ou Historique)
                 heroTitle = formatEpisodeTitle(hero);
                 heroSub = hero.SeriesName; 
             } else {

@@ -23,7 +23,14 @@ namespace NotifySync
         
         private readonly ConcurrentQueue<BaseItem> _eventBuffer = new ConcurrentQueue<BaseItem>();
         private Timer? _bufferProcessTimer;
-        private readonly object _lock = new object();
+        
+        // --- Optimisation Sauvegarde ---
+        private Timer? _saveTimer;
+        private bool _hasUnsavedChanges = false;
+        private readonly object _saveLock = new object(); // Lock pour l'écriture disque
+        private readonly object _dataLock = new object(); // Lock pour la liste _notifications
+        // ------------------------------
+
         private List<NotificationItem> _notifications = new List<NotificationItem>();
 
         public static NotificationManager? Instance { get; private set; }
@@ -37,7 +44,12 @@ namespace NotifySync
             
             LoadNotifications();
             
+            // Timer 1 : Traitement des événements Jellyfin (toutes les 2s)
             _bufferProcessTimer = new Timer(ProcessBuffer, null, 2000, 2000);
+            
+            // Timer 2 : Sauvegarde Disque Différée (toutes les 10s)
+            // Cela évite d'écrire 50 fois le fichier si on ajoute une saison entière
+            _saveTimer = new Timer(SaveOnTick, null, 10000, 10000);
 
             if (_notifications.Count == 0)
             {
@@ -50,9 +62,11 @@ namespace NotifySync
 
         public void Refresh()
         {
-            lock (_lock) { _notifications.Clear(); }
+            // Reset complet manuel
+            lock (_dataLock) { _notifications.Clear(); }
             PopulateInitialHistory();
-            SaveNotifications();
+            // Pour un refresh manuel, on force la sauvegarde immédiate
+            ForceSaveNow(); 
         }
 
         private void PopulateInitialHistory()
@@ -68,8 +82,7 @@ namespace NotifySync
                     {
                         IncludeItemTypes = new[] { type },
                         OrderBy = new[] { (Jellyfin.Data.Enums.ItemSortBy.DateCreated, Jellyfin.Database.Implementations.Enums.SortOrder.Descending) },
-                        // LIMIT À 5000 : Crucial pour voir au-delà de vos 300 épisodes d'animés
-                        Limit = 5000, 
+                        Limit = 2000, 
                         Recursive = true,
                         IsVirtualItem = false
                     };
@@ -83,7 +96,7 @@ namespace NotifySync
                 }
 
                 ApplyCategoryQuotas(tempNotifs, isInitialLoad: true);
-                SaveNotifications();
+                _hasUnsavedChanges = true;
             }
             catch (Exception ex)
             {
@@ -114,7 +127,8 @@ namespace NotifySync
             if (newItems.Any())
             {
                 ApplyCategoryQuotas(newItems);
-                SaveNotifications();
+                // On ne sauvegarde PLUS ici directement. On marque juste le flag.
+                _hasUnsavedChanges = true; 
             }
         }
 
@@ -124,25 +138,20 @@ namespace NotifySync
             int limitPerCat = config?.MaxItems ?? 5; 
             if (limitPerCat < 1) limitPerCat = 5;
 
-            lock (_lock)
+            lock (_dataLock)
             {
                 if (isInitialLoad) _notifications.Clear();
                 _notifications.AddRange(incoming);
 
                 var filteredResults = new List<NotificationItem>();
-                
-                // On groupe par vos catégories ("animés", "séries", "Films")
                 var categoryGroups = _notifications.GroupBy(n => n.Category);
 
                 foreach (var catGroup in categoryGroups)
                 {
-                    // LE SECRET EST ICI : On regarde si ça contient des ÉPISODES.
-                    // Peu importe que la catégorie s'appelle "animés", "séries" ou "Mangas".
                     bool containsEpisodes = catGroup.Any(x => x.Type == "Episode");
 
                     if (containsEpisodes)
                     {
-                        // Mode Série : 1 Série = 1 Slot
                         var seriesClusters = catGroup
                             .GroupBy(x => x.SeriesId ?? x.Name) 
                             .Select(g => new 
@@ -151,7 +160,7 @@ namespace NotifySync
                                 LatestDate = g.Max(x => x.DateCreated) 
                             })
                             .OrderByDescending(x => x.LatestDate)
-                            .Take(limitPerCat); // Garde 10 SÉRIES
+                            .Take(limitPerCat); 
 
                         foreach (var cluster in seriesClusters)
                         {
@@ -160,7 +169,6 @@ namespace NotifySync
                     }
                     else
                     {
-                        // Mode Film/Musique : 1 Fichier = 1 Slot
                         filteredResults.AddRange(catGroup.OrderByDescending(x => x.DateCreated).Take(limitPerCat));
                     }
                 }
@@ -240,7 +248,7 @@ namespace NotifySync
                 SeriesName = episode?.SeriesName,
                 SeriesId = episode?.SeriesId.ToString(),
                 DateCreated = item.DateCreated,
-                Type = item.GetType().Name, // C'est ici qu'on stocke "Episode" utilisé pour la détection
+                Type = item.GetType().Name, 
                 RunTimeTicks = item.RunTimeTicks,
                 ProductionYear = item.ProductionYear,
                 BackdropImageTags = backdropTags,
@@ -252,16 +260,48 @@ namespace NotifySync
 
         private void OnItemRemoved(object? sender, ItemChangeEventArgs e)
         {
-            lock (_lock)
+            lock (_dataLock)
             {
                 int removed = _notifications.RemoveAll(x => x.Id == e.Item.Id.ToString());
-                if (removed > 0) SaveNotifications();
+                if (removed > 0) _hasUnsavedChanges = true;
+            }
+        }
+
+        private void SaveOnTick(object? state)
+        {
+            // Appelé par le Timer
+            if (!_hasUnsavedChanges) return;
+            ForceSaveNow();
+        }
+
+        private void ForceSaveNow()
+        {
+            lock (_saveLock)
+            {
+                try
+                {
+                    List<NotificationItem> copy;
+                    // On copie rapidement les données pour libérer le lock principal
+                    lock (_dataLock)
+                    {
+                        copy = _notifications.ToList();
+                        _hasUnsavedChanges = false;
+                    }
+
+                    var json = JsonSerializer.Serialize(copy);
+                    
+                    // Écriture atomique (Safe Write)
+                    var tempPath = _jsonPath + ".tmp";
+                    File.WriteAllText(tempPath, json);
+                    File.Move(tempPath, _jsonPath, true);
+                }
+                catch (Exception ex) { _logger.LogError(ex, "Erreur sauvegarde notifications."); }
             }
         }
 
         private void LoadNotifications()
         {
-            lock (_lock)
+            lock (_dataLock)
             {
                 try
                 {
@@ -275,27 +315,18 @@ namespace NotifySync
             }
         }
 
-        private void SaveNotifications()
-        {
-            lock (_lock)
-            {
-                try
-                {
-                    var json = JsonSerializer.Serialize(_notifications);
-                    File.WriteAllText(_jsonPath, json);
-                }
-                catch (Exception ex) { _logger.LogError(ex, "Erreur sauvegarde notifications."); }
-            }
-        }
-
         public List<NotificationItem> GetRecentNotifications()
         {
-            lock (_lock) { return _notifications.ToList(); }
+            lock (_dataLock) { return _notifications.ToList(); }
         }
 
         public void Dispose()
         {
             _bufferProcessTimer?.Dispose();
+            _saveTimer?.Dispose();
+            // Sauvegarde finale
+            if (_hasUnsavedChanges) ForceSaveNow();
+
             if (_libraryManager != null)
             {
                 _libraryManager.ItemAdded -= OnItemAdded;

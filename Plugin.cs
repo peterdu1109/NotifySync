@@ -24,7 +24,6 @@ namespace NotifySync
             : base(applicationPaths, xmlSerializer)
         {
             Instance = this;
-            // Instanciation unique du gestionnaire
             if (NotificationManager.Instance == null)
             {
                 _notificationManager = new NotificationManager(libraryManager, logger, fileSystem);

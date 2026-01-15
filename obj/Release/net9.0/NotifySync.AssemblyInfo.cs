@@ -13,11 +13,11 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("NotifySync")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyDescriptionAttribute("Notification center")]
-[assembly: System.Reflection.AssemblyFileVersionAttribute("4.5.3.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("4.5.3+4dbb00dfc297609e9ae882401957862ab0c05b71")]
+[assembly: System.Reflection.AssemblyFileVersionAttribute("4.5.4.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("4.5.4+314328f127dd25bb580899061b381a43b56825e9")]
 [assembly: System.Reflection.AssemblyProductAttribute("NotifySync")]
 [assembly: System.Reflection.AssemblyTitleAttribute("NotifySync")]
-[assembly: System.Reflection.AssemblyVersionAttribute("4.5.3.0")]
+[assembly: System.Reflection.AssemblyVersionAttribute("4.5.4.0")]
 
 // Généré par la classe MSBuild WriteCodeFragment.
 

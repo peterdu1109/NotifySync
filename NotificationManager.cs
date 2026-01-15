@@ -11,7 +11,8 @@ using MediaBrowser.Model.IO;
 using Microsoft.Extensions.Logging;
 using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.Querying;
-using Jellyfin.Data.Enums; 
+using Jellyfin.Data.Enums;
+using System.Text.Json.Serialization; // NOUVEAU : Nécessaire pour l'optimisation JSON
 
 namespace NotifySync
 {
@@ -24,14 +25,14 @@ namespace NotifySync
         private readonly ConcurrentQueue<BaseItem> _eventBuffer = new ConcurrentQueue<BaseItem>();
         private Timer? _bufferProcessTimer;
         
-        // --- Optimisation Sauvegarde ---
         private Timer? _saveTimer;
         private bool _hasUnsavedChanges = false;
-        private readonly object _saveLock = new object(); // Lock pour l'écriture disque
-        private readonly object _dataLock = new object(); // Lock pour la liste _notifications
-        // ------------------------------
-
+        private readonly object _saveLock = new object();
+        
+        private readonly ReaderWriterLockSlim _dataLock = new ReaderWriterLockSlim();
         private List<NotificationItem> _notifications = new List<NotificationItem>();
+        
+        private string _currentVersionHash = Guid.NewGuid().ToString(); 
 
         public static NotificationManager? Instance { get; private set; }
 
@@ -44,11 +45,7 @@ namespace NotifySync
             
             LoadNotifications();
             
-            // Timer 1 : Traitement des événements Jellyfin (toutes les 2s)
             _bufferProcessTimer = new Timer(ProcessBuffer, null, 2000, 2000);
-            
-            // Timer 2 : Sauvegarde Disque Différée (toutes les 10s)
-            // Cela évite d'écrire 50 fois le fichier si on ajoute une saison entière
             _saveTimer = new Timer(SaveOnTick, null, 10000, 10000);
 
             if (_notifications.Count == 0)
@@ -62,11 +59,19 @@ namespace NotifySync
 
         public void Refresh()
         {
-            // Reset complet manuel
-            lock (_dataLock) { _notifications.Clear(); }
+            _dataLock.EnterWriteLock();
+            try { _notifications.Clear(); }
+            finally { _dataLock.ExitWriteLock(); }
+            
             PopulateInitialHistory();
-            // Pour un refresh manuel, on force la sauvegarde immédiate
             ForceSaveNow(); 
+        }
+
+        public string GetVersionHash()
+        {
+            _dataLock.EnterReadLock();
+            try { return _currentVersionHash; }
+            finally { _dataLock.ExitReadLock(); }
         }
 
         private void PopulateInitialHistory()
@@ -75,6 +80,9 @@ namespace NotifySync
             {
                 var tempNotifs = new List<NotificationItem>();
                 var typesToScan = new[] { BaseItemKind.Movie, BaseItemKind.Episode, BaseItemKind.MusicAlbum };
+                
+                // CORRECTIF MAJEUR : Limite haute pour capturer les longues séries
+                int fetchLimit = 5000;
 
                 foreach (var type in typesToScan)
                 {
@@ -82,9 +90,11 @@ namespace NotifySync
                     {
                         IncludeItemTypes = new[] { type },
                         OrderBy = new[] { (Jellyfin.Data.Enums.ItemSortBy.DateCreated, Jellyfin.Database.Implementations.Enums.SortOrder.Descending) },
-                        Limit = 2000, 
+                        Limit = fetchLimit, 
                         Recursive = true,
-                        IsVirtualItem = false
+                        IsVirtualItem = false,
+                        EnableTotalRecordCount = false
+                        // CORRECTIF : Pas de DtoOptions pour garantir les infos Parents/Séries
                     };
                     
                     var items = _libraryManager.GetItemList(query);
@@ -127,7 +137,6 @@ namespace NotifySync
             if (newItems.Any())
             {
                 ApplyCategoryQuotas(newItems);
-                // On ne sauvegarde PLUS ici directement. On marque juste le flag.
                 _hasUnsavedChanges = true; 
             }
         }
@@ -138,7 +147,8 @@ namespace NotifySync
             int limitPerCat = config?.MaxItems ?? 5; 
             if (limitPerCat < 1) limitPerCat = 5;
 
-            lock (_dataLock)
+            _dataLock.EnterWriteLock();
+            try
             {
                 if (isInitialLoad) _notifications.Clear();
                 _notifications.AddRange(incoming);
@@ -174,6 +184,19 @@ namespace NotifySync
                 }
 
                 _notifications = filteredResults.OrderByDescending(x => x.DateCreated).ToList();
+                
+                if (_notifications.Count > 0)
+                {
+                    _currentVersionHash = _notifications[0].DateCreated.Ticks.ToString() + "-" + _notifications.Count;
+                }
+                else
+                {
+                    _currentVersionHash = "empty";
+                }
+            }
+            finally
+            {
+                _dataLock.ExitWriteLock();
             }
         }
 
@@ -260,16 +283,21 @@ namespace NotifySync
 
         private void OnItemRemoved(object? sender, ItemChangeEventArgs e)
         {
-            lock (_dataLock)
+            _dataLock.EnterWriteLock();
+            try
             {
                 int removed = _notifications.RemoveAll(x => x.Id == e.Item.Id.ToString());
-                if (removed > 0) _hasUnsavedChanges = true;
+                if (removed > 0)
+                {
+                    _currentVersionHash = Guid.NewGuid().ToString();
+                    _hasUnsavedChanges = true;
+                }
             }
+            finally { _dataLock.ExitWriteLock(); }
         }
 
         private void SaveOnTick(object? state)
         {
-            // Appelé par le Timer
             if (!_hasUnsavedChanges) return;
             ForceSaveNow();
         }
@@ -281,16 +309,18 @@ namespace NotifySync
                 try
                 {
                     List<NotificationItem> copy;
-                    // On copie rapidement les données pour libérer le lock principal
-                    lock (_dataLock)
+                    _dataLock.EnterReadLock();
+                    try
                     {
                         copy = _notifications.ToList();
                         _hasUnsavedChanges = false;
                     }
+                    finally { _dataLock.ExitReadLock(); }
 
-                    var json = JsonSerializer.Serialize(copy);
+                    // OPTIMISATION .NET 9 : Source Generator
+                    // Plus rapide que JsonSerializer.Serialize(copy) car le code est pré-compilé
+                    var json = JsonSerializer.Serialize(copy, NotificationJsonContext.Default.ListNotificationItem);
                     
-                    // Écriture atomique (Safe Write)
                     var tempPath = _jsonPath + ".tmp";
                     File.WriteAllText(tempPath, json);
                     File.Move(tempPath, _jsonPath, true);
@@ -301,31 +331,36 @@ namespace NotifySync
 
         private void LoadNotifications()
         {
-            lock (_dataLock)
+            _dataLock.EnterWriteLock();
+            try
             {
-                try
+                if (File.Exists(_jsonPath))
                 {
-                    if (File.Exists(_jsonPath))
-                    {
-                        var json = File.ReadAllText(_jsonPath);
-                        _notifications = JsonSerializer.Deserialize<List<NotificationItem>>(json) ?? new List<NotificationItem>();
-                    }
+                    var json = File.ReadAllText(_jsonPath);
+                    // OPTIMISATION .NET 9 : Source Generator pour la lecture
+                    _notifications = JsonSerializer.Deserialize(json, NotificationJsonContext.Default.ListNotificationItem) ?? new List<NotificationItem>();
+                    
+                    if (_notifications.Count > 0)
+                         _currentVersionHash = _notifications[0].DateCreated.Ticks.ToString() + "-" + _notifications.Count;
                 }
-                catch { _notifications = new List<NotificationItem>(); }
             }
+            catch { _notifications = new List<NotificationItem>(); }
+            finally { _dataLock.ExitWriteLock(); }
         }
 
         public List<NotificationItem> GetRecentNotifications()
         {
-            lock (_dataLock) { return _notifications.ToList(); }
+            _dataLock.EnterReadLock();
+            try { return _notifications.ToList(); }
+            finally { _dataLock.ExitReadLock(); }
         }
 
         public void Dispose()
         {
             _bufferProcessTimer?.Dispose();
             _saveTimer?.Dispose();
-            // Sauvegarde finale
             if (_hasUnsavedChanges) ForceSaveNow();
+            _dataLock?.Dispose();
 
             if (_libraryManager != null)
             {
@@ -350,5 +385,11 @@ namespace NotifySync
         public string? PrimaryImageTag { get; set; }
         public int? IndexNumber { get; set; } 
         public int? ParentIndexNumber { get; set; } 
+    }
+
+    // --- OPTIMISATION JSON CONTEXT ---
+    [JsonSerializable(typeof(List<NotificationItem>))]
+    internal partial class NotificationJsonContext : JsonSerializerContext
+    {
     }
 }

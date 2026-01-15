@@ -8,6 +8,7 @@ using System.IO;
 using System.Text.Json;
 using System.Security.Claims;
 using MediaBrowser.Controller.Entities;
+using Microsoft.AspNetCore.Http; // Ajouté par sécurité, mais on utilise l'indexeur ci-dessous
 
 namespace NotifySync
 {
@@ -39,10 +40,26 @@ namespace NotifySync
         }
 
         [HttpGet("Data")]
-        [ResponseCache(Duration = 10)]
+        [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)] 
         public ActionResult GetData()
         {
             if (NotificationManager.Instance == null) return Ok(new List<object>());
+
+            // 1. Récupération légère du hash
+            var serverVersion = NotificationManager.Instance.GetVersionHash();
+            
+            // 2. Vérification ETag
+            if (Request.Headers.TryGetValue("If-None-Match", out var clientTag))
+            {
+                if (clientTag.ToString() == serverVersion) 
+                {
+                    return StatusCode(304); // Not Modified
+                }
+            }
+
+            // 3. Ajout du nouvel ETag (CORRECTION ICI : Utilisation de l'indexeur)
+            Response.Headers["ETag"] = serverVersion;
+            
             return Ok(NotificationManager.Instance.GetRecentNotifications());
         }
 
@@ -58,7 +75,6 @@ namespace NotifySync
             if (user == null || itemIds == null || itemIds.Count == 0) 
                 return Ok(new Dictionary<string, bool>());
 
-            // Optimisation : Pré-allocation de la taille du dictionnaire
             var result = new Dictionary<string, bool>(itemIds.Count);
 
             foreach (var idStr in itemIds)
@@ -77,7 +93,6 @@ namespace NotifySync
                             {
                                 isPlayed = true;
                             }
-                            // Seuil de 90%
                             else if (item.RunTimeTicks.HasValue && item.RunTimeTicks > 0)
                             {
                                 double position = userData.PlaybackPositionTicks;

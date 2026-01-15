@@ -1,27 +1,17 @@
 **NotifySync** est un centre de notifications avancé pour Jellyfin. Il remplace la cloche par défaut par un tableau de bord moderne, performant et intelligent, inspiré des plateformes de streaming majeures.
 
 > [!IMPORTANT]
-> **Mise à jour v4.5.4 **
+> **Mise à jour v4.5.5 **
 > Optimisation majeure des performances Backend/Frontend. Ajout de l'écriture différée (debounce) pour protéger le serveur et accélération du calcul de groupement.
 
 ---
 
-## ✨ Nouveautés de la v4.5.4
+## ✨ Nouveautés de la v4.5.5
 
-### ⚡ Performances Backend (C#)
-* **Sauvegarde Différée** : Le fichier `notifications.json` n'est plus écrit à chaque ajout de fichier. Le système attend désormais une pause dans les ajouts ou un délai de 10 secondes. Gain énorme si vous ajoutez une saison entière.
-* **Écriture Atomique** : Utilisation de fichiers temporaires pour éviter toute corruption de données en cas de crash pendant l'écriture.
-
-### 🚀 Optimisation Frontend (JS)
-* **Groupement O(n)** : L'algorithme de regroupement des épisodes a été réécrit pour être instantané, même avec des centaines de notifications.
-* **Rendu Fluide** : Ajout de `content-visibility` CSS pour soulager le navigateur lors du défilement.
-
-### 🕒 Time Ago & Sous-titres Riches
-* **Dates Relatives** : Fini les dates brutes. Le plugin affiche désormais le temps écoulé : *"à l'instant"*, *"il y a 2 h"*, *"il y a 5 jours"*.
-
-### 📱 Optimisation Mobile
-* **Interface Réactive** : Le panneau de notification s'adapte désormais parfaitement aux écrans mobiles (largeur dynamique, hauteur ajustée).
-
+### ⚡ Optimisations Techniques
+* **Cache Intelligent (ETag)** : Le client vérifie si les données ont changé avant de les télécharger (Code 304 Not Modified). Résultat : **0 octet** téléchargé si rien de neuf.
+* **Non-Bloquant (RWLock)** : L'affichage des notifications ne bloque plus le serveur pendant l'ajout de nouveaux médias.
+* **Sauvegarde Différée** : Écriture sur disque uniquement après une pause dans les ajouts pour préserver les SSD.
 ---
 
 ## 🚀 Installation

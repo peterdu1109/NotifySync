@@ -8,8 +8,8 @@
   "url": "https://github.com/peterdu1109/NotifySync",
   "versions": [
     {
-      "version": "4.5.4",
-      "changelog": "Optimisations performances (Debounce Save + JS Grouping)",
+      "version": "4.5.5",
+      "changelog": "Optimisations performances",
       "targetAbi": "10.11.5.0",
       "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/4.5.4/NotifySync.dll",
       "checksum": "00000000000000000000000000000000",

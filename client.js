@@ -1,4 +1,4 @@
-/* NOTIFYSYNC V4.5.4 - OPTIMIZED GROUPING */
+/* NOTIFYSYNC V4.5.5 - WEBP + ETAG + FIX */
 (function () {
     let currentData = [];
     let groupedData = [];
@@ -86,7 +86,7 @@
                 max-height: 500px; 
                 overflow-y: auto; 
                 -webkit-overflow-scrolling: touch;
-                content-visibility: auto; /* Optimisation Rendu */
+                content-visibility: auto; 
                 contain-intrinsic-size: 500px;
             }
             .dropdown-item { display:flex; padding:12px 20px; border-bottom:1px solid var(--ns-border); cursor:pointer; transition: background .2s; position: relative; }
@@ -123,12 +123,10 @@
 
     const getUserId = () => window.ApiClient.getCurrentUserId();
 
-    // OPTIMISATION : Tri et regroupement en une seule passe logique (O(n))
     const processGrouping = (items) => {
         const seriesMap = new Map();
         const result = [];
 
-        // Phase 1 : Séparation
         for (let i = 0; i < items.length; i++) {
             const item = items[i];
             if (item.Type === 'Episode' && item.SeriesId) {
@@ -143,17 +141,12 @@
             }
         }
 
-        // Phase 2 : Traitement des groupes
         seriesMap.forEach((eps) => {
-            // Tri par date décroissante
             eps.sort((a,b) => new Date(b.DateCreated) - new Date(a.DateCreated));
-
-            // Compter les "Vraiment Nouveaux"
             let newCount = 0;
             for(let e of eps) { if(e.IsNew) newCount++; }
 
             if (newCount > 1) {
-                // CAS: Groupe multiple
                 const latest = eps[0];
                 result.push({
                     ...latest,
@@ -167,13 +160,10 @@
                 });
             } 
             else if (eps.length > 0) {
-                // CAS: Un seul nouveau OU Aucun nouveau (juste historique)
-                // On affiche le dernier épisode en date
                 result.push(eps[0]);
             }
         });
 
-        // Phase 3 : Tri final global
         return result.sort((a,b) => new Date(b.DateCreated) - new Date(a.DateCreated));
     };
 
@@ -192,6 +182,9 @@
             headers: getAuthHeaders()
         });
         lastSeenDate = new Date();
+        // Update local state
+        currentData.forEach(i => i.IsNew = false);
+        groupedData = processGrouping(currentData);
         updateBadge();
         closeDropdown();
     };
@@ -223,27 +216,60 @@
         isFetching = true;
         try {
             await fetchLastSeen();
-            const res = await fetch('/NotifySync/Data?t=' + Date.now(), { headers: getAuthHeaders() });
-            if (res.ok) {
-                currentData = await res.json();
+            
+            // ETAG & CACHE HANDLING
+            const lastEtag = localStorage.getItem('ns-etag') || '';
+            const headers = getAuthHeaders();
+            if(lastEtag) headers['If-None-Match'] = lastEtag;
+
+            const res = await fetch('/NotifySync/Data', { headers: headers });
+            
+            if (res.status === 304) {
+                await refreshPlayStates();
+                console.debug("NotifySync: 304 Not Modified");
+            }
+            else if (res.ok) {
+                const json = await res.json();
+                currentData = json;
+                
+                // Save to Cache
+                const newEtag = res.headers.get('ETag');
+                if(newEtag) localStorage.setItem('ns-etag', newEtag);
+                localStorage.setItem('ns-data', JSON.stringify(currentData));
+
                 await refreshPlayStates(); 
                 retryDelay = 2000;
             }
+            
+            const drop = document.getElementById('notification-dropdown');
+            if(drop && drop.style.display === 'flex') updateList(drop);
+
         } catch (e) { 
             setTimeout(fetchData, retryDelay);
             retryDelay = Math.min(retryDelay * 2, 60000); 
         } finally { isFetching = false; }
     };
     
+    // Initial Load from Cache (Instant UI)
+    const loadFromCache = () => {
+        try {
+            const cached = localStorage.getItem('ns-data');
+            if (cached) {
+                currentData = JSON.parse(cached);
+                groupedData = processGrouping(currentData);
+                updateBadge();
+            }
+        } catch(e) { console.error("Cache load error", e); }
+    };
+
     const triggerHardRefresh = async () => {
         const btn = document.querySelector('.tool-icon.refresh-icon');
         if(btn) btn.classList.add('spinning');
         try {
             await fetch('/NotifySync/Refresh', { method: 'POST', headers: getAuthHeaders() });
+            localStorage.removeItem('ns-etag');
             await new Promise(r => setTimeout(r, 500));
             await fetchData();
-            const drop = document.getElementById('notification-dropdown');
-            if(drop && drop.style.display === 'block') updateList(drop);
         } catch(e) { console.error("Hard refresh failed", e); }
         finally { if(btn) btn.classList.remove('spinning'); }
     };
@@ -298,8 +324,9 @@
             const isGroup = !!hero.IsGroup; 
             const tag = (hero.BackdropImageTags && hero.BackdropImageTags[0]) || '';
             
-            let heroImg = tag ? client.getUrl(`Items/${hero.Id}/Images/Backdrop/0?tag=${tag}&quality=70&maxWidth=600`) : client.getUrl(`Items/${hero.SeriesId || hero.Id}/Images/Primary?quality=70&maxWidth=400`);
-            if(isGroup && hero.SeriesId) heroImg = client.getUrl(`Items/${hero.Id}/Images/Backdrop/0?quality=70&maxWidth=600`);
+            // OPTIMISATION WEBP : &format=webp ajouté
+            let heroImg = tag ? client.getUrl(`Items/${hero.Id}/Images/Backdrop/0?tag=${tag}&quality=70&maxWidth=600&format=webp`) : client.getUrl(`Items/${hero.SeriesId || hero.Id}/Images/Primary?quality=70&maxWidth=400&format=webp`);
+            if(isGroup && hero.SeriesId) heroImg = client.getUrl(`Items/${hero.Id}/Images/Backdrop/0?quality=70&maxWidth=600&format=webp`);
 
             let heroTitle = hero.Name;
             let heroSub = '';
@@ -339,7 +366,8 @@
             const imgTag = item.PrimaryImageTag || '';
             const imgOpts = isMusic ? 'fillHeight=100&fillWidth=100' : 'fillHeight=112&fillWidth=200';
             const targetId = item.Id; 
-            const imgUrl = client.getUrl(`Items/${targetId}/Images/Primary?tag=${imgTag}&${imgOpts}&quality=80`);
+            // OPTIMISATION WEBP : &format=webp ajouté
+            const imgUrl = client.getUrl(`Items/${targetId}/Images/Primary?tag=${imgTag}&${imgOpts}&quality=80&format=webp`);
             
             let title = item.Name;
             let sub = item.ProductionYear;
@@ -414,7 +442,7 @@
             const b = document.createElement('div'); b.id = 'notify-backdrop'; b.onclick = closeDropdown; document.body.appendChild(b);
         }
 
-        const isOpen = drop.style.display === 'block';
+        const isOpen = drop.style.display === 'flex';
         if (!isOpen) {
             fetchData().then(() => updateList(drop));
             document.getElementById('notify-backdrop').style.display = 'block';
@@ -432,6 +460,8 @@
         div.innerHTML = `<button id="netflix-bell" class="paper-icon-button-light headerButton"><span class="material-icons notifications"></span></button>`;
         div.firstChild.onclick = (e) => { e.preventDefault(); e.stopPropagation(); toggleDropdown(); };
         header.prepend(div);
+        
+        loadFromCache();
         fetchData();
     };
 

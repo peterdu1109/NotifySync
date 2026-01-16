@@ -1,4 +1,4 @@
-/* NOTIFYSYNC V4.6.3 - OPTIMIZED FORMATTER */
+/* NOTIFYSYNC V4.6.3 - GOLD MASTER */
 (function () {
     let currentData = [];
     let groupedData = [];
@@ -8,13 +8,11 @@
     let activeFilter = 'All';
     let observerInstance = null; 
     
-    // Détection de la langue simplifiée
     const userLang = navigator.language || 'en';
     const T = userLang.startsWith('fr') 
         ? { header: "Quoi de neuf ?", empty: "Vous êtes à jour !", markAll: "Tout marquer comme vu", badgeNew: "NOUVEAU", newEps: "nouveaux épisodes", eps: "épisodes", filterAll: "Tout", filterMovie: "Films", filterSeries: "Séries", filterMusic: "Musique" }
         : { header: "What's New?", empty: "You're all caught up!", markAll: "Mark all read", badgeNew: "NEW", newEps: "new episodes", eps: "episodes", filterAll: "All", filterMovie: "Movies", filterSeries: "Series", filterMusic: "Music" };
 
-    // OPTIMISATION: Native RelativeTimeFormat (plus performant et léger)
     const rtf = new Intl.RelativeTimeFormat(userLang, { numeric: 'auto' });
     
     const timeAgo = (date) => {
@@ -251,7 +249,8 @@
             let title = item.Name, sub = item.ProductionYear;
             if (item.Type === 'Episode') { title = formatEpisodeTitle(item); sub = item.SeriesName; }
             if (isGroup) { sub = `${item.SeriesName} • ${item.GroupCount} ${T.newEps}`; }
-            htmlParts.push(`<div class="dropdown-item ${item.IsNew ? 'style-new' : 'style-seen'}" onclick="document.dispatchEvent(new CustomEvent('ns-navigate', {detail: '${item.Id}'}))"><div class="status-dot"></div><div class="thumb-wrapper"><img data-src="${imgUrl}" class="dropdown-thumb ${isMusic?'music':''}" loading="lazy" onerror="this.style.display='none'"><span class="material-icons" style="color:#444;position:absolute;z-index:-1;">${isMusic?'album':'movie'}</span></div><div class="dropdown-info"><div class="dropdown-title">${title}</div><div class="dropdown-subtitle">${sub} &bull; ${timeAgo(item.DateCreated)}</div></div></div>`);
+            // OPTIMISATION UI: decoding="async" empêche le blocage du thread principal pendant le défilement
+            htmlParts.push(`<div class="dropdown-item ${item.IsNew ? 'style-new' : 'style-seen'}" onclick="document.dispatchEvent(new CustomEvent('ns-navigate', {detail: '${item.Id}'}))"><div class="status-dot"></div><div class="thumb-wrapper"><img data-src="${imgUrl}" decoding="async" class="dropdown-thumb ${isMusic?'music':''}" loading="lazy" onerror="this.style.display='none'"><span class="material-icons" style="color:#444;position:absolute;z-index:-1;">${isMusic?'album':'movie'}</span></div><div class="dropdown-info"><div class="dropdown-title">${title}</div><div class="dropdown-subtitle">${sub} &bull; ${timeAgo(item.DateCreated)}</div></div></div>`);
         });
 
         htmlParts.push(`<div class="footer-tools" onclick="document.dispatchEvent(new Event('ns-markall'))">${T.markAll}</div>`);

@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Text.Json;
 using System.Threading;
+using System.Runtime.CompilerServices; // Pour MethodImpl
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Model.IO;
@@ -66,11 +67,14 @@ namespace NotifySync
             ForceSaveNow(); 
         }
 
+        // OPTIMISATION : Inlining pour cette méthode très fréquemment appelée
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public string GetVersionHash()
         {
             return Interlocked.Read(ref _versionCounter).ToString();
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void UpdateVersion()
         {
             Interlocked.Increment(ref _versionCounter);
@@ -82,10 +86,7 @@ namespace NotifySync
             {
                 var tempNotifs = new List<NotificationItem>();
                 var typesToScan = new[] { BaseItemKind.Movie, BaseItemKind.Episode, BaseItemKind.MusicAlbum };
-                
-                // Récupération optimisée du cache de configuration
                 var configCache = GetConfiguredCache();
-
                 int fetchLimit = 5000;
 
                 foreach (var type in typesToScan)
@@ -226,13 +227,12 @@ namespace NotifySync
             }
         }
 
-        // OPTIMISATION : Structure de cache complète
         private struct ConfigCache
         {
             public HashSet<Guid> Enabled;
             public HashSet<Guid> Manual;
             public Dictionary<Guid, string> Mappings;
-            public List<string> ManualNames; // Fallback pour les noms manuels
+            public List<string> ManualNames;
         }
 
         private ConfigCache GetConfiguredCache()
@@ -258,7 +258,7 @@ namespace NotifySync
                     foreach (var s in config.ManualLibraryIds)
                     {
                         if (Guid.TryParse(s, out var g)) c.Manual.Add(g);
-                        else c.ManualNames.Add(s); // Si ce n'est pas un Guid, c'est un nom
+                        else c.ManualNames.Add(s);
                     }
                 }
                 if (config.CategoryMappings != null)
@@ -288,13 +288,10 @@ namespace NotifySync
             bool hasRestrictions = cache.Enabled.Count > 0 || cache.Manual.Count > 0 || cache.ManualNames.Count > 0;
             string? matchedLibraryId = null;
 
-            // OPTIMISATION : On évite .ToList() ici pour ne pas allouer de mémoire inutilement
-            // On récupère juste le root pour le cas par défaut
             var rootLibrary = _libraryManager.GetCollectionFolders(item).FirstOrDefault();
 
             if (hasRestrictions)
             {
-                // Vérification rapide sur le Root d'abord (cas le plus fréquent)
                 if (rootLibrary != null)
                 {
                     if (cache.Enabled.Contains(rootLibrary.Id) || cache.Manual.Contains(rootLibrary.Id))
@@ -303,7 +300,6 @@ namespace NotifySync
                     }
                 }
 
-                // Si pas trouvé via le root, on scanne les parents (plus coûteux)
                 if (matchedLibraryId == null)
                 {
                     foreach (var parent in item.GetParents())
@@ -313,7 +309,6 @@ namespace NotifySync
                             matchedLibraryId = parent.Id.ToString();
                             break;
                         }
-                        // Fallback lent sur le nom (si configuré manuellement par nom)
                         if (cache.ManualNames.Count > 0)
                         {
                             foreach(var name in cache.ManualNames)
@@ -340,7 +335,6 @@ namespace NotifySync
             if (isEpisode) category = "Series";
             else if (isMusic) category = "Music";
 
-            // OPTIMISATION : Lookup O(1) dans le dictionnaire au lieu de boucler
             if (matchedLibraryId != null && Guid.TryParse(matchedLibraryId, out var libGuid))
             {
                 if (cache.Mappings.TryGetValue(libGuid, out var mappedName))
@@ -349,9 +343,14 @@ namespace NotifySync
                 }
             }
 
-            var backdropTags = new List<string>();
+            // OPTIMISATION : Lazy allocation pour éviter de créer des listes vides
+            List<string>? backdropTags = null;
             var imgInfo = item.GetImageInfo(ImageType.Backdrop, 0);
-            if (imgInfo != null) backdropTags.Add(imgInfo.DateModified.Ticks.ToString("x"));
+            if (imgInfo != null)
+            {
+                // Syntaxe collection expression .NET 9
+                backdropTags = [imgInfo.DateModified.Ticks.ToString("x")];
+            }
 
             var episode = item as MediaBrowser.Controller.Entities.TV.Episode;
 
@@ -366,7 +365,8 @@ namespace NotifySync
                 Type = item.GetType().Name, 
                 RunTimeTicks = item.RunTimeTicks,
                 ProductionYear = item.ProductionYear,
-                BackdropImageTags = backdropTags,
+                // Utilise le tableau vide statique si null, évite l'allocation new List<>()
+                BackdropImageTags = backdropTags ?? [],
                 PrimaryImageTag = item.GetImageInfo(ImageType.Primary, 0)?.DateModified.Ticks.ToString("x"),
                 IndexNumber = episode?.IndexNumber,
                 ParentIndexNumber = episode?.ParentIndexNumber
@@ -471,7 +471,6 @@ namespace NotifySync
         public string Name { get; set; } = string.Empty;
         public string Category { get; set; } = string.Empty;
         
-        // OPTIMISATION : On n'écrit pas les nulls dans le JSON pour gagner de la bande passante
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? SeriesName { get; set; }
         

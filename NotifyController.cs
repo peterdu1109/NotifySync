@@ -1,7 +1,7 @@
 using System;
 using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
-using System.Collections.Concurrent; // Nécessaire pour le cache
+using System.Collections.Concurrent;
 using System.Linq;
 using MediaBrowser.Controller.Library;
 using System.Threading.Tasks;
@@ -21,7 +21,7 @@ namespace NotifySync
         private readonly ILibraryManager _libraryManager;
         private readonly IUserDataManager _userDataManager;
         
-        // OPTIMISATION : Cache mémoire statique pour éviter les E/S disque répétées
+        // Cache statique amélioré
         private static ConcurrentDictionary<string, string>? _userDataCache;
         private static readonly object _fileLock = new object();
 
@@ -47,7 +47,7 @@ namespace NotifySync
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)] 
         public ActionResult GetData()
         {
-            if (NotificationManager.Instance == null) return Ok(new List<object>());
+            if (NotificationManager.Instance == null) return Ok(Array.Empty<object>());
 
             var serverVersion = NotificationManager.Instance.GetVersionHash();
             
@@ -102,7 +102,6 @@ namespace NotifySync
         [HttpGet("LastSeen/{userId}")]
         public ActionResult GetLastSeen(string userId)
         {
-            // OPTIMISATION : Lecture RAM
             var data = GetCachedUserData();
             if (data.TryGetValue(userId, out var date)) return Ok(date);
             return Ok("2000-01-01T00:00:00.000Z");
@@ -113,50 +112,62 @@ namespace NotifySync
         {
             if (string.IsNullOrEmpty(date)) return BadRequest();
             
-            // OPTIMISATION : Mise à jour RAM immédiate + Sauvegarde disque sécurisée
             var data = GetCachedUserData();
-            data[userId] = date;
             
-            lock (_fileLock)
+            // Mise à jour RAM immédiate (Thread-safe)
+            data.AddOrUpdate(userId, date, (key, oldVal) => date);
+            
+            // OPTIMISATION : Sauvegarde disque en arrière-plan (Fire and Forget)
+            // Cela rend l'appel API instantané pour le client JS
+            Task.Run(() => 
             {
-                SaveUserDataToDisk(data);
-            }
+                lock (_fileLock)
+                {
+                    SaveUserDataToDisk(data);
+                }
+            });
+
             return Ok();
         }
 
         private ConcurrentDictionary<string, string> GetCachedUserData()
         {
-            if (_userDataCache != null) return _userDataCache;
-
-            lock (_fileLock)
+            if (_userDataCache == null)
             {
-                if (_userDataCache != null) return _userDataCache;
-
-                var path = Path.Combine(Plugin.Instance!.DataFolderPath, "user_data.json");
-                if (!System.IO.File.Exists(path)) 
+                lock (_fileLock)
                 {
-                    _userDataCache = new ConcurrentDictionary<string, string>();
-                }
-                else
-                {
-                    try 
+                    if (_userDataCache == null)
                     {
-                        var json = System.IO.File.ReadAllText(path);
-                        var dict = JsonSerializer.Deserialize<Dictionary<string, string>>(json);
-                        _userDataCache = new ConcurrentDictionary<string, string>(dict ?? new Dictionary<string, string>());
+                        var path = Path.Combine(Plugin.Instance!.DataFolderPath, "user_data.json");
+                        if (!System.IO.File.Exists(path)) 
+                        {
+                            _userDataCache = new ConcurrentDictionary<string, string>();
+                        }
+                        else
+                        {
+                            try 
+                            {
+                                using var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+                                var dict = JsonSerializer.Deserialize<Dictionary<string, string>>(fs);
+                                _userDataCache = new ConcurrentDictionary<string, string>(dict ?? new Dictionary<string, string>());
+                            }
+                            catch { _userDataCache = new ConcurrentDictionary<string, string>(); }
+                        }
                     }
-                    catch { _userDataCache = new ConcurrentDictionary<string, string>(); }
                 }
-                return _userDataCache;
             }
+            return _userDataCache;
         }
 
         private void SaveUserDataToDisk(ConcurrentDictionary<string, string> data)
         {
             try {
                 var path = Path.Combine(Plugin.Instance!.DataFolderPath, "user_data.json");
-                // Conversion en Dict standard pour sérialisation propre
-                System.IO.File.WriteAllText(path, JsonSerializer.Serialize(data));
+                // Copie défensive avant sérialisation
+                var dictToSave = new Dictionary<string, string>(data);
+                
+                using var fs = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None);
+                JsonSerializer.Serialize(fs, dictToSave);
             } catch { }
         }
 

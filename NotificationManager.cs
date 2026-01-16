@@ -23,10 +23,10 @@ namespace NotifySync
         private readonly string _jsonPath;
         
         private readonly ConcurrentQueue<BaseItem> _eventBuffer = new ConcurrentQueue<BaseItem>();
-        private Timer? _bufferProcessTimer;
+        private readonly Timer _bufferProcessTimer; // Timer en lecture seule
         
-        private Timer? _saveTimer;
-        private bool _hasUnsavedChanges = false;
+        private readonly Timer _saveTimer;
+        private volatile bool _hasUnsavedChanges = false; // Volatile pour thread-safety
         private readonly object _saveLock = new object();
         
         private readonly ReaderWriterLockSlim _dataLock = new ReaderWriterLockSlim();
@@ -45,8 +45,9 @@ namespace NotifySync
             
             LoadNotifications();
             
-            _bufferProcessTimer = new Timer(ProcessBuffer, null, 2000, 2000);
-            _saveTimer = new Timer(SaveOnTick, null, 10000, 10000);
+            // OPTIMISATION : Timer en mode "Timeout.Infinite" au départ pour éviter un lancement prématuré
+            _bufferProcessTimer = new Timer(ProcessBuffer, null, 2000, Timeout.Infinite);
+            _saveTimer = new Timer(SaveOnTick, null, 10000, Timeout.Infinite);
 
             if (_notifications.Count == 0)
             {
@@ -105,6 +106,8 @@ namespace NotifySync
 
                 ApplyCategoryQuotas(tempNotifs, isInitialLoad: true);
                 _hasUnsavedChanges = true;
+                // Active le timer de sauvegarde
+                try { _saveTimer.Change(10000, Timeout.Infinite); } catch {}
             }
             catch (Exception ex)
             {
@@ -114,39 +117,56 @@ namespace NotifySync
 
         private void OnItemAdded(object? sender, ItemChangeEventArgs e)
         {
-            if(e.Item != null && !e.Item.IsVirtualItem) _eventBuffer.Enqueue(e.Item);
+            if(e.Item != null && !e.Item.IsVirtualItem) 
+            {
+                _eventBuffer.Enqueue(e.Item);
+                // Relance le timer de buffer si nécessaire
+                try { _bufferProcessTimer.Change(2000, Timeout.Infinite); } catch {}
+            }
         }
 
         private void ProcessBuffer(object? state)
         {
-            if (_eventBuffer.IsEmpty) return;
-
-            var newItems = new List<NotificationItem>();
-            while (_eventBuffer.TryDequeue(out var item))
+            try
             {
-                try 
+                if (_eventBuffer.IsEmpty) return;
+
+                var newItems = new List<NotificationItem>();
+                while (_eventBuffer.TryDequeue(out var item))
                 {
-                    var notif = CreateNotificationFromItem(item);
-                    if (notif != null) newItems.Add(notif);
+                    try 
+                    {
+                        var notif = CreateNotificationFromItem(item);
+                        if (notif != null) newItems.Add(notif);
+                    }
+                    catch { }
                 }
-                catch { }
-            }
 
-            if (newItems.Any())
+                if (newItems.Any())
+                {
+                    ApplyCategoryQuotas(newItems);
+                    _hasUnsavedChanges = true; 
+                    try { _saveTimer.Change(10000, Timeout.Infinite); } catch {}
+                }
+            }
+            catch (Exception ex)
             {
-                ApplyCategoryQuotas(newItems);
-                _hasUnsavedChanges = true; 
+                _logger.LogError(ex, "Erreur processing buffer");
+            }
+            finally
+            {
+                // Si le buffer n'est pas vide, on relance rapidement, sinon on attend
+                if (!_eventBuffer.IsEmpty)
+                     try { _bufferProcessTimer.Change(1000, Timeout.Infinite); } catch {}
             }
         }
 
-        // --- OPTIMISATION COPY-ON-WRITE ---
         private void ApplyCategoryQuotas(List<NotificationItem> incoming, bool isInitialLoad = false)
         {
             var config = Plugin.Instance?.Configuration;
             int limitPerCat = config?.MaxItems ?? 5; 
             if (limitPerCat < 1) limitPerCat = 5;
 
-            // 1. Copie des données (Lecture rapide)
             List<NotificationItem> workingList;
             _dataLock.EnterReadLock();
             try 
@@ -155,14 +175,14 @@ namespace NotifySync
             }
             finally { _dataLock.ExitReadLock(); }
 
-            // 2. Traitement LOURD (Tri, Groupement, Filtrage) SANS BLOQUER l'API
             workingList.AddRange(incoming);
 
-            var finalResults = new List<NotificationItem>();
+            var finalResults = new List<NotificationItem>(workingList.Count);
             var categoryGroups = workingList.GroupBy(n => n.Category);
 
             foreach (var catGroup in categoryGroups)
             {
+                // Optimisation : Vérification rapide si le groupe contient des épisodes
                 bool containsEpisodes = catGroup.Any(x => x.Type == "Episode");
 
                 if (containsEpisodes)
@@ -193,7 +213,6 @@ namespace NotifySync
                 ? sortedFinal[0].DateCreated.Ticks.ToString() + "-" + sortedFinal.Count 
                 : "empty";
 
-            // 3. Échange rapide (Verrou d'écriture très court)
             _dataLock.EnterWriteLock();
             try
             {
@@ -222,12 +241,14 @@ namespace NotifySync
             bool hasRestrictions = (config.EnabledLibraries?.Any() == true) || (config.ManualLibraryIds?.Any() == true);
             string? matchedLibraryId = null;
 
-            var allParents = item.GetParents().ToList();
+            // Optimisation : Lazy loading des parents uniquement si nécessaire
             var rootLibrary = _libraryManager.GetCollectionFolders(item).FirstOrDefault();
-            if (rootLibrary != null && !allParents.Contains(rootLibrary)) allParents.Add(rootLibrary);
 
             if (hasRestrictions)
             {
+                var allParents = item.GetParents().ToList();
+                if (rootLibrary != null && !allParents.Contains(rootLibrary)) allParents.Add(rootLibrary);
+
                 var enabledIds = config.EnabledLibraries ?? new List<string>();
                 var manualEntries = config.ManualLibraryIds ?? new List<string>();
 
@@ -292,11 +313,13 @@ namespace NotifySync
             _dataLock.EnterWriteLock();
             try
             {
-                int removed = _notifications.RemoveAll(x => x.Id == e.Item.Id.ToString());
+                string targetId = e.Item.Id.ToString();
+                int removed = _notifications.RemoveAll(x => x.Id == targetId);
                 if (removed > 0)
                 {
                     _currentVersionHash = Guid.NewGuid().ToString();
                     _hasUnsavedChanges = true;
+                    try { _saveTimer.Change(10000, Timeout.Infinite); } catch {}
                 }
             }
             finally { _dataLock.ExitWriteLock(); }
@@ -304,8 +327,7 @@ namespace NotifySync
 
         private void SaveOnTick(object? state)
         {
-            if (!_hasUnsavedChanges) return;
-            ForceSaveNow();
+            if (_hasUnsavedChanges) ForceSaveNow();
         }
 
         private void ForceSaveNow()
@@ -323,10 +345,14 @@ namespace NotifySync
                     }
                     finally { _dataLock.ExitReadLock(); }
 
-                    var json = JsonSerializer.Serialize(copy, NotificationJsonContext.Default.ListNotificationItem);
-                    
+                    // OPTIMISATION CRITIQUE : Écriture atomique
+                    // On écrit dans .tmp, puis on déplace. Empêche la corruption.
                     var tempPath = _jsonPath + ".tmp";
-                    File.WriteAllText(tempPath, json);
+                    using (var fs = new FileStream(tempPath, FileMode.Create, FileAccess.Write, FileShare.None))
+                    {
+                        JsonSerializer.Serialize(fs, copy, NotificationJsonContext.Default.ListNotificationItem);
+                    }
+                    
                     File.Move(tempPath, _jsonPath, true);
                 }
                 catch (Exception ex) { _logger.LogError(ex, "Erreur sauvegarde notifications."); }
@@ -340,9 +366,11 @@ namespace NotifySync
             {
                 if (File.Exists(_jsonPath))
                 {
-                    var json = File.ReadAllText(_jsonPath);
-                    _notifications = JsonSerializer.Deserialize(json, NotificationJsonContext.Default.ListNotificationItem) ?? new List<NotificationItem>();
-                    
+                    using (var fs = new FileStream(_jsonPath, FileMode.Open, FileAccess.Read, FileShare.Read))
+                    {
+                        _notifications = JsonSerializer.Deserialize<List<NotificationItem>>(fs, NotificationJsonContext.Default.ListNotificationItem) ?? new List<NotificationItem>();
+                    }
+
                     if (_notifications.Count > 0)
                          _currentVersionHash = _notifications[0].DateCreated.Ticks.ToString() + "-" + _notifications.Count;
                 }

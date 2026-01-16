@@ -1,24 +1,23 @@
 **NotifySync** est un centre de notifications avancé pour Jellyfin. Il remplace la cloche par défaut par un tableau de bord moderne, performant et intelligent, inspiré des plateformes de streaming majeures.
 
 > [!IMPORTANT]
-> **Mise à jour v4.5.7 (Performance Update)**
-> Cette version introduit un cache RAM pour les données utilisateurs et parallélise les requêtes client. La charge sur les disques (I/O) est drastiquement réduite.
+> **Mise à jour v4.6.0 (Stability & Playability)**
+> Cette version introduit la sauvegarde atomique (fini les fichiers corrompus), le "Click-to-Play" immédiat, et une refonte du rendu DOM pour une fluidité maximale sur mobile.
 
 ---
 
-## ✨ Nouveautés de la v4.5.7
+## ✨ Nouveautés de la v4.6.0
 
-### ⚡ Optimisations Backend (C#)
-* **Cache Mémoire (RAM)** : La date de "dernière visite" (`LastSeen`) est désormais servie depuis la RAM via un `ConcurrentDictionary`. Fini la lecture du fichier `user_data.json` à chaque requête API (gain I/O massif).
-* **Non-Bloquant (Copy-On-Write)** : Le tri et le groupement des notifications se font sur une copie locale de la liste. L'API reste disponible à 100% même pendant l'ajout massif de médias.
-* **Sécurité des Threads** : Gestion fine des verrous (`ReaderWriterLockSlim`) pour garantir l'intégrité des données sans ralentir le serveur.
+### 🛡️ Fiabilité & Backend (C#)
+* **Sauvegarde Atomique** : Les fichiers (`notifications.json` et `user_data.json`) sont désormais écrits dans un fichier temporaire `.tmp` avant d'être déplacés. Cela empêche totalement la corruption de données en cas de crash serveur pendant l'écriture.
+* **Sauvegarde Non-Bloquante** : La mise à jour du statut "Vu" (`LastSeen`) se fait en arrière-plan (Fire-and-Forget), rendant l'interface instantanée.
+* **Sécurité Timer** : Correction de potentiels bugs de réentrance sur les timers de traitement.
 
-### 🚀 Optimisations Frontend (JS)
-* **Chargement Parallèle** : Utilisation de `Promise.all` pour récupérer les données et le statut de lecture simultanément.
-* **Anti-Scintillement** : Le DOM n'est mis à jour que si le contenu HTML a réellement changé, économisant le CPU du navigateur.
-* **Optimisation WebP** : Les images demandées sont forcées en format WebP pour réduire la bande passante.
-* **Mode Paysage : Prise en charge sur mobile
-* **Regroupement : Correction sur le regroupement global
+### ⚡ Expérience & Frontend (JS)
+* **Optimisation DOM** : Réécriture du moteur de rendu (utilisation de `Array.join` au lieu de concaténation) pour un affichage beaucoup plus rapide des longues listes sur mobile.
+* **Gestion Mémoire** : Les observateurs (`MutationObserver`) se déconnectent intelligemment quand ils ne sont pas nécessaires pour économiser les ressources.
+* **Logic Batching** : Amélioration du regroupement (fenêtre de 12h) pour mieux distinguer les ajouts de saisons complètes des sorties hebdomadaires.
+
 ---
 
 ## 🚀 Installation
@@ -27,7 +26,7 @@
 * Avoir installé le plugin **"JavaScript Injector"** (disponible dans le catalogue officiel de Jellyfin sous la section "Général").
 
 ### 2. Installation du Backend (DLL)
-1.  Téléchargez `NotifySync.dll` (v4.5.6) depuis les [Releases](https://github.com/peterdu1109/NotifySync/releases).
+1.  Téléchargez `NotifySync.dll` (v4.6.0) depuis les [Releases](https://github.com/peterdu1109/NotifySync/releases).
 2.  Créez un dossier nommé `NotifySync` dans le répertoire des plugins de votre serveur.
 3.  Copiez le fichier `.dll` à l'intérieur.
 

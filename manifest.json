@@ -8,10 +8,10 @@
   "url": "https://github.com/peterdu1109/NotifySync",
   "versions": [
     {
-      "version": "4.5.7",
-      "changelog": "Correction groupement et ajout de la prise en charge du mode paysage sur mobile",
+      "version": "4.6.0",
+      "changelog": "Sauvegarde atomique (anti-corruption), Optimisation DOM majeure, Click-to-Play et gestion mémoire intelligente.",
       "targetAbi": "10.11.5.0",
-      "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/4.5.6/NotifySync.dll",
+      "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/4.6.0/NotifySync.dll",
       "checksum": "00000000000000000000000000000000",
       "timestamp": "2026-01-16T00:00:00Z"
     }

@@ -1,4 +1,4 @@
-/* NOTIFYSYNC V4.5.7 - LANDSCAPE SUPPORT */
+/* NOTIFYSYNC V4.6.2 - STANDARD NAVIGATION (THEME SONGS) */
 (function () {
     let currentData = [];
     let groupedData = [];
@@ -6,6 +6,7 @@
     let isFetching = false;
     let retryDelay = 2000;
     let activeFilter = 'All';
+    let observerInstance = null; 
     
     const STRINGS = {
         fr: { header: "Quoi de neuf ?", empty: "Vous êtes à jour !", markAll: "Tout marquer comme vu", badgeNew: "NOUVEAU", newEps: "nouveaux épisodes", eps: "épisodes", filterAll: "Tout" },
@@ -66,29 +67,26 @@
                 animation: slideDown 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
                 overflow: hidden;
                 display: flex; flex-direction: column; 
-                max-height: 80vh; /* Default Max Height */
+                max-height: 80vh; 
             }
 
-            /* MOBILE PORTRAIT */
             @media (max-width: 600px) {
                 #notification-dropdown { top: 60px; right: 10px; left: 10px; width: auto; max-width: none; }
             }
 
-            /* MOBILE LANDSCAPE (Hauteur petite) */
             @media (max-height: 500px) {
                 #notification-dropdown { 
-                    top: 10px; bottom: 10px; /* Colle en haut et bas */
-                    right: 20px; left: auto; width: 400px; /* Garde une largeur fixe à droite */
-                    max-height: none; /* Laisse top/bottom gérer la hauteur */
+                    top: 10px; bottom: 10px; 
+                    right: 20px; left: auto; width: 400px; 
+                    max-height: none; 
                 }
                 .hero-section { height: 110px !important; flex-shrink: 0; }
                 .list-container { flex: 1; overflow-y: auto; max-height: none !important; }
             }
             
-            /* MOBILE LANDSCAPE TRES PETIT (iPhone SE etc) */
             @media (max-height: 500px) and (max-width: 600px) {
                 #notification-dropdown { 
-                    left: 10px; right: 10px; width: auto; /* Pleine largeur si petit écran */
+                    left: 10px; right: 10px; width: auto; 
                 }
             }
 
@@ -110,7 +108,7 @@
                 -webkit-overflow-scrolling: touch;
                 content-visibility: auto; 
                 contain-intrinsic-size: 500px;
-                flex: 1; /* Important pour le redimensionnement auto */
+                flex: 1; 
             }
 
             .dropdown-item { display:flex; padding:12px 20px; border-bottom:1px solid var(--ns-border); cursor:pointer; transition: background .2s; position: relative; }
@@ -147,12 +145,10 @@
 
     const getUserId = () => window.ApiClient.getCurrentUserId();
 
-    // --- LOGIQUE DE REGROUPEMENT PAR TEMPS ---
     const processGrouping = (items) => {
         const seriesMap = new Map();
         const result = [];
 
-        // 1. Groupement initial par ID de série
         for (let i = 0; i < items.length; i++) {
             const item = items[i];
             if (item.Type === 'Episode' && item.SeriesId) {
@@ -167,18 +163,15 @@
             }
         }
 
-        // 2. Traitement intelligent par série
         seriesMap.forEach((eps) => {
             eps.sort((a,b) => new Date(b.DateCreated) - new Date(a.DateCreated));
             
             if (eps.length === 0) return;
             const latest = eps[0];
             
-            // Fenêtre de 12 heures pour considérer que c'est un "ajout en masse"
             const latestTime = new Date(latest.DateCreated).getTime();
             const batchWindow = 12 * 60 * 60 * 1000; 
 
-            // On ne compte que les épisodes NOUVEAUX et RÉCENTS (dans la fenêtre de temps du dernier)
             const recentBatch = eps.filter(e => 
                 e.IsNew && (latestTime - new Date(e.DateCreated).getTime() < batchWindow)
             );
@@ -186,20 +179,18 @@
             const newCount = recentBatch.length;
 
             if (newCount > 1) {
-                // C'est un lot (Saison complète ou plusieurs épisodes d'un coup) -> On affiche la série
                 result.push({
                     ...latest,
                     IsGroup: true,
                     GroupCount: newCount,
                     GroupIds: recentBatch.map(e => e.Id),
                     Name: latest.SeriesName, 
-                    Id: latest.SeriesId,
+                    Id: latest.SeriesId, 
                     BackdropImageTags: latest.BackdropImageTags,
                     IsNew: true
                 });
             } 
             else {
-                // Un seul épisode récent (ou plusieurs mais vieux et non vus) -> On affiche l'épisode individuel
                 result.push(latest);
             }
         });
@@ -348,7 +339,7 @@
             return;
         }
 
-        let html = '';
+        const htmlParts = [];
         const client = window.ApiClient;
         const hero = filtered.find(i => i.IsNew) || filtered[0];
         
@@ -357,7 +348,6 @@
             const tag = (hero.BackdropImageTags && hero.BackdropImageTags[0]) || '';
             let heroImg = tag ? client.getUrl(`Items/${hero.Id}/Images/Backdrop/0?tag=${tag}&quality=70&maxWidth=600&format=webp`) : client.getUrl(`Items/${hero.SeriesId || hero.Id}/Images/Primary?quality=70&maxWidth=400&format=webp`);
             
-            // Si c'est un groupe, on préfère le backdrop de la série
             if(isGroup && hero.SeriesId) heroImg = client.getUrl(`Items/${hero.Id}/Images/Backdrop/0?quality=70&maxWidth=600&format=webp`);
 
             let heroTitle = hero.Name;
@@ -376,7 +366,7 @@
 
             const timeStr = timeAgo(hero.DateCreated);
             
-            html += `
+            htmlParts.push(`
             <div class="hero-section" onclick="document.dispatchEvent(new CustomEvent('ns-navigate', {detail: '${hero.Id}'}))">
                 <div class="hero-bg" style="background-image:url('${heroImg}')"></div>
                 <div class="hero-overlay"></div>
@@ -389,7 +379,7 @@
                         ${heroSub} &bull; ${timeStr}
                     </div>
                 </div>
-            </div>`;
+            </div>`);
         }
 
         filtered.filter(x => x !== hero).forEach(item => {
@@ -415,7 +405,7 @@
 
             const finalSub = `${sub} &bull; ${timeStr}`;
 
-            html += `
+            htmlParts.push(`
             <div class="dropdown-item ${item.IsNew ? 'style-new' : 'style-seen'}" onclick="document.dispatchEvent(new CustomEvent('ns-navigate', {detail: '${targetId}'}))">
                 <div class="status-dot"></div>
                 <div class="thumb-wrapper">
@@ -426,14 +416,15 @@
                     <div class="dropdown-title">${title}</div>
                     <div class="dropdown-subtitle">${finalSub}</div>
                 </div>
-            </div>`;
+            </div>`);
         });
 
-        html += `<div class="footer-tools" onclick="document.dispatchEvent(new Event('ns-markall'))">${T.markAll}</div>`;
+        htmlParts.push(`<div class="footer-tools" onclick="document.dispatchEvent(new Event('ns-markall'))">${T.markAll}</div>`);
         
-        if (container.innerHTML === html) return;
+        const finalHtml = htmlParts.join('');
+        if (container.innerHTML === finalHtml) return;
         
-        container.innerHTML = html;
+        container.innerHTML = finalHtml;
 
         const obs = new IntersectionObserver((entries, o) => { 
             entries.forEach(e => { if (e.isIntersecting) { const i = e.target; i.src = i.dataset.src; i.classList.add('loaded'); o.unobserve(i); } }); 
@@ -458,9 +449,14 @@
             document.addEventListener('ns-filter', (e) => { activeFilter = e.detail; updateList(drop); });
             document.addEventListener('ns-markall', () => { updateLastSeen(); closeDropdown(); });
             document.addEventListener('ns-refresh', () => { triggerHardRefresh(); });
+            
+            // --- MODIFICATION ICI : RETOUR A LA NAVIGATION PAGE ---
             document.addEventListener('ns-navigate', (e) => {
-                window.location.hash = '#!/details?id=' + e.detail;
+                const id = e.detail;
                 closeDropdown();
+                // On navigue simplement vers la page.
+                // Jellyfin gère automatiquement le lancement de la "Theme Song" sur cette page si configuré.
+                window.location.hash = '#!/details?id=' + id;
             });
 
             drop.innerHTML = `
@@ -490,7 +486,15 @@
 
     const installBell = () => {
         const header = document.querySelector('.headerRight') || document.querySelector('.headerButtons-right');
-        if (!header || document.getElementById('bell-container')) return;
+        if (!header || document.getElementById('bell-container')) {
+            if(document.getElementById('bell-container') && observerInstance) {
+                observerInstance.disconnect();
+                observerInstance = null;
+                monitorBellDisappearance();
+            }
+            return;
+        }
+
         injectStyles();
         const div = document.createElement('div'); div.id = 'bell-container';
         div.innerHTML = `<button id="netflix-bell" class="paper-icon-button-light headerButton"><span class="material-icons notifications"></span></button>`;
@@ -501,10 +505,23 @@
         fetchData();
     };
 
-    const obs = new MutationObserver(() => { if(!document.getElementById('bell-container')) installBell(); });
-    obs.observe(document.body, { childList: true, subtree: true });
+    const monitorBellDisappearance = () => {
+        const obs = new MutationObserver((mutations) => {
+            if(!document.getElementById('bell-container')) {
+                obs.disconnect();
+                startMainObserver(); 
+            }
+        });
+        obs.observe(document.body, { childList: true, subtree: true });
+    };
+
+    const startMainObserver = () => {
+        observerInstance = new MutationObserver(() => installBell());
+        observerInstance.observe(document.body, { childList: true, subtree: true });
+        installBell();
+    };
     
     setInterval(() => { if(document.visibilityState === 'visible') fetchData(); }, 60000);
 
-    installBell();
+    startMainObserver();
 })();

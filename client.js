@@ -1,4 +1,4 @@
-/* NOTIFYSYNC V4.5.6 - OPTIMIZED PARALLEL */
+/* NOTIFYSYNC V4.5.7 - LANDSCAPE SUPPORT */
 (function () {
     let currentData = [];
     let groupedData = [];
@@ -55,6 +55,7 @@
             }
             .ns-badge.visible { opacity: 1; transform: scale(1); }
             #notify-backdrop { position: fixed; inset: 0; z-index: 999998; display: none; }
+            
             #notification-dropdown {
                 position: fixed; top: 70px; right: 20px; width: 380px; max-width: 90vw;
                 background: var(--ns-glass); backdrop-filter: blur(var(--ns-blur)); -webkit-backdrop-filter: blur(var(--ns-blur));
@@ -65,12 +66,32 @@
                 animation: slideDown 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
                 overflow: hidden;
                 display: flex; flex-direction: column; 
+                max-height: 80vh; /* Default Max Height */
             }
+
+            /* MOBILE PORTRAIT */
             @media (max-width: 600px) {
-                #notification-dropdown { top: 60px; right: 10px; left: 10px; width: auto; max-width: none; max-height: 80vh; }
-                .hero-section { height: 130px !important; }
-                .list-container { flex: 1; max-height: none !important; } 
+                #notification-dropdown { top: 60px; right: 10px; left: 10px; width: auto; max-width: none; }
             }
+
+            /* MOBILE LANDSCAPE (Hauteur petite) */
+            @media (max-height: 500px) {
+                #notification-dropdown { 
+                    top: 10px; bottom: 10px; /* Colle en haut et bas */
+                    right: 20px; left: auto; width: 400px; /* Garde une largeur fixe à droite */
+                    max-height: none; /* Laisse top/bottom gérer la hauteur */
+                }
+                .hero-section { height: 110px !important; flex-shrink: 0; }
+                .list-container { flex: 1; overflow-y: auto; max-height: none !important; }
+            }
+            
+            /* MOBILE LANDSCAPE TRES PETIT (iPhone SE etc) */
+            @media (max-height: 500px) and (max-width: 600px) {
+                #notification-dropdown { 
+                    left: 10px; right: 10px; width: auto; /* Pleine largeur si petit écran */
+                }
+            }
+
             @keyframes slideDown { from { opacity:0; transform:translateY(-10px); } to { opacity:1; transform:translateY(0); } }
             @keyframes spin { 100% { transform: rotate(360deg); } }
             .spinning { animation: spin 1s linear infinite; opacity: 1!important; }
@@ -82,13 +103,16 @@
             .filter-bar { padding: 10px 20px; display: flex; gap: 8px; border-bottom: 1px solid var(--ns-border); overflow-x: auto; scrollbar-width: none; flex-shrink: 0; }
             .filter-pill { font-size: 11px; padding: 4px 12px; border-radius: 20px; background: rgba(255,255,255,0.05); cursor: pointer; transition: all 0.2s; border: 1px solid transparent; white-space: nowrap; }
             .filter-pill.active { background: #fff; color: #000; font-weight: 700; box-shadow: 0 0 10px rgba(255,255,255,0.2); }
+            
             .list-container { 
                 max-height: 500px; 
                 overflow-y: auto; 
                 -webkit-overflow-scrolling: touch;
                 content-visibility: auto; 
                 contain-intrinsic-size: 500px;
+                flex: 1; /* Important pour le redimensionnement auto */
             }
+
             .dropdown-item { display:flex; padding:12px 20px; border-bottom:1px solid var(--ns-border); cursor:pointer; transition: background .2s; position: relative; }
             .dropdown-item:hover { background: rgba(255,255,255,0.08); }
             .status-dot {
@@ -123,10 +147,12 @@
 
     const getUserId = () => window.ApiClient.getCurrentUserId();
 
+    // --- LOGIQUE DE REGROUPEMENT PAR TEMPS ---
     const processGrouping = (items) => {
         const seriesMap = new Map();
         const result = [];
 
+        // 1. Groupement initial par ID de série
         for (let i = 0; i < items.length; i++) {
             const item = items[i];
             if (item.Type === 'Episode' && item.SeriesId) {
@@ -141,26 +167,40 @@
             }
         }
 
+        // 2. Traitement intelligent par série
         seriesMap.forEach((eps) => {
             eps.sort((a,b) => new Date(b.DateCreated) - new Date(a.DateCreated));
-            let newCount = 0;
-            for(let e of eps) { if(e.IsNew) newCount++; }
+            
+            if (eps.length === 0) return;
+            const latest = eps[0];
+            
+            // Fenêtre de 12 heures pour considérer que c'est un "ajout en masse"
+            const latestTime = new Date(latest.DateCreated).getTime();
+            const batchWindow = 12 * 60 * 60 * 1000; 
+
+            // On ne compte que les épisodes NOUVEAUX et RÉCENTS (dans la fenêtre de temps du dernier)
+            const recentBatch = eps.filter(e => 
+                e.IsNew && (latestTime - new Date(e.DateCreated).getTime() < batchWindow)
+            );
+
+            const newCount = recentBatch.length;
 
             if (newCount > 1) {
-                const latest = eps[0];
+                // C'est un lot (Saison complète ou plusieurs épisodes d'un coup) -> On affiche la série
                 result.push({
                     ...latest,
                     IsGroup: true,
                     GroupCount: newCount,
-                    GroupIds: eps.filter(e => e.IsNew).map(e => e.Id),
+                    GroupIds: recentBatch.map(e => e.Id),
                     Name: latest.SeriesName, 
                     Id: latest.SeriesId,
                     BackdropImageTags: latest.BackdropImageTags,
                     IsNew: true
                 });
             } 
-            else if (eps.length > 0) {
-                result.push(eps[0]);
+            else {
+                // Un seul épisode récent (ou plusieurs mais vieux et non vus) -> On affiche l'épisode individuel
+                result.push(latest);
             }
         });
 
@@ -214,20 +254,16 @@
         if (isFetching) return; 
         isFetching = true;
         try {
-            // OPTIMISATION : Requêtes parallèles
             const lastSeenPromise = fetchLastSeen();
-            
             const lastEtag = localStorage.getItem('ns-etag') || '';
             const headers = getAuthHeaders();
             if(lastEtag) headers['If-None-Match'] = lastEtag;
             
             const dataPromise = fetch('/NotifySync/Data', { headers: headers });
-
             const [_, res] = await Promise.all([lastSeenPromise, dataPromise]);
             
             if (res.status === 304) {
                 await refreshPlayStates();
-                console.debug("NotifySync: 304 Not Modified");
             }
             else if (res.ok) {
                 const json = await res.json();
@@ -320,18 +356,22 @@
             const isGroup = !!hero.IsGroup; 
             const tag = (hero.BackdropImageTags && hero.BackdropImageTags[0]) || '';
             let heroImg = tag ? client.getUrl(`Items/${hero.Id}/Images/Backdrop/0?tag=${tag}&quality=70&maxWidth=600&format=webp`) : client.getUrl(`Items/${hero.SeriesId || hero.Id}/Images/Primary?quality=70&maxWidth=400&format=webp`);
+            
+            // Si c'est un groupe, on préfère le backdrop de la série
             if(isGroup && hero.SeriesId) heroImg = client.getUrl(`Items/${hero.Id}/Images/Backdrop/0?quality=70&maxWidth=600&format=webp`);
 
             let heroTitle = hero.Name;
             let heroSub = '';
             
-            if (isGroup) {
-                heroSub = `${hero.GroupCount} ${T.newEps}`;
-            } else if (hero.Type === 'Episode') {
+            if (hero.Type === 'Episode') {
                 heroTitle = formatEpisodeTitle(hero);
                 heroSub = hero.SeriesName; 
             } else {
                 heroSub = hero.ProductionYear;
+            }
+
+            if (isGroup) {
+                heroSub = `${hero.SeriesName} • ${hero.GroupCount} ${T.newEps}`;
             }
 
             const timeStr = timeAgo(hero.DateCreated);
@@ -364,11 +404,13 @@
             let sub = item.ProductionYear;
             const timeStr = timeAgo(item.DateCreated);
 
-            if (isGroup) {
-                sub = `${item.GroupCount} ${T.newEps}`;
-            } else if (item.Type === 'Episode') {
+            if (item.Type === 'Episode') {
                 title = formatEpisodeTitle(item);
                 sub = item.SeriesName; 
+            }
+
+            if (isGroup) {
+                sub = `${item.SeriesName} • ${item.GroupCount} ${T.newEps}`;
             }
 
             const finalSub = `${sub} &bull; ${timeStr}`;
@@ -389,7 +431,6 @@
 
         html += `<div class="footer-tools" onclick="document.dispatchEvent(new Event('ns-markall'))">${T.markAll}</div>`;
         
-        // OPTIMISATION : Ne touche pas au DOM si identique
         if (container.innerHTML === html) return;
         
         container.innerHTML = html;

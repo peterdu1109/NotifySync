@@ -8,8 +8,8 @@
   "url": "https://github.com/peterdu1109/NotifySync",
   "versions": [
     {
-      "version": "4.5.6",
-      "changelog": "Optimisation E/S (Cache RAM LastSeen), Lock non-bloquant et chargement client parallèle.",
+      "version": "4.5.7",
+      "changelog": "Correction groupement et ajout de la prise en charge du mode paysage sur mobile",
       "targetAbi": "10.11.5.0",
       "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/4.5.6/NotifySync.dll",
       "checksum": "00000000000000000000000000000000",

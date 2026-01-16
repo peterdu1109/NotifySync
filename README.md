@@ -1,12 +1,12 @@
 **NotifySync** est un centre de notifications avancé pour Jellyfin. Il remplace la cloche par défaut par un tableau de bord moderne, performant et intelligent, inspiré des plateformes de streaming majeures.
 
 > [!IMPORTANT]
-> **Mise à jour v4.5.6 (Performance Update)**
+> **Mise à jour v4.5.7 (Performance Update)**
 > Cette version introduit un cache RAM pour les données utilisateurs et parallélise les requêtes client. La charge sur les disques (I/O) est drastiquement réduite.
 
 ---
 
-## ✨ Nouveautés de la v4.5.6
+## ✨ Nouveautés de la v4.5.7
 
 ### ⚡ Optimisations Backend (C#)
 * **Cache Mémoire (RAM)** : La date de "dernière visite" (`LastSeen`) est désormais servie depuis la RAM via un `ConcurrentDictionary`. Fini la lecture du fichier `user_data.json` à chaque requête API (gain I/O massif).
@@ -17,7 +17,8 @@
 * **Chargement Parallèle** : Utilisation de `Promise.all` pour récupérer les données et le statut de lecture simultanément.
 * **Anti-Scintillement** : Le DOM n'est mis à jour que si le contenu HTML a réellement changé, économisant le CPU du navigateur.
 * **Optimisation WebP** : Les images demandées sont forcées en format WebP pour réduire la bande passante.
-
+* **Mode Paysage : Prise en charge sur mobile
+* **Regroupement : Correction sur le regroupement global
 ---
 
 ## 🚀 Installation

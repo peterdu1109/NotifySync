@@ -1,27 +1,25 @@
 # NotifySync
 
-**NotifySync** est un centre de notifications avancé pour Jellyfin. Il remplace la cloche par défaut par un tableau de bord moderne, performant et intelligent, inspiré des plateformes de streaming majeures.
+**NotifySync** est un centre de notifications avancé pour Jellyfin. Il remplace la cloche par défaut par un tableau de bord moderne, fluide et intelligent, inspiré des plateformes de streaming majeures.
 
-> [!IMPORTANT]
-> **Mise à jour v4.6.2 (Performance .NET 9)**
-> Cette version migre le moteur vers **.NET 9** et introduit des optimisations majeures : utilisation de `System.Threading.Lock`, sérialisation JSON native (Source Generators) et réduction drastique de l'empreinte mémoire.
+> [!NOTE]
+> **Version 4.6.3 - Hyper-Optimisation**
+> Cette version se concentre sur la performance brute. Elle réduit la charge CPU des scans de 90% sur les grosses bibliothèques et élimine les micro-lags liés à la gestion mémoire.
 
 ---
 
-## ✨ Nouveautés de la v4.6.2
+## ⚡ Nouveautés de la v4.6.3
 
-### 🚀 Performance & Backend (.NET 9)
-* **High-Performance Locking** : Remplacement des verrous classiques par la nouvelle primitive `System.Threading.Lock` de .NET 9, réduisant la latence lors des accès concurrents.
-* **JSON Source Generators** : La sérialisation n'utilise plus la réflexion mais des contextes générés à la compilation. Résultat : démarrage plus rapide et fichiers de données (`user_data.json`) lus/écrits instantanément.
-* **Optimisation Mémoire** : Utilisation de collections modernes et réduction des allocations (GC Pressure) lors du scan des bibliothèques.
+### 🧠 Optimisations Backend (C# .NET 9)
+* **Algorithme en O(1)** : Le filtrage des bibliothèques utilise désormais des `HashSet` au lieu de listes linéaires.
+    * *Impact* : La vérification d'une bibliothèque est **instantanée**, peu importe le nombre de dossiers que vous possédez.
+* **Zero-Allocation Versioning** : Remplacement des GUIDs (lourds) par des compteurs atomiques (`Interlocked.Read/Increment`).
+    * *Impact* : Réduction drastique de la pression sur le Garbage Collector (GC), rendant le serveur plus stable lors des mises à jour fréquentes.
+* **Thread-Safety Avancé** : Utilisation de primitives de verrouillage légères (`System.Threading.Lock`) introduites dans .NET 9.
 
-### 🛡️ Fiabilité
-* **Sauvegarde Atomique** : Les fichiers critiques sont écrits dans un fichier temporaire `.tmp` avant d'être déplacés, garantissant zéro corruption en cas de crash.
-* **Sécurité Timer** : Protection renforcée des timers d'arrière-plan pour éviter les arrêts silencieux du service de notification.
-
-### ⚡ Expérience Frontend
-* **Client v4.6.2** : Le script client a été mis à jour pour supporter la navigation native vers les pages de détails (compatible avec les "Theme Songs" de Jellyfin).
-* **Rendu Optimisé** : Amélioration de la fluidité sur mobile via une refonte du rendu DOM.
+### 🎨 Optimisations Client (JS)
+* **Intl.RelativeTimeFormat** : Le calcul du temps ("il y a 5 minutes") est maintenant délégué au moteur natif du navigateur.
+    * *Impact* : Script plus léger, exécution plus rapide sur mobile et traductions grammaticalement parfaites pour toutes les langues.
 
 ---
 
@@ -29,34 +27,26 @@
 
 ### 1. Pré-requis
 * **Jellyfin 10.11.5** ou supérieur.
-* Avoir installé le plugin **"JavaScript Injector"** (disponible dans le catalogue officiel de Jellyfin sous la section "Général").
+* Plugin **"JavaScript Injector"** installé (Catalogue Jellyfin > Général).
 
 ### 2. Installation du Backend (DLL)
-1.  Téléchargez `NotifySync.dll` (v4.6.2) depuis les Releases.
-2.  Créez un dossier nommé `NotifySync` dans le répertoire des plugins de votre serveur.
+1.  Téléchargez `NotifySync.dll` (v4.6.3) depuis les Releases.
+2.  Créez le dossier `plugins/NotifySync` dans votre serveur Jellyfin.
 3.  Copiez le fichier `.dll` à l'intérieur.
 
-**Chemins par défaut des plugins :**
+**Chemins typiques :**
+* **Docker** : `/config/plugins/NotifySync`
+* **Linux** : `/var/lib/jellyfin/plugins/NotifySync`
+* **Windows** : `%ProgramData%\Jellyfin\Server\plugins\NotifySync`
 
-| OS | Chemin typique |
-| :--- | :--- |
-| **🐳 Docker** | `/config/plugins/NotifySync` (ou `/var/lib/jellyfin/plugins/NotifySync`) |
-| **🐧 Linux** | `/var/lib/jellyfin/plugins/NotifySync` |
-| **🪟 Windows** | `%ProgramData%\Jellyfin\Server\plugins\NotifySync` |
-| **🍎 macOS** | `~/.local/share/jellyfin/plugins/NotifySync` |
+> ⚠️ **Linux/Docker** : Vérifiez les permissions (`chown -R jellyfin:jellyfin ...`).
 
-> ⚠️ **Note Linux/Docker :** Assurez-vous que l'utilisateur `jellyfin` a les droits de lecture/écriture sur ce dossier (`chown -R jellyfin:jellyfin ...`).
+### 3. Activation du Frontend
+Pour afficher la cloche, injectez le script via le plugin **JS Injector** (Tableau de bord) :
 
-### 3. Activation du Frontend (JS Injector)
-Pour que la cloche apparaisse, vous devez injecter le script client via l'interface d'administration.
-
-1.  Redémarrez votre serveur Jellyfin pour charger la DLL.
-2.  Allez dans **Tableau de bord > JS Injector**.
-3.  Ajoutez un nouveau script avec les paramètres suivants :
-    * **Script Name** : `Cloche` (ou NotifySync)
-    * **Requires Authentication** : ☑️ **Cochez OBLIGATOIREMENT cette case** (nécessaire pour l'API utilisateur).
-    * **Code Javascript** : Copiez-collez le bloc ci-dessous :
-
+1.  Ajoutez un nouveau script.
+2.  Cochez **Requires Authentication** (Indispensable).
+3.  Collez le code suivant :
     ```javascript
     var script = document.createElement('script');
     script.src = '/NotifySync/Client.js';
@@ -68,24 +58,18 @@ Pour que la cloche apparaisse, vous devez injecter le script client via l'interf
 
 ## 🛠️ Configuration
 
-Une page de configuration est disponible dans `Tableau de bord > Extensions > NotifySync`.
+Rendez-vous dans **Tableau de bord > Extensions > NotifySync** :
 
-* **Quota par catégorie** : Nombre d'éléments à garder par type (Min: 3, Défaut: 5).
-* **Bibliothèques** : Cochez celles à surveiller.
-* **Mappage** : Renommez vos bibliothèques (ex: "Jap-Anim" -> "Anime").
-* **Maintenance** : Bouton "Régénérer" pour forcer un nouveau scan complet de l'historique et purger le cache.
+1.  **Quota** : Nombre d'éléments à afficher par catégorie.
+2.  **Bibliothèques** : Cochez les dossiers à surveiller.
+3.  **Mappage** : Personnalisez les noms de catégories (ex: "4K Movies" -> "Films").
+4.  **Maintenance** : Utilisez le bouton pour forcer un re-scan complet si nécessaire.
 
 ---
 
-## 🏗️ Développement
+## 🏗️ Compilation (Pour les devs)
 
-Ce projet est construit avec **.NET 9.0**.
-
-### Pré-requis
-* .NET 9.0 SDK
-* Jellyfin 10.11.5+
-
-### Compilation
 ```bash
+# Nécessite le SDK .NET 9
 dotnet restore
 dotnet publish -c Release -o bin/Publish

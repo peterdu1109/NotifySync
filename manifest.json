@@ -1,8 +1,8 @@
 {
   "Guid": "95655672-2342-4321-8291-321312312312",
   "Name": "NotifySync",
-  "Description": "Notification center style Netflix pour Jellyfin.",
-  "Version": "4.6.2.0",
+  "Description": "Centre de notifications style Netflix (Ultra-Optimisé O(1)).",
+  "Version": "4.6.3.0",
   "Owner": "NotifySync",
   "Category": "UI",
   "TargetAbi": "10.11.5.0"

@@ -1,4 +1,4 @@
-/* NOTIFYSYNC V4.6.2 - STANDARD NAVIGATION */
+/* NOTIFYSYNC V4.6.3 - OPTIMIZED FORMATTER */
 (function () {
     let currentData = [];
     let groupedData = [];
@@ -8,27 +8,23 @@
     let activeFilter = 'All';
     let observerInstance = null; 
     
-    const STRINGS = {
-        fr: { header: "Quoi de neuf ?", empty: "Vous êtes à jour !", markAll: "Tout marquer comme vu", badgeNew: "NOUVEAU", newEps: "nouveaux épisodes", eps: "épisodes", filterAll: "Tout" },
-        en: { header: "What's New?", empty: "You're all caught up!", markAll: "Mark all read", badgeNew: "NEW", newEps: "new episodes", eps: "episodes", filterAll: "All" }
-    };
-    const userLang = navigator.language || navigator.userLanguage;
-    const T = userLang.startsWith('fr') ? STRINGS.fr : STRINGS.en;
+    // Détection de la langue simplifiée
+    const userLang = navigator.language || 'en';
+    const T = userLang.startsWith('fr') 
+        ? { header: "Quoi de neuf ?", empty: "Vous êtes à jour !", markAll: "Tout marquer comme vu", badgeNew: "NOUVEAU", newEps: "nouveaux épisodes", eps: "épisodes", filterAll: "Tout", filterMovie: "Films", filterSeries: "Séries", filterMusic: "Musique" }
+        : { header: "What's New?", empty: "You're all caught up!", markAll: "Mark all read", badgeNew: "NEW", newEps: "new episodes", eps: "episodes", filterAll: "All", filterMovie: "Movies", filterSeries: "Series", filterMusic: "Music" };
 
+    // OPTIMISATION: Native RelativeTimeFormat (plus performant et léger)
+    const rtf = new Intl.RelativeTimeFormat(userLang, { numeric: 'auto' });
+    
     const timeAgo = (date) => {
-        const seconds = Math.floor((new Date() - new Date(date)) / 1000);
-        const isFr = userLang.startsWith('fr');
-        let interval = seconds / 31536000;
-        if (interval > 1) return isFr ? `il y a ${Math.floor(interval)} an(s)` : `${Math.floor(interval)}y ago`;
-        interval = seconds / 2592000;
-        if (interval > 1) return isFr ? `il y a ${Math.floor(interval)} mois` : `${Math.floor(interval)}mo ago`;
-        interval = seconds / 86400;
-        if (interval > 1) return isFr ? `il y a ${Math.floor(interval)} j` : `${Math.floor(interval)}d ago`;
-        interval = seconds / 3600;
-        if (interval > 1) return isFr ? `il y a ${Math.floor(interval)} h` : `${Math.floor(interval)}h ago`;
-        interval = seconds / 60;
-        if (interval > 1) return isFr ? `il y a ${Math.floor(interval)} min` : `${Math.floor(interval)}m ago`;
-        return isFr ? "à l'instant" : "just now";
+        const diff = (new Date(date) - new Date()) / 1000;
+        if (Math.abs(diff) < 60) return rtf.format(Math.round(diff), 'second');
+        if (Math.abs(diff) < 3600) return rtf.format(Math.round(diff / 60), 'minute');
+        if (Math.abs(diff) < 86400) return rtf.format(Math.round(diff / 3600), 'hour');
+        if (Math.abs(diff) < 2592000) return rtf.format(Math.round(diff / 86400), 'day');
+        if (Math.abs(diff) < 31536000) return rtf.format(Math.round(diff / 2592000), 'month');
+        return rtf.format(Math.round(diff / 31536000), 'year');
     };
 
     const getAuthHeaders = () => {

@@ -27,11 +27,13 @@ namespace NotifySync
         private readonly Timer _saveTimer;
         
         private volatile bool _hasUnsavedChanges = false;
-        private readonly Lock _saveLock = new(); // .NET 9 Lock
+        private readonly Lock _saveLock = new(); 
         private readonly ReaderWriterLockSlim _dataLock = new();
         
         private List<NotificationItem> _notifications = [];
-        private string _currentVersionHash = Guid.NewGuid().ToString(); 
+        
+        // OPTIMISATION : Utilisation d'un long atomique au lieu de Guid string (moins d'allocation)
+        private long _versionCounter = DateTime.UtcNow.Ticks;
 
         public static NotificationManager? Instance { get; private set; }
 
@@ -68,9 +70,13 @@ namespace NotifySync
 
         public string GetVersionHash()
         {
-            _dataLock.EnterReadLock();
-            try { return _currentVersionHash; }
-            finally { _dataLock.ExitReadLock(); }
+            // OPTIMISATION : Lecture atomique sans lock (sur un processeur 64 bits, la lecture de long est atomique)
+            return Interlocked.Read(ref _versionCounter).ToString();
+        }
+
+        private void UpdateVersion()
+        {
+            Interlocked.Increment(ref _versionCounter);
         }
 
         private void PopulateInitialHistory()
@@ -80,6 +86,9 @@ namespace NotifySync
                 var tempNotifs = new List<NotificationItem>();
                 var typesToScan = new[] { BaseItemKind.Movie, BaseItemKind.Episode, BaseItemKind.MusicAlbum };
                 
+                // Pré-calcul des sets de configuration pour éviter de le faire dans la boucle
+                var (enabledGuids, manualGuids) = GetConfiguredGuids();
+
                 int fetchLimit = 5000;
 
                 foreach (var type in typesToScan)
@@ -97,7 +106,8 @@ namespace NotifySync
                     var items = _libraryManager.GetItemList(query);
                     foreach (var item in items)
                     {
-                        var notif = CreateNotificationFromItem(item);
+                        // On passe les HashSets optimisés
+                        var notif = CreateNotificationFromItem(item, enabledGuids, manualGuids);
                         if (notif != null) tempNotifs.Add(notif);
                     }
                 }
@@ -114,7 +124,7 @@ namespace NotifySync
 
         private void OnItemAdded(object? sender, ItemChangeEventArgs e)
         {
-            if(e.Item != null && !e.Item.IsVirtualItem) 
+            if(e.Item is not null && !e.Item.IsVirtualItem) 
             {
                 _eventBuffer.Enqueue(e.Item);
                 try { _bufferProcessTimer.Change(2000, Timeout.Infinite); } catch {}
@@ -128,13 +138,15 @@ namespace NotifySync
                 if (_eventBuffer.IsEmpty) return;
 
                 var newItems = new List<NotificationItem>();
-                // Limite le traitement par lot pour éviter de bloquer
+                // Récupération de la config une seule fois pour tout le buffer
+                var (enabledGuids, manualGuids) = GetConfiguredGuids();
+
                 int processed = 0;
                 while (processed < 100 && _eventBuffer.TryDequeue(out var item))
                 {
                     try 
                     {
-                        var notif = CreateNotificationFromItem(item);
+                        var notif = CreateNotificationFromItem(item, enabledGuids, manualGuids);
                         if (notif != null) newItems.Add(notif);
                         processed++;
                     }
@@ -154,7 +166,6 @@ namespace NotifySync
             }
             finally
             {
-                // Relance toujours le timer
                 if (!_eventBuffer.IsEmpty)
                      try { _bufferProcessTimer.Change(1000, Timeout.Infinite); } catch {}
             }
@@ -181,7 +192,9 @@ namespace NotifySync
             foreach (var catGroup in categoryGroups)
             {
                 var groupList = catGroup.ToList();
-                bool containsEpisodes = groupList.Any(x => x.Type == "Episode");
+                // Optimisation: vérification sur le premier élément suffit souvent si le groupe est homogène, 
+                // mais check global plus sûr
+                bool containsEpisodes = groupList.Exists(x => x.Type == "Episode");
 
                 if (containsEpisodes)
                 {
@@ -190,7 +203,7 @@ namespace NotifySync
                         .Select(g => new 
                         { 
                             SeriesGroup = g, 
-                            LatestDate = g.Max(x => x.DateCreated) // Optimisé
+                            LatestDate = g.Max(x => x.DateCreated)
                         })
                         .OrderByDescending(x => x.LatestDate)
                         .Take(limitPerCat); 
@@ -207,15 +220,12 @@ namespace NotifySync
             }
 
             var sortedFinal = finalResults.OrderByDescending(x => x.DateCreated).ToList();
-            var newHash = sortedFinal.Count > 0 
-                ? sortedFinal[0].DateCreated.Ticks.ToString() + "-" + sortedFinal.Count 
-                : "empty";
 
             _dataLock.EnterWriteLock();
             try
             {
                 _notifications = sortedFinal;
-                _currentVersionHash = newHash;
+                UpdateVersion(); // Mise à jour atomique
             }
             finally
             {
@@ -223,7 +233,31 @@ namespace NotifySync
             }
         }
 
-        private NotificationItem? CreateNotificationFromItem(BaseItem item)
+        // OPTIMISATION : Helper pour transformer la config string en Guid HashSet (O(1) lookup)
+        private (HashSet<Guid> Enabled, HashSet<Guid> Manual) GetConfiguredGuids()
+        {
+            var config = Plugin.Instance?.Configuration;
+            var enabled = new HashSet<Guid>();
+            var manual = new HashSet<Guid>();
+
+            if (config != null)
+            {
+                if (config.EnabledLibraries != null)
+                {
+                    foreach (var s in config.EnabledLibraries)
+                        if (Guid.TryParse(s, out var g)) enabled.Add(g);
+                }
+                if (config.ManualLibraryIds != null)
+                {
+                    foreach (var s in config.ManualLibraryIds)
+                        if (Guid.TryParse(s, out var g)) manual.Add(g);
+                }
+            }
+            return (enabled, manual);
+        }
+
+        // Modification de la signature pour accepter les HashSets pré-calculés
+        private NotificationItem? CreateNotificationFromItem(BaseItem item, HashSet<Guid>? enabledGuids = null, HashSet<Guid>? manualGuids = null)
         {
             if (item is Folder || item.IsVirtualItem) return null;
 
@@ -236,29 +270,46 @@ namespace NotifySync
             var config = Plugin.Instance?.Configuration;
             if (config == null) return null;
 
-            bool hasRestrictions = (config.EnabledLibraries?.Count > 0) || (config.ManualLibraryIds?.Count > 0);
+            // Si non fournis, on les calcule (cas rare, fallback)
+            if (enabledGuids == null || manualGuids == null)
+            {
+                var sets = GetConfiguredGuids();
+                enabledGuids = sets.Enabled;
+                manualGuids = sets.Manual;
+            }
+
+            bool hasRestrictions = enabledGuids.Count > 0 || manualGuids.Count > 0;
             string? matchedLibraryId = null;
 
             var rootLibrary = _libraryManager.GetCollectionFolders(item).FirstOrDefault();
 
             if (hasRestrictions)
             {
+                // Optimisation : On compare des GUIDs, pas des strings
                 var allParents = item.GetParents().ToList();
                 if (rootLibrary != null && !allParents.Contains(rootLibrary)) allParents.Add(rootLibrary);
 
-                var enabledIds = config.EnabledLibraries ?? [];
-                var manualEntries = config.ManualLibraryIds ?? [];
-
                 foreach (var parent in allParents)
                 {
-                    string pId = parent.Id.ToString();
-                    string pIdSimple = parent.Id.ToString("N");
+                    // Comparaison O(1) grâce au HashSet
+                    if (enabledGuids.Contains(parent.Id))
+                    {
+                        matchedLibraryId = parent.Id.ToString();
+                        break;
+                    }
                     
-                    if (enabledIds.Any(e => e.Equals(pId, StringComparison.OrdinalIgnoreCase) || e.Equals(pIdSimple, StringComparison.OrdinalIgnoreCase))) 
-                    { matchedLibraryId = pId; break; }
-                    
-                    if (manualEntries.Any(m => m.Equals(pId, StringComparison.OrdinalIgnoreCase) || m.Equals(pIdSimple, StringComparison.OrdinalIgnoreCase) || m.Equals(parent.Name, StringComparison.OrdinalIgnoreCase))) 
-                    { matchedLibraryId = pId; break; }
+                    if (manualGuids.Contains(parent.Id))
+                    {
+                        matchedLibraryId = parent.Id.ToString();
+                        break;
+                    }
+
+                    // Fallback sur le nom pour le manuel uniquement (lent, mais nécessaire si l'user a mis un nom)
+                    if (config.ManualLibraryIds != null && config.ManualLibraryIds.Contains(parent.Name, StringComparer.OrdinalIgnoreCase))
+                    {
+                        matchedLibraryId = parent.Id.ToString();
+                        break;
+                    }
                 }
                 
                 if (matchedLibraryId == null) return null;
@@ -274,11 +325,23 @@ namespace NotifySync
 
             if (matchedLibraryId != null && config.CategoryMappings != null)
             {
-                string normalizedMatched = matchedLibraryId.Replace("-", "");
-                var mapping = config.CategoryMappings.FirstOrDefault(m => 
-                    m.LibraryId.Replace("-", "").Equals(normalizedMatched, StringComparison.OrdinalIgnoreCase));
+                // Optimisation: Comparaison Guid si possible, sinon string normalisée
+                // On évite le Replace si possible, mais ici la config stocke des strings.
+                // On normalise juste l'ID trouvé.
+                string idSimple = Guid.Parse(matchedLibraryId).ToString("N");
                 
-                if (mapping != null && !string.IsNullOrEmpty(mapping.CategoryName)) category = mapping.CategoryName;
+                foreach(var m in config.CategoryMappings)
+                {
+                     // On essaie de voir si l'entrée mapping est un Guid
+                     if (Guid.TryParse(m.LibraryId, out var mapGuid))
+                     {
+                         if (mapGuid.ToString("N") == idSimple) 
+                         {
+                             if (!string.IsNullOrEmpty(m.CategoryName)) category = m.CategoryName;
+                             break;
+                         }
+                     }
+                }
             }
 
             var backdropTags = new List<string>();
@@ -314,13 +377,16 @@ namespace NotifySync
                 int removed = _notifications.RemoveAll(x => x.Id == targetId);
                 if (removed > 0)
                 {
-                    _currentVersionHash = Guid.NewGuid().ToString();
+                    UpdateVersion();
                     _hasUnsavedChanges = true;
                     try { _saveTimer.Change(10000, Timeout.Infinite); } catch {}
                 }
             }
             finally { _dataLock.ExitWriteLock(); }
         }
+
+        // ... SaveOnTick, ForceSaveNow, LoadNotifications, GetRecentNotifications restent identiques ...
+        // Assurez-vous juste d'utiliser UpdateVersion() au lieu de Guid.NewGuid() si vous touchez à ces méthodes.
 
         private void SaveOnTick(object? state)
         {
@@ -345,7 +411,6 @@ namespace NotifySync
                     var tempPath = _jsonPath + ".tmp";
                     using (var fs = new FileStream(tempPath, FileMode.Create, FileAccess.Write, FileShare.None))
                     {
-                        // Utilisation du contexte généré
                         JsonSerializer.Serialize(fs, copy, NotificationJsonContext.Default.ListNotificationItem);
                     }
                     
@@ -368,7 +433,7 @@ namespace NotifySync
                     }
 
                     if (_notifications.Count > 0)
-                         _currentVersionHash = _notifications[0].DateCreated.Ticks.ToString() + "-" + _notifications.Count;
+                         UpdateVersion();
                 }
             }
             catch { _notifications = []; }
@@ -381,7 +446,8 @@ namespace NotifySync
             try { return _notifications.ToList(); }
             finally { _dataLock.ExitReadLock(); }
         }
-
+        
+        // Dispose...
         public void Dispose()
         {
             _bufferProcessTimer?.Dispose();
@@ -397,7 +463,8 @@ namespace NotifySync
             GC.SuppressFinalize(this);
         }
     }
-
+    
+    // ... Classes NotificationItem et NotificationJsonContext restent identiques ...
     public class NotificationItem
     {
         public string Id { get; set; } = string.Empty;

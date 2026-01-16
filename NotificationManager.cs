@@ -31,8 +31,6 @@ namespace NotifySync
         private readonly ReaderWriterLockSlim _dataLock = new();
         
         private List<NotificationItem> _notifications = [];
-        
-        // OPTIMISATION : Utilisation d'un long atomique au lieu de Guid string (moins d'allocation)
         private long _versionCounter = DateTime.UtcNow.Ticks;
 
         public static NotificationManager? Instance { get; private set; }
@@ -70,7 +68,6 @@ namespace NotifySync
 
         public string GetVersionHash()
         {
-            // OPTIMISATION : Lecture atomique sans lock (sur un processeur 64 bits, la lecture de long est atomique)
             return Interlocked.Read(ref _versionCounter).ToString();
         }
 
@@ -86,8 +83,8 @@ namespace NotifySync
                 var tempNotifs = new List<NotificationItem>();
                 var typesToScan = new[] { BaseItemKind.Movie, BaseItemKind.Episode, BaseItemKind.MusicAlbum };
                 
-                // Pré-calcul des sets de configuration pour éviter de le faire dans la boucle
-                var (enabledGuids, manualGuids) = GetConfiguredGuids();
+                // Récupération optimisée du cache de configuration
+                var configCache = GetConfiguredCache();
 
                 int fetchLimit = 5000;
 
@@ -106,8 +103,7 @@ namespace NotifySync
                     var items = _libraryManager.GetItemList(query);
                     foreach (var item in items)
                     {
-                        // On passe les HashSets optimisés
-                        var notif = CreateNotificationFromItem(item, enabledGuids, manualGuids);
+                        var notif = CreateNotificationFromItem(item, configCache);
                         if (notif != null) tempNotifs.Add(notif);
                     }
                 }
@@ -138,15 +134,14 @@ namespace NotifySync
                 if (_eventBuffer.IsEmpty) return;
 
                 var newItems = new List<NotificationItem>();
-                // Récupération de la config une seule fois pour tout le buffer
-                var (enabledGuids, manualGuids) = GetConfiguredGuids();
+                var configCache = GetConfiguredCache();
 
                 int processed = 0;
                 while (processed < 100 && _eventBuffer.TryDequeue(out var item))
                 {
                     try 
                     {
-                        var notif = CreateNotificationFromItem(item, enabledGuids, manualGuids);
+                        var notif = CreateNotificationFromItem(item, configCache);
                         if (notif != null) newItems.Add(notif);
                         processed++;
                     }
@@ -192,8 +187,6 @@ namespace NotifySync
             foreach (var catGroup in categoryGroups)
             {
                 var groupList = catGroup.ToList();
-                // Optimisation: vérification sur le premier élément suffit souvent si le groupe est homogène, 
-                // mais check global plus sûr
                 bool containsEpisodes = groupList.Exists(x => x.Type == "Episode");
 
                 if (containsEpisodes)
@@ -225,7 +218,7 @@ namespace NotifySync
             try
             {
                 _notifications = sortedFinal;
-                UpdateVersion(); // Mise à jour atomique
+                UpdateVersion(); 
             }
             finally
             {
@@ -233,31 +226,56 @@ namespace NotifySync
             }
         }
 
-        // OPTIMISATION : Helper pour transformer la config string en Guid HashSet (O(1) lookup)
-        private (HashSet<Guid> Enabled, HashSet<Guid> Manual) GetConfiguredGuids()
+        // OPTIMISATION : Structure de cache complète
+        private struct ConfigCache
+        {
+            public HashSet<Guid> Enabled;
+            public HashSet<Guid> Manual;
+            public Dictionary<Guid, string> Mappings;
+            public List<string> ManualNames; // Fallback pour les noms manuels
+        }
+
+        private ConfigCache GetConfiguredCache()
         {
             var config = Plugin.Instance?.Configuration;
-            var enabled = new HashSet<Guid>();
-            var manual = new HashSet<Guid>();
+            var c = new ConfigCache 
+            { 
+                Enabled = [], 
+                Manual = [], 
+                Mappings = [],
+                ManualNames = [] 
+            };
 
             if (config != null)
             {
                 if (config.EnabledLibraries != null)
                 {
                     foreach (var s in config.EnabledLibraries)
-                        if (Guid.TryParse(s, out var g)) enabled.Add(g);
+                        if (Guid.TryParse(s, out var g)) c.Enabled.Add(g);
                 }
                 if (config.ManualLibraryIds != null)
                 {
                     foreach (var s in config.ManualLibraryIds)
-                        if (Guid.TryParse(s, out var g)) manual.Add(g);
+                    {
+                        if (Guid.TryParse(s, out var g)) c.Manual.Add(g);
+                        else c.ManualNames.Add(s); // Si ce n'est pas un Guid, c'est un nom
+                    }
+                }
+                if (config.CategoryMappings != null)
+                {
+                    foreach (var m in config.CategoryMappings)
+                    {
+                        if (Guid.TryParse(m.LibraryId, out var g) && !string.IsNullOrEmpty(m.CategoryName))
+                        {
+                            c.Mappings[g] = m.CategoryName;
+                        }
+                    }
                 }
             }
-            return (enabled, manual);
+            return c;
         }
 
-        // Modification de la signature pour accepter les HashSets pré-calculés
-        private NotificationItem? CreateNotificationFromItem(BaseItem item, HashSet<Guid>? enabledGuids = null, HashSet<Guid>? manualGuids = null)
+        private NotificationItem? CreateNotificationFromItem(BaseItem item, ConfigCache cache)
         {
             if (item is Folder || item.IsVirtualItem) return null;
 
@@ -267,48 +285,47 @@ namespace NotifySync
 
             if (!isMovie && !isEpisode && !isMusic) return null;
 
-            var config = Plugin.Instance?.Configuration;
-            if (config == null) return null;
-
-            // Si non fournis, on les calcule (cas rare, fallback)
-            if (enabledGuids == null || manualGuids == null)
-            {
-                var sets = GetConfiguredGuids();
-                enabledGuids = sets.Enabled;
-                manualGuids = sets.Manual;
-            }
-
-            bool hasRestrictions = enabledGuids.Count > 0 || manualGuids.Count > 0;
+            bool hasRestrictions = cache.Enabled.Count > 0 || cache.Manual.Count > 0 || cache.ManualNames.Count > 0;
             string? matchedLibraryId = null;
 
+            // OPTIMISATION : On évite .ToList() ici pour ne pas allouer de mémoire inutilement
+            // On récupère juste le root pour le cas par défaut
             var rootLibrary = _libraryManager.GetCollectionFolders(item).FirstOrDefault();
 
             if (hasRestrictions)
             {
-                // Optimisation : On compare des GUIDs, pas des strings
-                var allParents = item.GetParents().ToList();
-                if (rootLibrary != null && !allParents.Contains(rootLibrary)) allParents.Add(rootLibrary);
-
-                foreach (var parent in allParents)
+                // Vérification rapide sur le Root d'abord (cas le plus fréquent)
+                if (rootLibrary != null)
                 {
-                    // Comparaison O(1) grâce au HashSet
-                    if (enabledGuids.Contains(parent.Id))
+                    if (cache.Enabled.Contains(rootLibrary.Id) || cache.Manual.Contains(rootLibrary.Id))
                     {
-                        matchedLibraryId = parent.Id.ToString();
-                        break;
+                        matchedLibraryId = rootLibrary.Id.ToString();
                     }
-                    
-                    if (manualGuids.Contains(parent.Id))
-                    {
-                        matchedLibraryId = parent.Id.ToString();
-                        break;
-                    }
+                }
 
-                    // Fallback sur le nom pour le manuel uniquement (lent, mais nécessaire si l'user a mis un nom)
-                    if (config.ManualLibraryIds != null && config.ManualLibraryIds.Contains(parent.Name, StringComparer.OrdinalIgnoreCase))
+                // Si pas trouvé via le root, on scanne les parents (plus coûteux)
+                if (matchedLibraryId == null)
+                {
+                    foreach (var parent in item.GetParents())
                     {
-                        matchedLibraryId = parent.Id.ToString();
-                        break;
+                        if (cache.Enabled.Contains(parent.Id) || cache.Manual.Contains(parent.Id))
+                        {
+                            matchedLibraryId = parent.Id.ToString();
+                            break;
+                        }
+                        // Fallback lent sur le nom (si configuré manuellement par nom)
+                        if (cache.ManualNames.Count > 0)
+                        {
+                            foreach(var name in cache.ManualNames)
+                            {
+                                if (string.Equals(parent.Name, name, StringComparison.OrdinalIgnoreCase))
+                                {
+                                    matchedLibraryId = parent.Id.ToString();
+                                    break;
+                                }
+                            }
+                            if (matchedLibraryId != null) break;
+                        }
                     }
                 }
                 
@@ -323,24 +340,12 @@ namespace NotifySync
             if (isEpisode) category = "Series";
             else if (isMusic) category = "Music";
 
-            if (matchedLibraryId != null && config.CategoryMappings != null)
+            // OPTIMISATION : Lookup O(1) dans le dictionnaire au lieu de boucler
+            if (matchedLibraryId != null && Guid.TryParse(matchedLibraryId, out var libGuid))
             {
-                // Optimisation: Comparaison Guid si possible, sinon string normalisée
-                // On évite le Replace si possible, mais ici la config stocke des strings.
-                // On normalise juste l'ID trouvé.
-                string idSimple = Guid.Parse(matchedLibraryId).ToString("N");
-                
-                foreach(var m in config.CategoryMappings)
+                if (cache.Mappings.TryGetValue(libGuid, out var mappedName))
                 {
-                     // On essaie de voir si l'entrée mapping est un Guid
-                     if (Guid.TryParse(m.LibraryId, out var mapGuid))
-                     {
-                         if (mapGuid.ToString("N") == idSimple) 
-                         {
-                             if (!string.IsNullOrEmpty(m.CategoryName)) category = m.CategoryName;
-                             break;
-                         }
-                     }
+                    category = mappedName;
                 }
             }
 
@@ -384,9 +389,6 @@ namespace NotifySync
             }
             finally { _dataLock.ExitWriteLock(); }
         }
-
-        // ... SaveOnTick, ForceSaveNow, LoadNotifications, GetRecentNotifications restent identiques ...
-        // Assurez-vous juste d'utiliser UpdateVersion() au lieu de Guid.NewGuid() si vous touchez à ces méthodes.
 
         private void SaveOnTick(object? state)
         {
@@ -446,8 +448,7 @@ namespace NotifySync
             try { return _notifications.ToList(); }
             finally { _dataLock.ExitReadLock(); }
         }
-        
-        // Dispose...
+
         public void Dispose()
         {
             _bufferProcessTimer?.Dispose();
@@ -463,22 +464,38 @@ namespace NotifySync
             GC.SuppressFinalize(this);
         }
     }
-    
-    // ... Classes NotificationItem et NotificationJsonContext restent identiques ...
+
     public class NotificationItem
     {
         public string Id { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
         public string Category { get; set; } = string.Empty;
+        
+        // OPTIMISATION : On n'écrit pas les nulls dans le JSON pour gagner de la bande passante
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? SeriesName { get; set; }
+        
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? SeriesId { get; set; }
+        
         public DateTime DateCreated { get; set; }
         public string Type { get; set; } = string.Empty;
+        
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public long? RunTimeTicks { get; set; }
+        
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public int? ProductionYear { get; set; }
+        
         public List<string> BackdropImageTags { get; set; } = [];
+        
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? PrimaryImageTag { get; set; }
+        
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public int? IndexNumber { get; set; } 
+        
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public int? ParentIndexNumber { get; set; } 
     }
 

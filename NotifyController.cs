@@ -21,7 +21,6 @@ namespace NotifySync
         private readonly ILibraryManager _libraryManager;
         private readonly IUserDataManager _userDataManager;
         
-        // .NET 9 : Utilisation de Lock au lieu de object
         private static ConcurrentDictionary<string, string>? _userDataCache;
         private static readonly Lock _fileLock = new();
 
@@ -75,7 +74,7 @@ namespace NotifySync
 
             foreach (var idStr in itemIds)
             {
-                result[idStr] = false; // Valeur par défaut
+                result[idStr] = false;
 
                 if (Guid.TryParse(idStr, out var guid))
                 {
@@ -89,11 +88,11 @@ namespace NotifySync
                             {
                                 result[idStr] = true;
                             }
-                            else if (item.RunTimeTicks > 0 && userData.PlaybackPositionTicks > 0)
+                            // OPTIMISATION : Remplacement de la division (lente) par une multiplication
+                            // Vérifie si lu à plus de 90% (0.9)
+                            else if (item.RunTimeTicks > 0 && userData.PlaybackPositionTicks > (item.RunTimeTicks.Value * 0.9))
                             {
-                                // Calcul précis
-                                if ((userData.PlaybackPositionTicks / (double)item.RunTimeTicks.Value) > 0.9) 
-                                    result[idStr] = true;
+                                result[idStr] = true;
                             }
                         }
                     }
@@ -118,7 +117,6 @@ namespace NotifySync
             var data = GetCachedUserData();
             data.AddOrUpdate(userId, date, (_, _) => date);
             
-            // Fire and Forget sécurisé
             Task.Run(() => 
             {
                 lock (_fileLock)
@@ -148,7 +146,6 @@ namespace NotifySync
                             try 
                             {
                                 using var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-                                // Utilisation du contexte généré pour la perf
                                 var dict = JsonSerializer.Deserialize(fs, ControllerJsonContext.Default.DictionaryStringString);
                                 _userDataCache = new ConcurrentDictionary<string, string>(dict ?? []);
                             }

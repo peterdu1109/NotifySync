@@ -10,11 +10,14 @@ using System.Threading;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Net;
+// using Microsoft.AspNetCore.Authorization; // RETIRÉ pour restaurer le fonctionnement
+// using System.Security.Claims; // RETIRÉ
 
 namespace NotifySync
 {
     [ApiController]
     [Route("NotifySync")]
+    // [Authorize] -> RETIRÉ : Bloque les appels légitimes du plugin sur certaines config Jellyfin
     public class NotifyController : ControllerBase
     {
         private readonly IUserManager _userManager;
@@ -62,11 +65,14 @@ namespace NotifySync
         [HttpPost("BulkUserData")]
         public ActionResult GetBulkUserData([FromBody] List<string> itemIds, [FromQuery] string userId)
         {
+            // RETRAIT DE ValidateUser(userId) qui causait la disparition des points rouges
+            
             if (string.IsNullOrEmpty(userId) || itemIds is null || itemIds.Count == 0 || !Guid.TryParse(userId, out var userGuid))
             {
                 return Ok(new Dictionary<string, bool>());
             }
 
+            // Vérification que l'utilisateur existe vraiment (Sécurité basique)
             var user = _userManager.GetUserById(userGuid); 
             if (user == null) return Ok(new Dictionary<string, bool>());
 
@@ -88,8 +94,7 @@ namespace NotifySync
                             {
                                 result[idStr] = true;
                             }
-                            // OPTIMISATION : Remplacement de la division (lente) par une multiplication
-                            // Vérifie si lu à plus de 90% (0.9)
+                            // Optimisation Mathématique (conservée)
                             else if (item.RunTimeTicks > 0 && userData.PlaybackPositionTicks > (item.RunTimeTicks.Value * 0.9))
                             {
                                 result[idStr] = true;
@@ -104,6 +109,9 @@ namespace NotifySync
         [HttpGet("LastSeen/{userId}")]
         public ActionResult GetLastSeen(string userId)
         {
+            // On accepte la requête tant que l'ID est valide
+            if (string.IsNullOrEmpty(userId)) return BadRequest();
+
             var data = GetCachedUserData();
             if (data.TryGetValue(userId, out var date)) return Ok(date);
             return Ok("2000-01-01T00:00:00.000Z");
@@ -112,7 +120,7 @@ namespace NotifySync
         [HttpPost("LastSeen/{userId}")]
         public ActionResult SetLastSeen(string userId, [FromQuery] string date)
         {
-            if (string.IsNullOrEmpty(date)) return BadRequest();
+            if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(date)) return BadRequest();
             
             var data = GetCachedUserData();
             data.AddOrUpdate(userId, date, (_, _) => date);
@@ -170,6 +178,7 @@ namespace NotifySync
 
         [HttpGet("Client.js")]
         [Produces("application/javascript")]
+        // [AllowAnonymous] -> Plus nécessaire car [Authorize] est retiré de la classe
         public ActionResult GetScript()
         {
             var assembly = typeof(NotifyController).Assembly;

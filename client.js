@@ -1,4 +1,4 @@
-/* NOTIFYSYNC V4.6.3 - GOLD MASTER */
+/* NOTIFYSYNC V4.6.3 */
 (function () {
     let currentData = [];
     let groupedData = [];
@@ -25,6 +25,17 @@
         return rtf.format(Math.round(diff / 31536000), 'year');
     };
 
+    // SECURITE : Fonction pour nettoyer les entrées et éviter les failles XSS
+    const escapeHtml = (unsafe) => {
+        if (!unsafe) return "";
+        return unsafe
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    };
+
     const getAuthHeaders = () => {
         return {
             'Content-Type': 'application/json',
@@ -34,6 +45,7 @@
 
     const injectStyles = () => {
         if (document.getElementById('notifysync-css')) return;
+        // ... (Styles CSS identiques à la version précédente) ...
         const css = `
             :root { --ns-red: #e50914; --ns-glass: rgba(20, 20, 20, 0.98); --ns-blur: 16px; --ns-border: rgba(255,255,255,0.15); }
             #bell-container { display:flex!important;align-items:center;justify-content:center; }
@@ -106,6 +118,7 @@
 
     const getUserId = () => window.ApiClient.getCurrentUserId();
 
+    // ... (processGrouping reste identique) ...
     const processGrouping = (items) => {
         const seriesMap = new Map();
         const result = [];
@@ -236,9 +249,12 @@
             const isGroup = !!hero.IsGroup; 
             let heroImg = (hero.BackdropImageTags && hero.BackdropImageTags[0]) ? client.getUrl(`Items/${hero.Id}/Images/Backdrop/0?tag=${hero.BackdropImageTags[0]}&quality=70&maxWidth=600&format=webp`) : client.getUrl(`Items/${hero.SeriesId || hero.Id}/Images/Primary?quality=70&maxWidth=400&format=webp`);
             if(isGroup && hero.SeriesId) heroImg = client.getUrl(`Items/${hero.Id}/Images/Backdrop/0?quality=70&maxWidth=600&format=webp`);
-            let heroTitle = hero.Name, heroSub = '';
-            if (hero.Type === 'Episode') { heroTitle = formatEpisodeTitle(hero); heroSub = hero.SeriesName; } else { heroSub = hero.ProductionYear; }
-            if (isGroup) { heroSub = `${hero.SeriesName} • ${hero.GroupCount} ${T.newEps}`; }
+            
+            // SECURITE XSS : Echappement des variables avant injection HTML
+            let heroTitle = escapeHtml(hero.Name), heroSub = '';
+            if (hero.Type === 'Episode') { heroTitle = escapeHtml(formatEpisodeTitle(hero)); heroSub = escapeHtml(hero.SeriesName); } else { heroSub = hero.ProductionYear; }
+            if (isGroup) { heroSub = `${escapeHtml(hero.SeriesName)} • ${hero.GroupCount} ${T.newEps}`; }
+            
             htmlParts.push(`<div class="hero-section" onclick="document.dispatchEvent(new CustomEvent('ns-navigate', {detail: '${hero.Id}'}))"><div class="hero-bg" style="background-image:url('${heroImg}')"></div><div class="hero-overlay"></div><div class="hero-content">${hero.IsNew ? `<span class="hero-badge">${T.badgeNew}</span>` : ''}<div style="font-size:18px;font-weight:700;text-shadow:0 2px 4px #000;line-height:1.2;">${heroTitle}</div><div style="font-size:12px;opacity:0.8;margin-top:4px">${heroSub} &bull; ${timeAgo(hero.DateCreated)}</div></div></div>`);
         }
 
@@ -246,10 +262,13 @@
             const isMusic = item.Category === 'Music';
             const isGroup = !!item.IsGroup; 
             const imgUrl = client.getUrl(`Items/${item.Id}/Images/Primary?tag=${item.PrimaryImageTag || ''}&${isMusic ? 'fillHeight=100&fillWidth=100' : 'fillHeight=112&fillWidth=200'}&quality=80&format=webp`);
-            let title = item.Name, sub = item.ProductionYear;
-            if (item.Type === 'Episode') { title = formatEpisodeTitle(item); sub = item.SeriesName; }
-            if (isGroup) { sub = `${item.SeriesName} • ${item.GroupCount} ${T.newEps}`; }
-            // OPTIMISATION UI: decoding="async" empêche le blocage du thread principal pendant le défilement
+            
+            // SECURITE XSS : Echappement des variables
+            let title = escapeHtml(item.Name), sub = item.ProductionYear;
+            if (item.Type === 'Episode') { title = escapeHtml(formatEpisodeTitle(item)); sub = escapeHtml(item.SeriesName); }
+            if (isGroup) { sub = `${escapeHtml(item.SeriesName)} • ${item.GroupCount} ${T.newEps}`; }
+            
+            // OPTIMISATION UI: decoding="async"
             htmlParts.push(`<div class="dropdown-item ${item.IsNew ? 'style-new' : 'style-seen'}" onclick="document.dispatchEvent(new CustomEvent('ns-navigate', {detail: '${item.Id}'}))"><div class="status-dot"></div><div class="thumb-wrapper"><img data-src="${imgUrl}" decoding="async" class="dropdown-thumb ${isMusic?'music':''}" loading="lazy" onerror="this.style.display='none'"><span class="material-icons" style="color:#444;position:absolute;z-index:-1;">${isMusic?'album':'movie'}</span></div><div class="dropdown-info"><div class="dropdown-title">${title}</div><div class="dropdown-subtitle">${sub} &bull; ${timeAgo(item.DateCreated)}</div></div></div>`);
         });
 
@@ -262,6 +281,7 @@
         }
     };
 
+    // ... (Reste des fonctions installBell, monitor, etc. identiques) ...
     const closeDropdown = () => {
         const drop = document.getElementById('notification-dropdown');
         const back = document.getElementById('notify-backdrop');

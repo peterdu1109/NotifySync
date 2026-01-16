@@ -10,14 +10,12 @@ using System.Threading;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Net;
-// using Microsoft.AspNetCore.Authorization; // RETIRÉ pour restaurer le fonctionnement
-// using System.Security.Claims; // RETIRÉ
+using System.Linq; // Nécessaire pour le filtrage
 
 namespace NotifySync
 {
     [ApiController]
     [Route("NotifySync")]
-    // [Authorize] -> RETIRÉ : Bloque les appels légitimes du plugin sur certaines config Jellyfin
     public class NotifyController : ControllerBase
     {
         private readonly IUserManager _userManager;
@@ -26,6 +24,10 @@ namespace NotifySync
         
         private static ConcurrentDictionary<string, string>? _userDataCache;
         private static readonly Lock _fileLock = new();
+
+        // SÉCURITÉ (DoS) : Timestamp pour limiter la fréquence de rafraîchissement
+        private static DateTime _lastRefreshTime = DateTime.MinValue;
+        private static readonly Lock _refreshLock = new();
 
         public NotifyController(IUserManager userManager, ILibraryManager libraryManager, IUserDataManager userDataManager)
         {
@@ -37,42 +39,91 @@ namespace NotifySync
         [HttpPost("Refresh")]
         public ActionResult Refresh()
         {
+            // SÉCURITÉ : Rate Limiting (Anti-Spam)
+            // On empêche de lancer un refresh si le dernier a eu lieu il y a moins de 60 secondes
+            lock (_refreshLock)
+            {
+                if ((DateTime.UtcNow - _lastRefreshTime).TotalSeconds < 60)
+                {
+                    return StatusCode(429, "Veuillez attendre 1 minute entre chaque rafraîchissement.");
+                }
+                _lastRefreshTime = DateTime.UtcNow;
+            }
+
             if (NotificationManager.Instance != null)
             {
-                NotificationManager.Instance.Refresh();
-                return Ok("Refreshed");
+                // Lance le refresh en arrière-plan pour ne pas bloquer la requête HTTP
+                Task.Run(() => NotificationManager.Instance.Refresh());
+                return Ok("Refresh started");
             }
             return NotFound();
         }
 
         [HttpGet("Data")]
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)] 
-        public ActionResult GetData()
+        public ActionResult GetData([FromQuery] string userId)
         {
             if (NotificationManager.Instance == null) return Ok(Array.Empty<object>());
 
-            var serverVersion = NotificationManager.Instance.GetVersionHash();
+            var rawNotifications = NotificationManager.Instance.GetRecentNotifications();
             
-            if (Request.Headers.TryGetValue("If-None-Match", out var clientTag))
+            // SÉCURITÉ (Privacy) : Filtrage par permissions utilisateur
+            // Si un userId est fourni, on filtre les éléments qu'il n'a pas le droit de voir
+            if (!string.IsNullOrEmpty(userId) && Guid.TryParse(userId, out var userGuid))
             {
-                if (clientTag.ToString() == serverVersion) return StatusCode(304);
+                var user = _userManager.GetUserById(userGuid);
+                if (user != null)
+                {
+                    // On ne garde que les items visibles pour cet utilisateur (Parents, Tags, Classification)
+                    var filteredNotifications = new List<NotificationItem>(rawNotifications.Count);
+                    foreach(var notif in rawNotifications)
+                    {
+                        if (Guid.TryParse(notif.Id, out var itemId))
+                        {
+                            var item = _libraryManager.GetItemById(itemId);
+                            // item.IsVisible vérifie les droits d'accès Jellyfin natifs
+                            if (item != null && item.IsVisible(user))
+                            {
+                                filteredNotifications.Add(notif);
+                            }
+                        }
+                    }
+                    
+                    // On recalcule le hash ETag basé sur la liste FILTRÉE
+                    // Sinon le cache client pourrait afficher des données périmées ou incorrectes
+                    var filteredHash = filteredNotifications.Count > 0 
+                        ? filteredNotifications[0].DateCreated.Ticks + "-" + filteredNotifications.Count 
+                        : "empty";
+
+                    if (Request.Headers.TryGetValue("If-None-Match", out var clientTag))
+                    {
+                        if (clientTag.ToString() == filteredHash) return StatusCode(304);
+                    }
+
+                    Response.Headers["ETag"] = filteredHash;
+                    return Ok(filteredNotifications);
+                }
             }
 
+            // Fallback (si pas d'user, on renvoie tout ou rien, ici tout pour compatibilité)
+            // Dans un système ultra-strict, on renverrait une liste vide ici.
+            var serverVersion = NotificationManager.Instance.GetVersionHash();
+            if (Request.Headers.TryGetValue("If-None-Match", out var cTag))
+            {
+                if (cTag.ToString() == serverVersion) return StatusCode(304);
+            }
             Response.Headers["ETag"] = serverVersion;
-            return Ok(NotificationManager.Instance.GetRecentNotifications());
+            return Ok(rawNotifications);
         }
 
         [HttpPost("BulkUserData")]
         public ActionResult GetBulkUserData([FromBody] List<string> itemIds, [FromQuery] string userId)
         {
-            // RETRAIT DE ValidateUser(userId) qui causait la disparition des points rouges
-            
             if (string.IsNullOrEmpty(userId) || itemIds is null || itemIds.Count == 0 || !Guid.TryParse(userId, out var userGuid))
             {
                 return Ok(new Dictionary<string, bool>());
             }
 
-            // Vérification que l'utilisateur existe vraiment (Sécurité basique)
             var user = _userManager.GetUserById(userGuid); 
             if (user == null) return Ok(new Dictionary<string, bool>());
 
@@ -85,7 +136,8 @@ namespace NotifySync
                 if (Guid.TryParse(idStr, out var guid))
                 {
                     var item = _libraryManager.GetItemById(guid);
-                    if (item is not null)
+                    // On vérifie aussi l'accès ici par sécurité
+                    if (item is not null && item.IsVisible(user))
                     {
                         var userData = _userDataManager.GetUserData(user, item);
                         if (userData is not null)
@@ -94,7 +146,6 @@ namespace NotifySync
                             {
                                 result[idStr] = true;
                             }
-                            // Optimisation Mathématique (conservée)
                             else if (item.RunTimeTicks > 0 && userData.PlaybackPositionTicks > (item.RunTimeTicks.Value * 0.9))
                             {
                                 result[idStr] = true;
@@ -109,7 +160,6 @@ namespace NotifySync
         [HttpGet("LastSeen/{userId}")]
         public ActionResult GetLastSeen(string userId)
         {
-            // On accepte la requête tant que l'ID est valide
             if (string.IsNullOrEmpty(userId)) return BadRequest();
 
             var data = GetCachedUserData();
@@ -178,7 +228,6 @@ namespace NotifySync
 
         [HttpGet("Client.js")]
         [Produces("application/javascript")]
-        // [AllowAnonymous] -> Plus nécessaire car [Authorize] est retiré de la classe
         public ActionResult GetScript()
         {
             var assembly = typeof(NotifyController).Assembly;

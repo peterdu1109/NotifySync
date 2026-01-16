@@ -1,52 +1,52 @@
 # NotifySync
 
-**NotifySync** est un centre de notifications avancé pour Jellyfin. Il remplace la cloche par défaut par un tableau de bord moderne, fluide et intelligent, inspiré des plateformes de streaming majeures.
+**NotifySync** transforme l'expérience Jellyfin en ajoutant un centre de notifications moderne (style cloche "Netflix"), fluide et intelligent.
 
-> [!NOTE]
-> **Version 4.6.3 - Hyper-Optimisation**
-> Cette version se concentre sur la performance brute. Elle réduit la charge CPU des scans de 90% sur les grosses bibliothèques et élimine les micro-lags liés à la gestion mémoire.
-
----
-
-## ⚡ Nouveautés de la v4.6.3
-
-### 🧠 Optimisations Backend (C# .NET 9)
-* **Algorithme en O(1)** : Le filtrage des bibliothèques utilise désormais des `HashSet` au lieu de listes linéaires.
-    * *Impact* : La vérification d'une bibliothèque est **instantanée**, peu importe le nombre de dossiers que vous possédez.
-* **Zero-Allocation Versioning** : Remplacement des GUIDs (lourds) par des compteurs atomiques (`Interlocked.Read/Increment`).
-    * *Impact* : Réduction drastique de la pression sur le Garbage Collector (GC), rendant le serveur plus stable lors des mises à jour fréquentes.
-* **Thread-Safety Avancé** : Utilisation de primitives de verrouillage légères (`System.Threading.Lock`) introduites dans .NET 9.
-
-### 🎨 Optimisations Client (JS)
-* **Intl.RelativeTimeFormat** : Le calcul du temps ("il y a 5 minutes") est maintenant délégué au moteur natif du navigateur.
-    * *Impact* : Script plus léger, exécution plus rapide sur mobile et traductions grammaticalement parfaites pour toutes les langues.
+> [!IMPORTANT]
+> **Mise à jour critique v4.6.5**
+> Cette version corrige des failles de sécurité importantes (XSS, Fuite de données entre utilisateurs) et intègre des protections contre le déni de service (DoS). La mise à jour est fortement recommandée.
 
 ---
 
-## 🚀 Installation
+## 🛡️ Sécurité & Performance (v4.6.5)
+
+### 🔒 Sécurité Renforcée
+* **Protection XSS** : Le client JavaScript échappe désormais systématiquement les titres et descriptions, empêchant l'injection de code malveillant via les métadonnées des fichiers médias.
+* **Confidentialité (Privacy)** : L'API filtre désormais les notifications côté serveur. Un utilisateur "Enfant" ne recevra plus les métadonnées (titres/images) des contenus qui lui sont interdits.
+* **Anti-Spam (Rate Limiting)** : La fonction "Refresh" est limitée à une exécution par minute pour empêcher la surcharge du serveur (DoS).
+
+### 🚀 Moteur .NET 9
+* **Algorithme O(1)** : Vérification instantanée des bibliothèques via `HashSet` (plus de ralentissement avec de grosses bibliothèques).
+* **Zéro-Allocation** : Gestion mémoire optimisée pour réduire la pression sur le serveur.
+* **Navigation Fluide** : Le client utilise `decoding="async"` pour ne pas bloquer le défilement lors du chargement des images.
+
+---
+
+## 📦 Installation
 
 ### 1. Pré-requis
 * **Jellyfin 10.11.5** ou supérieur.
-* Plugin **"JavaScript Injector"** installé (Catalogue Jellyfin > Général).
+* **.NET 9 Runtime** (généralement inclus avec Jellyfin récent).
+* Plugin **"JavaScript Injector"** (Catalogue > Général).
 
-### 2. Installation du Backend (DLL)
-1.  Téléchargez `NotifySync.dll` (v4.6.3) depuis les Releases.
-2.  Créez le dossier `plugins/NotifySync` dans votre serveur Jellyfin.
-3.  Copiez le fichier `.dll` à l'intérieur.
+### 2. Installation du Backend
+1.  Téléchargez `NotifySync.dll` depuis les Releases.
+2.  Placez le fichier dans le dossier `plugins/NotifySync` de votre serveur.
+3.  Redémarrez Jellyfin.
 
-**Chemins typiques :**
-* **Docker** : `/config/plugins/NotifySync`
-* **Linux** : `/var/lib/jellyfin/plugins/NotifySync`
-* **Windows** : `%ProgramData%\Jellyfin\Server\plugins\NotifySync`
+| OS | Chemin des plugins |
+| :--- | :--- |
+| **Docker** | `/config/plugins/NotifySync` |
+| **Linux** | `/var/lib/jellyfin/plugins/NotifySync` |
+| **Windows** | `%ProgramData%\Jellyfin\Server\plugins\NotifySync` |
 
-> ⚠️ **Linux/Docker** : Vérifiez les permissions (`chown -R jellyfin:jellyfin ...`).
+### 3. Injection du Client (Frontend)
+Pour afficher la cloche, ajoutez ce snippet via le plugin **JavaScript Injector** :
 
-### 3. Activation du Frontend
-Pour afficher la cloche, injectez le script via le plugin **JS Injector** (Tableau de bord) :
-
-1.  Ajoutez un nouveau script.
-2.  Cochez **Requires Authentication** (Indispensable).
-3.  Collez le code suivant :
+1.  Ouvrez **Tableau de bord > JS Injector**.
+2.  Ajoutez un script nommé `NotifySync`.
+3.  **Cochez "Requires Authentication"** (⚠️ Indispensable pour la sécurité).
+4.  Code :
     ```javascript
     var script = document.createElement('script');
     script.src = '/NotifySync/Client.js';
@@ -56,20 +56,17 @@ Pour afficher la cloche, injectez le script via le plugin **JS Injector** (Table
 
 ---
 
-## 🛠️ Configuration
+## ⚙️ Configuration
 
-Rendez-vous dans **Tableau de bord > Extensions > NotifySync** :
-
-1.  **Quota** : Nombre d'éléments à afficher par catégorie.
-2.  **Bibliothèques** : Cochez les dossiers à surveiller.
-3.  **Mappage** : Personnalisez les noms de catégories (ex: "4K Movies" -> "Films").
-4.  **Maintenance** : Utilisez le bouton pour forcer un re-scan complet si nécessaire.
+Allez dans **Tableau de bord > Extensions > NotifySync** :
+* **Quota** : Nombre d'items par catégorie.
+* **Bibliothèques** : Choix des dossiers à surveiller.
+* **Mappage** : Renommage des catégories (ex: "Jap-Anim" -> "Animes").
 
 ---
 
-## 🏗️ Compilation (Pour les devs)
+## 🏗️ Compilation
 
 ```bash
-# Nécessite le SDK .NET 9
 dotnet restore
 dotnet publish -c Release -o bin/Publish

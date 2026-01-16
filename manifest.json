@@ -1,8 +1,8 @@
 {
   "Guid": "95655672-2342-4321-8291-321312312312",
   "Name": "NotifySync",
-  "Description": "Centre de notifications style Netflix (Ultra-Optimisé O(1)).",
-  "Version": "4.6.3.0",
+  "Description": "Notifications style Netflix. v4.6.5 : Correctifs de sécurité (XSS/Privacy) & Performance.",
+  "Version": "4.6.5.0",
   "Owner": "NotifySync",
   "Category": "UI",
   "TargetAbi": "10.11.5.0"

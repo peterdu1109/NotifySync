@@ -1,4 +1,4 @@
-/* NOTIFYSYNC V4.6.3 */
+/* NOTIFYSYNC V4.6.5 */
 (function () {
     let currentData = [];
     let groupedData = [];
@@ -25,7 +25,6 @@
         return rtf.format(Math.round(diff / 31536000), 'year');
     };
 
-    // SECURITE : Fonction pour nettoyer les entrées et éviter les failles XSS
     const escapeHtml = (unsafe) => {
         if (!unsafe) return "";
         return unsafe
@@ -45,7 +44,6 @@
 
     const injectStyles = () => {
         if (document.getElementById('notifysync-css')) return;
-        // ... (Styles CSS identiques à la version précédente) ...
         const css = `
             :root { --ns-red: #e50914; --ns-glass: rgba(20, 20, 20, 0.98); --ns-blur: 16px; --ns-border: rgba(255,255,255,0.15); }
             #bell-container { display:flex!important;align-items:center;justify-content:center; }
@@ -118,7 +116,6 @@
 
     const getUserId = () => window.ApiClient.getCurrentUserId();
 
-    // ... (processGrouping reste identique) ...
     const processGrouping = (items) => {
         const seriesMap = new Map();
         const result = [];
@@ -179,19 +176,35 @@
         if (isFetching) return; 
         isFetching = true;
         try {
-            const [_, res] = await Promise.all([fetchLastSeen(), fetch('/NotifySync/Data', { headers: { ...getAuthHeaders(), 'If-None-Match': localStorage.getItem('ns-etag') || '' } })]);
-            if (res.status === 304) { await refreshPlayStates(); }
+            const lastSeenPromise = fetchLastSeen();
+            const lastEtag = localStorage.getItem('ns-etag') || '';
+            const headers = getAuthHeaders();
+            if(lastEtag) headers['If-None-Match'] = lastEtag;
+            
+            // FIX PRIVACY : Envoi de l'ID utilisateur
+            const dataPromise = fetch(`/NotifySync/Data?userId=${getUserId()}`, { headers: headers });
+
+            const [_, res] = await Promise.all([lastSeenPromise, dataPromise]);
+            
+            if (res.status === 304) {
+                await refreshPlayStates();
+            }
             else if (res.ok) {
-                currentData = await res.json();
+                const json = await res.json();
+                currentData = json;
                 const newEtag = res.headers.get('ETag');
                 if(newEtag) localStorage.setItem('ns-etag', newEtag);
                 localStorage.setItem('ns-data', JSON.stringify(currentData));
                 await refreshPlayStates(); 
                 retryDelay = 2000;
             }
+            
             const drop = document.getElementById('notification-dropdown');
             if(drop && drop.style.display === 'flex') updateList(drop);
-        } catch (e) { setTimeout(fetchData, retryDelay); retryDelay = Math.min(retryDelay * 2, 60000); 
+
+        } catch (e) { 
+            setTimeout(fetchData, retryDelay);
+            retryDelay = Math.min(retryDelay * 2, 60000); 
         } finally { isFetching = false; }
     };
     
@@ -250,7 +263,7 @@
             let heroImg = (hero.BackdropImageTags && hero.BackdropImageTags[0]) ? client.getUrl(`Items/${hero.Id}/Images/Backdrop/0?tag=${hero.BackdropImageTags[0]}&quality=70&maxWidth=600&format=webp`) : client.getUrl(`Items/${hero.SeriesId || hero.Id}/Images/Primary?quality=70&maxWidth=400&format=webp`);
             if(isGroup && hero.SeriesId) heroImg = client.getUrl(`Items/${hero.Id}/Images/Backdrop/0?quality=70&maxWidth=600&format=webp`);
             
-            // SECURITE XSS : Echappement des variables avant injection HTML
+            // XSS FIX
             let heroTitle = escapeHtml(hero.Name), heroSub = '';
             if (hero.Type === 'Episode') { heroTitle = escapeHtml(formatEpisodeTitle(hero)); heroSub = escapeHtml(hero.SeriesName); } else { heroSub = hero.ProductionYear; }
             if (isGroup) { heroSub = `${escapeHtml(hero.SeriesName)} • ${hero.GroupCount} ${T.newEps}`; }
@@ -263,12 +276,11 @@
             const isGroup = !!item.IsGroup; 
             const imgUrl = client.getUrl(`Items/${item.Id}/Images/Primary?tag=${item.PrimaryImageTag || ''}&${isMusic ? 'fillHeight=100&fillWidth=100' : 'fillHeight=112&fillWidth=200'}&quality=80&format=webp`);
             
-            // SECURITE XSS : Echappement des variables
+            // XSS FIX
             let title = escapeHtml(item.Name), sub = item.ProductionYear;
             if (item.Type === 'Episode') { title = escapeHtml(formatEpisodeTitle(item)); sub = escapeHtml(item.SeriesName); }
             if (isGroup) { sub = `${escapeHtml(item.SeriesName)} • ${item.GroupCount} ${T.newEps}`; }
             
-            // OPTIMISATION UI: decoding="async"
             htmlParts.push(`<div class="dropdown-item ${item.IsNew ? 'style-new' : 'style-seen'}" onclick="document.dispatchEvent(new CustomEvent('ns-navigate', {detail: '${item.Id}'}))"><div class="status-dot"></div><div class="thumb-wrapper"><img data-src="${imgUrl}" decoding="async" class="dropdown-thumb ${isMusic?'music':''}" loading="lazy" onerror="this.style.display='none'"><span class="material-icons" style="color:#444;position:absolute;z-index:-1;">${isMusic?'album':'movie'}</span></div><div class="dropdown-info"><div class="dropdown-title">${title}</div><div class="dropdown-subtitle">${sub} &bull; ${timeAgo(item.DateCreated)}</div></div></div>`);
         });
 
@@ -281,7 +293,6 @@
         }
     };
 
-    // ... (Reste des fonctions installBell, monitor, etc. identiques) ...
     const closeDropdown = () => {
         const drop = document.getElementById('notification-dropdown');
         const back = document.getElementById('notify-backdrop');

@@ -2,14 +2,14 @@ using System;
 using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
 using System.Collections.Concurrent;
-using System.Linq;
-using MediaBrowser.Controller.Library;
 using System.Threading.Tasks;
 using System.IO;
 using System.Text.Json;
-using System.Security.Claims;
+using System.Text.Json.Serialization;
+using System.Threading;
+using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Entities;
-using Microsoft.AspNetCore.Http;
+using MediaBrowser.Controller.Net;
 
 namespace NotifySync
 {
@@ -21,9 +21,9 @@ namespace NotifySync
         private readonly ILibraryManager _libraryManager;
         private readonly IUserDataManager _userDataManager;
         
-        // Cache statique amélioré
+        // .NET 9 : Utilisation de Lock au lieu de object
         private static ConcurrentDictionary<string, string>? _userDataCache;
-        private static readonly object _fileLock = new object();
+        private static readonly Lock _fileLock = new();
 
         public NotifyController(IUserManager userManager, ILibraryManager libraryManager, IUserDataManager userDataManager)
         {
@@ -63,37 +63,40 @@ namespace NotifySync
         [HttpPost("BulkUserData")]
         public ActionResult GetBulkUserData([FromBody] List<string> itemIds, [FromQuery] string userId)
         {
-            if (string.IsNullOrEmpty(userId) || !Guid.TryParse(userId, out var userGuid))
+            if (string.IsNullOrEmpty(userId) || itemIds is null || itemIds.Count == 0 || !Guid.TryParse(userId, out var userGuid))
             {
                 return Ok(new Dictionary<string, bool>());
             }
 
             var user = _userManager.GetUserById(userGuid); 
-            if (user == null || itemIds == null || itemIds.Count == 0) 
-                return Ok(new Dictionary<string, bool>());
+            if (user == null) return Ok(new Dictionary<string, bool>());
 
             var result = new Dictionary<string, bool>(itemIds.Count);
 
             foreach (var idStr in itemIds)
             {
+                result[idStr] = false; // Valeur par défaut
+
                 if (Guid.TryParse(idStr, out var guid))
                 {
                     var item = _libraryManager.GetItemById(guid);
-                    if (item != null)
+                    if (item is not null)
                     {
                         var userData = _userDataManager.GetUserData(user, item);
-                        bool isPlayed = false;
-                        if (userData != null)
+                        if (userData is not null)
                         {
-                            if (userData.Played) isPlayed = true;
-                            else if (item.RunTimeTicks.HasValue && item.RunTimeTicks > 0)
+                            if (userData.Played) 
                             {
-                                if ((userData.PlaybackPositionTicks / (double)item.RunTimeTicks.Value) * 100 > 90) isPlayed = true;
+                                result[idStr] = true;
+                            }
+                            else if (item.RunTimeTicks > 0 && userData.PlaybackPositionTicks > 0)
+                            {
+                                // Calcul précis
+                                if ((userData.PlaybackPositionTicks / (double)item.RunTimeTicks.Value) > 0.9) 
+                                    result[idStr] = true;
                             }
                         }
-                        result[idStr] = isPlayed;
                     }
-                    else result[idStr] = false; 
                 }
             }
             return Ok(result);
@@ -113,12 +116,9 @@ namespace NotifySync
             if (string.IsNullOrEmpty(date)) return BadRequest();
             
             var data = GetCachedUserData();
+            data.AddOrUpdate(userId, date, (_, _) => date);
             
-            // Mise à jour RAM immédiate (Thread-safe)
-            data.AddOrUpdate(userId, date, (key, oldVal) => date);
-            
-            // OPTIMISATION : Sauvegarde disque en arrière-plan (Fire and Forget)
-            // Cela rend l'appel API instantané pour le client JS
+            // Fire and Forget sécurisé
             Task.Run(() => 
             {
                 lock (_fileLock)
@@ -148,8 +148,9 @@ namespace NotifySync
                             try 
                             {
                                 using var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-                                var dict = JsonSerializer.Deserialize<Dictionary<string, string>>(fs);
-                                _userDataCache = new ConcurrentDictionary<string, string>(dict ?? new Dictionary<string, string>());
+                                // Utilisation du contexte généré pour la perf
+                                var dict = JsonSerializer.Deserialize(fs, ControllerJsonContext.Default.DictionaryStringString);
+                                _userDataCache = new ConcurrentDictionary<string, string>(dict ?? []);
                             }
                             catch { _userDataCache = new ConcurrentDictionary<string, string>(); }
                         }
@@ -163,11 +164,10 @@ namespace NotifySync
         {
             try {
                 var path = Path.Combine(Plugin.Instance!.DataFolderPath, "user_data.json");
-                // Copie défensive avant sérialisation
                 var dictToSave = new Dictionary<string, string>(data);
                 
                 using var fs = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None);
-                JsonSerializer.Serialize(fs, dictToSave);
+                JsonSerializer.Serialize(fs, dictToSave, ControllerJsonContext.Default.DictionaryStringString);
             } catch { }
         }
 
@@ -181,4 +181,8 @@ namespace NotifySync
             return File(stream, "application/javascript");
         }
     }
+
+    [JsonSerializable(typeof(Dictionary<string, string>))]
+    [JsonSerializable(typeof(Dictionary<string, bool>))]
+    internal partial class ControllerJsonContext : JsonSerializerContext { }
 }

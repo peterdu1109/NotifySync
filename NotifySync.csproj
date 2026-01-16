@@ -3,11 +3,12 @@
     <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <Version>4.5.6</Version>
+    <Version>4.6.2</Version>
     <Authors>NotifySync</Authors>
     <Company>NotifySync</Company>
     <Product>NotifySync</Product>
-    <Description>Notification center</Description>
+    <Description>Notification center for Jellyfin</Description>
+    <TieredPGO>true</TieredPGO>
   </PropertyGroup>
 
   <ItemGroup>

@@ -24,25 +24,19 @@ namespace NotifySync
             : base(applicationPaths, xmlSerializer)
         {
             Instance = this;
-            if (NotificationManager.Instance == null)
-            {
-                _notificationManager = new NotificationManager(libraryManager, logger, fileSystem);
-            }
-            else
-            {
-                _notificationManager = NotificationManager.Instance;
-            }
+            _notificationManager = NotificationManager.Instance ?? new NotificationManager(libraryManager, logger, fileSystem);
         }
 
         public IEnumerable<PluginPageInfo> GetPages()
         {
-            return new[] { new PluginPageInfo { Name = this.Name, EmbeddedResourcePath = GetType().Namespace + ".ConfigurationPage.html" } };
+            return [new PluginPageInfo { Name = this.Name, EmbeddedResourcePath = GetType().Namespace + ".ConfigurationPage.html" }];
         }
 
         public void Dispose()
         {
             _notificationManager?.Dispose();
             Instance = null;
+            GC.SuppressFinalize(this);
         }
     }
 }

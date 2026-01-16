@@ -22,16 +22,15 @@ namespace NotifySync
         private readonly ILogger<NotificationManager> _logger;
         private readonly string _jsonPath;
         
-        private readonly ConcurrentQueue<BaseItem> _eventBuffer = new ConcurrentQueue<BaseItem>();
-        private readonly Timer _bufferProcessTimer; // Timer en lecture seule
-        
+        private readonly ConcurrentQueue<BaseItem> _eventBuffer = new();
+        private readonly Timer _bufferProcessTimer;
         private readonly Timer _saveTimer;
-        private volatile bool _hasUnsavedChanges = false; // Volatile pour thread-safety
-        private readonly object _saveLock = new object();
         
-        private readonly ReaderWriterLockSlim _dataLock = new ReaderWriterLockSlim();
-        private List<NotificationItem> _notifications = new List<NotificationItem>();
+        private volatile bool _hasUnsavedChanges = false;
+        private readonly Lock _saveLock = new(); // .NET 9 Lock
+        private readonly ReaderWriterLockSlim _dataLock = new();
         
+        private List<NotificationItem> _notifications = [];
         private string _currentVersionHash = Guid.NewGuid().ToString(); 
 
         public static NotificationManager? Instance { get; private set; }
@@ -45,7 +44,6 @@ namespace NotifySync
             
             LoadNotifications();
             
-            // OPTIMISATION : Timer en mode "Timeout.Infinite" au départ pour éviter un lancement prématuré
             _bufferProcessTimer = new Timer(ProcessBuffer, null, 2000, Timeout.Infinite);
             _saveTimer = new Timer(SaveOnTick, null, 10000, Timeout.Infinite);
 
@@ -88,8 +86,8 @@ namespace NotifySync
                 {
                     var query = new InternalItemsQuery
                     {
-                        IncludeItemTypes = new[] { type },
-                        OrderBy = new[] { (Jellyfin.Data.Enums.ItemSortBy.DateCreated, Jellyfin.Database.Implementations.Enums.SortOrder.Descending) },
+                        IncludeItemTypes = [type],
+                        OrderBy = [(Jellyfin.Data.Enums.ItemSortBy.DateCreated, Jellyfin.Database.Implementations.Enums.SortOrder.Descending)],
                         Limit = fetchLimit, 
                         Recursive = true,
                         IsVirtualItem = false,
@@ -106,7 +104,6 @@ namespace NotifySync
 
                 ApplyCategoryQuotas(tempNotifs, isInitialLoad: true);
                 _hasUnsavedChanges = true;
-                // Active le timer de sauvegarde
                 try { _saveTimer.Change(10000, Timeout.Infinite); } catch {}
             }
             catch (Exception ex)
@@ -120,7 +117,6 @@ namespace NotifySync
             if(e.Item != null && !e.Item.IsVirtualItem) 
             {
                 _eventBuffer.Enqueue(e.Item);
-                // Relance le timer de buffer si nécessaire
                 try { _bufferProcessTimer.Change(2000, Timeout.Infinite); } catch {}
             }
         }
@@ -132,17 +128,20 @@ namespace NotifySync
                 if (_eventBuffer.IsEmpty) return;
 
                 var newItems = new List<NotificationItem>();
-                while (_eventBuffer.TryDequeue(out var item))
+                // Limite le traitement par lot pour éviter de bloquer
+                int processed = 0;
+                while (processed < 100 && _eventBuffer.TryDequeue(out var item))
                 {
                     try 
                     {
                         var notif = CreateNotificationFromItem(item);
                         if (notif != null) newItems.Add(notif);
+                        processed++;
                     }
                     catch { }
                 }
 
-                if (newItems.Any())
+                if (newItems.Count > 0)
                 {
                     ApplyCategoryQuotas(newItems);
                     _hasUnsavedChanges = true; 
@@ -155,7 +154,7 @@ namespace NotifySync
             }
             finally
             {
-                // Si le buffer n'est pas vide, on relance rapidement, sinon on attend
+                // Relance toujours le timer
                 if (!_eventBuffer.IsEmpty)
                      try { _bufferProcessTimer.Change(1000, Timeout.Infinite); } catch {}
             }
@@ -164,14 +163,13 @@ namespace NotifySync
         private void ApplyCategoryQuotas(List<NotificationItem> incoming, bool isInitialLoad = false)
         {
             var config = Plugin.Instance?.Configuration;
-            int limitPerCat = config?.MaxItems ?? 5; 
-            if (limitPerCat < 1) limitPerCat = 5;
+            int limitPerCat = Math.Max(config?.MaxItems ?? 5, 1);
 
             List<NotificationItem> workingList;
             _dataLock.EnterReadLock();
             try 
             { 
-                workingList = isInitialLoad ? new List<NotificationItem>() : new List<NotificationItem>(_notifications);
+                workingList = isInitialLoad ? [] : new List<NotificationItem>(_notifications);
             }
             finally { _dataLock.ExitReadLock(); }
 
@@ -182,17 +180,17 @@ namespace NotifySync
 
             foreach (var catGroup in categoryGroups)
             {
-                // Optimisation : Vérification rapide si le groupe contient des épisodes
-                bool containsEpisodes = catGroup.Any(x => x.Type == "Episode");
+                var groupList = catGroup.ToList();
+                bool containsEpisodes = groupList.Any(x => x.Type == "Episode");
 
                 if (containsEpisodes)
                 {
-                    var seriesClusters = catGroup
+                    var seriesClusters = groupList
                         .GroupBy(x => x.SeriesId ?? x.Name) 
                         .Select(g => new 
                         { 
                             SeriesGroup = g, 
-                            LatestDate = g.Max(x => x.DateCreated) 
+                            LatestDate = g.Max(x => x.DateCreated) // Optimisé
                         })
                         .OrderByDescending(x => x.LatestDate)
                         .Take(limitPerCat); 
@@ -204,7 +202,7 @@ namespace NotifySync
                 }
                 else
                 {
-                    finalResults.AddRange(catGroup.OrderByDescending(x => x.DateCreated).Take(limitPerCat));
+                    finalResults.AddRange(groupList.OrderByDescending(x => x.DateCreated).Take(limitPerCat));
                 }
             }
 
@@ -238,10 +236,9 @@ namespace NotifySync
             var config = Plugin.Instance?.Configuration;
             if (config == null) return null;
 
-            bool hasRestrictions = (config.EnabledLibraries?.Any() == true) || (config.ManualLibraryIds?.Any() == true);
+            bool hasRestrictions = (config.EnabledLibraries?.Count > 0) || (config.ManualLibraryIds?.Count > 0);
             string? matchedLibraryId = null;
 
-            // Optimisation : Lazy loading des parents uniquement si nécessaire
             var rootLibrary = _libraryManager.GetCollectionFolders(item).FirstOrDefault();
 
             if (hasRestrictions)
@@ -249,8 +246,8 @@ namespace NotifySync
                 var allParents = item.GetParents().ToList();
                 if (rootLibrary != null && !allParents.Contains(rootLibrary)) allParents.Add(rootLibrary);
 
-                var enabledIds = config.EnabledLibraries ?? new List<string>();
-                var manualEntries = config.ManualLibraryIds ?? new List<string>();
+                var enabledIds = config.EnabledLibraries ?? [];
+                var manualEntries = config.ManualLibraryIds ?? [];
 
                 foreach (var parent in allParents)
                 {
@@ -345,11 +342,10 @@ namespace NotifySync
                     }
                     finally { _dataLock.ExitReadLock(); }
 
-                    // OPTIMISATION CRITIQUE : Écriture atomique
-                    // On écrit dans .tmp, puis on déplace. Empêche la corruption.
                     var tempPath = _jsonPath + ".tmp";
                     using (var fs = new FileStream(tempPath, FileMode.Create, FileAccess.Write, FileShare.None))
                     {
+                        // Utilisation du contexte généré
                         JsonSerializer.Serialize(fs, copy, NotificationJsonContext.Default.ListNotificationItem);
                     }
                     
@@ -368,14 +364,14 @@ namespace NotifySync
                 {
                     using (var fs = new FileStream(_jsonPath, FileMode.Open, FileAccess.Read, FileShare.Read))
                     {
-                        _notifications = JsonSerializer.Deserialize<List<NotificationItem>>(fs, NotificationJsonContext.Default.ListNotificationItem) ?? new List<NotificationItem>();
+                        _notifications = JsonSerializer.Deserialize(fs, NotificationJsonContext.Default.ListNotificationItem) ?? [];
                     }
 
                     if (_notifications.Count > 0)
                          _currentVersionHash = _notifications[0].DateCreated.Ticks.ToString() + "-" + _notifications.Count;
                 }
             }
-            catch { _notifications = new List<NotificationItem>(); }
+            catch { _notifications = []; }
             finally { _dataLock.ExitWriteLock(); }
         }
 
@@ -398,6 +394,7 @@ namespace NotifySync
                 _libraryManager.ItemAdded -= OnItemAdded;
                 _libraryManager.ItemRemoved -= OnItemRemoved;
             }
+            GC.SuppressFinalize(this);
         }
     }
 
@@ -412,7 +409,7 @@ namespace NotifySync
         public string Type { get; set; } = string.Empty;
         public long? RunTimeTicks { get; set; }
         public int? ProductionYear { get; set; }
-        public List<string> BackdropImageTags { get; set; } = new List<string>();
+        public List<string> BackdropImageTags { get; set; } = [];
         public string? PrimaryImageTag { get; set; }
         public int? IndexNumber { get; set; } 
         public int? ParentIndexNumber { get; set; } 

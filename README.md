@@ -2,7 +2,7 @@
 
 **Le centre de notifications moderne que Jellyfin attendait.**
 
-NotifySync transforme l'interface de Jellyfin en ajoutant une icône de notification ("cloche") native. Il permet à vos utilisateurs de voir instantanément les derniers ajouts (Films, Séries, Musique) sans quitter leur page actuelle, le tout avec un design fluide inspiré des plateformes de streaming majeures.
+NotifySync transforme l'interface de Jellyfin en ajoutant une icône de notification (cloche) native. Il permet à vos utilisateurs de voir instantanément les derniers ajouts (Films, Séries, Musique) sans quitter leur page actuelle, le tout avec un design fluide inspiré des plateformes de streaming majeures.
 
 ---
 

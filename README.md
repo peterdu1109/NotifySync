@@ -15,6 +15,7 @@ NotifySync transforme l'interface de Jellyfin en ajoutant une icône de notifica
 * **Regroupement Intelligent :** Fini le spam ! Les épisodes d'une même saison sont regroupés (ex: *"S01 • 3 nouveaux épisodes"*).
 * **Support Complet :** Compatible avec les **Films**, **Séries** et **Albums de Musique**.
 * **Indicateurs de lecture :** Synchronisation en temps réel avec le statut "Vu" de Jellyfin.
+* **📱 Compatibilité :** Fonctionne sur PC (Windows/Linux) & Mac et applications mobiles (Android/Iphone). **(Note : Ne fonctionne pas sur les interfaces TV comme Android TV, Apple TV, Tizen, etc).**
 
 ### 🚀 Performance (.NET 9)
 * **Moteur Haute Performance :** Réécrit en .NET 9 avec des algorithmes optimisés (O(1)) pour une vérification instantanée, même avec d'immenses bibliothèques.

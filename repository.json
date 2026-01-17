@@ -3,7 +3,7 @@
     "category": "UI",
     "guid": "95655672-2342-4321-8291-321312312312",
     "name": "NotifySync",
-    "description": "Notifications style Netflix. v4.6.5 : Correctifs de sécurité (XSS/Privacy) & Performance.",
+    "description": "Notifications style Netflix v4.6.5",
     "owner": "NotifySync",
     "overview": "Ajoute un centre de notifications (cloche) pour voir les nouveaux médias sans quitter la page.",
     "supportUrl": "https://github.com/",

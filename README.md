@@ -1,32 +1,31 @@
-# NotifySync
+# 🔔 NotifySync pour Jellyfin
 
-**NotifySync** transforme l'expérience Jellyfin en ajoutant un centre de notifications moderne (style cloche "Netflix"), fluide et intelligent.
+**Le centre de notifications moderne que Jellyfin attendait.**
 
-> [!IMPORTANT]
-> **Mise à jour v4.6.5 : Stabilité, Musique & Sécurité**
+NotifySync transforme l'interface de Jellyfin en ajoutant une icône de notification ("cloche") native. Il permet à vos utilisateurs de voir instantanément les derniers ajouts (Films, Séries, Musique) sans quitter leur page actuelle, le tout avec un design fluide inspiré des plateformes de streaming majeures.
 
 ---
 
-## 🛡️ Sécurité & Performance (v4.6.5)
+## ✨ Fonctionnalités
 
-### 🔒 Sécurité Renforcée
-* **Protection XSS** : Le client JavaScript échappe désormais systématiquement les titres et descriptions, empêchant l'injection de code malveillant via les métadonnées des fichiers médias.
-* **Confidentialité (Privacy)** : L'API filtre désormais les notifications côté serveur. Un utilisateur "Enfant" ne recevra plus les métadonnées (titres/images) des contenus qui lui sont interdits.
-* **Anti-Spam (Rate Limiting)** : La fonction "Refresh" est limitée à une exécution par minute pour empêcher la surcharge du serveur (DoS).
+### 🎨 Expérience Utilisateur Premium
+* **Design "Netflix-Style" :** Intégration transparente d'une cloche avec badge de nouveautés.
+* **Interface Moderne :** Menu déroulant avec effet de flou ("Glassmorphism"), animations fluides et chargement différé des images (Lazy Loading).
+* **Hero Section :** Mise en avant visuelle du contenu le plus récent en haut de la liste.
+* **Regroupement Intelligent :** Fini le spam ! Les épisodes d'une même saison sont regroupés (ex: *"S01 • 3 nouveaux épisodes"*).
+* **Support Complet :** Compatible avec les **Films**, **Séries** et **Albums de Musique**.
+* **Indicateurs de lecture :** Synchronisation en temps réel avec le statut "Vu" de Jellyfin.
 
-### 🚀 Moteur .NET 9
-* **Algorithme O(1)** : Vérification instantanée des bibliothèques via `HashSet` (plus de ralentissement avec de grosses bibliothèques).
-* **Zéro-Allocation** : Gestion mémoire optimisée pour réduire la pression sur le serveur.
-* **Navigation Fluide** : Le client utilise `decoding="async"` pour ne pas bloquer le défilement lors du chargement des images.
+### 🚀 Performance (.NET 9)
+* **Moteur Haute Performance :** Réécrit en .NET 9 avec des algorithmes optimisés (O(1)) pour une vérification instantanée, même avec d'immenses bibliothèques.
+* **Zéro-Allocation :** Gestion mémoire stricte pour ne pas impacter les performances de votre serveur.
+* **Smart Caching (ETag) :** Le client ne retélécharge les données que si nécessaire.
+* **Renommage Auto :** Si vous renommez un fichier, la notification se met à jour automatiquement.
 
-### 🔄 Synchronisation Instantanée
-* **Support du Renommage** : Si vous renommez un film ou une série dans Jellyfin, la notification se met désormais à jour **automatiquement** dans la cloche. Plus besoin de rafraîchir manuellement la page.
-* **Cache Intelligent (ETag)** : Le navigateur ne retélécharge les données que si le contenu a réellement changé sur le serveur. Cela garantit que vous voyez toujours le titre le plus récent sans surcharger la bande passante.
-* **Refresh Fiabilisé** : Le bouton de rafraîchissement manuel a été ajusté pour garantir que les nouvelles données sont prêtes avant d'être affichées.
-
-### 🎵 Support Musique Corrigé
-* **Filtre Intelligent** : Le moteur de scan distingue désormais correctement les "Albums Musicaux" des "Dossiers génériques". Vos albums apparaissent enfin dans la cloche.
-* **Scan "Blindé"** : Ajout d'une protection d'erreurs au niveau de chaque item. Si un média spécifique fait planter le scan (données corrompues), le plugin l'ignore et continue de charger les autres notifications.
+### 🛡️ Sécurité & Confidentialité
+* **Respect des Permissions (Privacy) :** Un utilisateur ne recevra JAMAIS de notification (ni image, ni titre) pour un contenu auquel il n'a pas accès (ex: profils enfants).
+* **Protection XSS :** Assainissement rigoureux des métadonnées pour empêcher toute injection de code malveillant.
+* **Anti-Spam :** Protection intégrée contre le rafraîchissement excessif (Rate Limiting).
 
 ---
 

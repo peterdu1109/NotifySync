@@ -6,8 +6,7 @@
 > **Mise à jour critique v4.6.5**
 > Cette version corrige des failles de sécurité importantes (XSS, Fuite de données entre utilisateurs) et intègre des protections contre le déni de service (DoS).
 > Cette version introduit la **détection en temps réel des changements** (renommage de fichiers/séries) et corrige les problèmes de cache navigateur qui nécessitaient un "Ctrl+F5".
-> La mise à jour est fortement recommandée.
-
+> Cette version corrige le problème où les **Albums de Musique** ne s'affichaient pas (car détectés à tort comme des dossiers). Elle intègre aussi une **protection anti-crash** : si un fichier est corrompu dans votre bibliothèque, il sera ignoré sans bloquer le reste des notifications.
 ---
 
 ## 🛡️ Sécurité & Performance (v4.6.5)
@@ -26,6 +25,10 @@
 * **Support du Renommage** : Si vous renommez un film ou une série dans Jellyfin, la notification se met désormais à jour **automatiquement** dans la cloche. Plus besoin de rafraîchir manuellement la page.
 * **Cache Intelligent (ETag)** : Le navigateur ne retélécharge les données que si le contenu a réellement changé sur le serveur. Cela garantit que vous voyez toujours le titre le plus récent sans surcharger la bande passante.
 * **Refresh Fiabilisé** : Le bouton de rafraîchissement manuel a été ajusté pour garantir que les nouvelles données sont prêtes avant d'être affichées.
+
+### 🎵 Support Musique Corrigé
+* **Filtre Intelligent** : Le moteur de scan distingue désormais correctement les "Albums Musicaux" des "Dossiers génériques". Vos albums apparaissent enfin dans la cloche.
+* **Scan "Blindé"** : Ajout d'une protection d'erreurs au niveau de chaque item. Si un média spécifique fait planter le scan (données corrompues), le plugin l'ignore et continue de charger les autres notifications.
 
 ---
 

@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyDescriptionAttribute("Centre de notifications sécurisé et haute performance pour Jellyfin")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("4.6.5.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("4.6.5+33be4852bccd4cc06a28e0292d138425ee72b8f2")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("4.6.5+87d14af28a66a13000c2da3bb3a40b0c95e7f0ce")]
 [assembly: System.Reflection.AssemblyProductAttribute("NotifySync")]
 [assembly: System.Reflection.AssemblyTitleAttribute("NotifySync")]
 [assembly: System.Reflection.AssemblyVersionAttribute("4.6.5.0")]

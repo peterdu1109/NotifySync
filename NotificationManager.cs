@@ -55,7 +55,6 @@ namespace NotifySync
 
             _libraryManager.ItemAdded += OnItemAdded;
             _libraryManager.ItemRemoved += OnItemRemoved;
-            // --- CORRECTION : Écouter les mises à jour (renommage) ---
             _libraryManager.ItemUpdated += OnItemUpdated;
         }
 
@@ -129,7 +128,6 @@ namespace NotifySync
             }
         }
 
-        // --- CORRECTION : Gérer le renommage ---
         private void OnItemUpdated(object? sender, ItemChangeEventArgs e)
         {
             if (e.Item == null) return;
@@ -143,14 +141,12 @@ namespace NotifySync
                 var existingItem = _notifications.FirstOrDefault(n => n.Id == itemId);
                 if (existingItem != null)
                 {
-                    // Mise à jour du nom du film/épisode
                     if (existingItem.Name != e.Item.Name)
                     {
                         existingItem.Name = e.Item.Name;
                         changed = true;
                     }
                     
-                    // Si c'est un épisode, on vérifie si la série a été renommée
                     if (e.Item is MediaBrowser.Controller.Entities.TV.Episode ep)
                     {
                         if (existingItem.SeriesName != ep.SeriesName)
@@ -168,7 +164,7 @@ namespace NotifySync
 
             if (changed)
             {
-                UpdateVersion(); // Important : change le hash global
+                UpdateVersion();
                 _hasUnsavedChanges = true;
                 try { _saveTimer.Change(5000, Timeout.Infinite); } catch { }
             }
@@ -323,17 +319,23 @@ namespace NotifySync
 
         private NotificationItem? CreateNotificationFromItem(BaseItem item, ConfigCache cache)
         {
-            if (item is Folder || item.IsVirtualItem) return null;
+            // --- CORRECTION MAJEURE ---
+            // On supprime complètement la vérification "is Folder".
+            // On laisse le filtrage se faire uniquement sur les types explicites ci-dessous.
+            if (item.IsVirtualItem) return null;
 
             bool isMovie = item is MediaBrowser.Controller.Entities.Movies.Movie;
             bool isEpisode = item is MediaBrowser.Controller.Entities.TV.Episode;
             bool isMusic = item is MediaBrowser.Controller.Entities.Audio.MusicAlbum;
 
+            // Si ce n'est ni un film, ni un épisode, ni un album, on rejette.
+            // Cela rejette automatiquement les dossiers, saisons, artistes, etc.
             if (!isMovie && !isEpisode && !isMusic) return null;
 
             bool hasRestrictions = cache.Enabled.Count > 0 || cache.Manual.Count > 0 || cache.ManualNames.Count > 0;
             string? matchedLibraryId = null;
 
+            // Essayer de trouver la bibliothèque racine
             var rootLibrary = _libraryManager.GetCollectionFolders(item).FirstOrDefault();
 
             if (hasRestrictions)
@@ -346,6 +348,7 @@ namespace NotifySync
                     }
                 }
 
+                // Si pas trouvé via rootLibrary, on remonte les parents (utile pour la structure Musique complexe)
                 if (matchedLibraryId == null)
                 {
                     foreach (var parent in item.GetParents())

@@ -34,11 +34,19 @@ NotifySync transforme l'interface de Jellyfin en ajoutant une icône de notifica
 ### 1. Pré-requis
 * **Jellyfin 10.11.5** ou supérieur.
 * **.NET 9 Runtime** (généralement inclus avec Jellyfin récent).
-* Plugin **"JavaScript Injector"** (Catalogue > Général).
+* Plugin **"JavaScript Injector"** : https://github.com/n00bcodr/Jellyfin-JavaScript-Injector
 
-### 2. Installation du Backend
-1.  Téléchargez `NotifySync.dll` depuis les Releases.
-2.  Placez le fichier dans le dossier `plugins/NotifySync` de votre serveur.
+### Méthode 1 : Via le Dépôt (Recommandé)
+1.  Ouvrez votre tableau de bord Jellyfin > **Extensions** > **Dépôts**.
+2.  Ajoutez un nouveau dépôt :
+    * **Nom :** NotifySync Repo
+    * **URL :** `https://raw.githubusercontent.com/peterdu1109/NotifySync/refs/heads/main/repository.json`
+3.  Allez dans le **Catalogue**, trouvez **NotifySync** et cliquez sur **Installer**.
+4.  Redémarrez votre serveur Jellyfin.
+
+### Méthode 2 : Installation Manuelle
+1.  Téléchargez le fichier `.zip` depuis la page [Releases](https://github.com/peterdu1109/NotifySync/releases/tag/4.6.5).
+2.  Décompressez la DLL dans le dossier `plugins/NotifySync` de votre serveur.
 3.  Redémarrez Jellyfin.
 
 | OS | Chemin des plugins |

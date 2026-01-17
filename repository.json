@@ -4,7 +4,7 @@
     "guid": "95655672-2342-4321-8291-321312312312",
     "name": "NotifySync",
     "description": "NotifySync transforme l'interface de Jellyfin en ajoutant une icône de notification (cloche) native. Il permet à vos utilisateurs de voir instantanément les derniers ajouts (Films, Séries, Musique) sans quitter leur page actuelle, le tout avec un design fluide inspiré des plateformes de streaming majeures.",
-    "owner": "ElieM",
+    "owner": "Peterdu1109 & ElieM",
     "overview": "Ajoute un centre de notifications (cloche) pour voir les nouveaux médias sans quitter la page.",
     "supportUrl": "https://github.com/",
     "versions": [

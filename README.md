@@ -73,15 +73,16 @@ Pour afficher la cloche, ajoutez ce snippet via le plugin **JavaScript Injector*
 
 ## ⚙️ Configuration
 
-Allez dans **Tableau de bord > Extensions > NotifySync** :
-* **Quota** : Nombre d'items par catégorie.
-* **Bibliothèques** : Choix des dossiers à surveiller.
-* **Mappage** : Renommage des catégories (ex: "Jap-Anim" -> "Animes").
+Allez dans **Tableau de bord > Extensions > NotifySync**.
+
+* **Quotas :** Définissez combien d'éléments afficher par catégorie (ex: 5 films, 5 séries...).
+* **Bibliothèques Surveillées :** Cochez les dossiers que vous souhaitez voir apparaître dans les notifications.
+* **Mappage de Catégories :** Renommez vos bibliothèques pour l'affichage.
+    * *Exemple :* Bibliothèque `4K-Movies` ➡️ Afficher comme `Films`.
 
 ---
 
-## 🏗️ Compilation
+## ❓ Dépannage
 
-```bash
-dotnet restore
-dotnet publish -c Release -o bin/Publish
+* **La cloche n'apparaît pas ?** Assurez-vous d'avoir vidé le cache de votre navigateur et que le script JS est bien injecté.
+* **Mes albums de musique ne s'affichent pas ?** Vérifiez que le type de contenu de votre bibliothèque est bien défini sur "Music" dans Jellyfin.

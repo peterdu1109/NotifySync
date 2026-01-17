@@ -3,10 +3,8 @@
 **NotifySync** transforme l'expérience Jellyfin en ajoutant un centre de notifications moderne (style cloche "Netflix"), fluide et intelligent.
 
 > [!IMPORTANT]
-> **Mise à jour critique v4.6.5**
-> Cette version corrige des failles de sécurité importantes (XSS, Fuite de données entre utilisateurs) et intègre des protections contre le déni de service (DoS).
-> Cette version introduit la **détection en temps réel des changements** (renommage de fichiers/séries) et corrige les problèmes de cache navigateur qui nécessitaient un "Ctrl+F5".
-> Cette version corrige le problème où les **Albums de Musique** ne s'affichaient pas (car détectés à tort comme des dossiers). Elle intègre aussi une **protection anti-crash** : si un fichier est corrompu dans votre bibliothèque, il sera ignoré sans bloquer le reste des notifications.
+> **Mise à jour v4.6.5 : Stabilité, Musique & Sécurité**
+
 ---
 
 ## 🛡️ Sécurité & Performance (v4.6.5)

@@ -181,7 +181,6 @@
             const headers = getAuthHeaders();
             if(lastEtag) headers['If-None-Match'] = lastEtag;
             
-            // FIX PRIVACY : Envoi de l'ID utilisateur
             const dataPromise = fetch(`/NotifySync/Data?userId=${getUserId()}`, { headers: headers });
 
             const [_, res] = await Promise.all([lastSeenPromise, dataPromise]);
@@ -221,7 +220,8 @@
         try {
             await fetch('/NotifySync/Refresh', { method: 'POST', headers: getAuthHeaders() });
             localStorage.removeItem('ns-etag');
-            await new Promise(r => setTimeout(r, 500));
+            // --- CORRECTION : Attendre plus longtemps pour que le serveur finisse le scan ---
+            await new Promise(r => setTimeout(r, 1500));
             await fetchData();
         } finally { if(btn) btn.classList.remove('spinning'); }
     };
@@ -263,7 +263,6 @@
             let heroImg = (hero.BackdropImageTags && hero.BackdropImageTags[0]) ? client.getUrl(`Items/${hero.Id}/Images/Backdrop/0?tag=${hero.BackdropImageTags[0]}&quality=70&maxWidth=600&format=webp`) : client.getUrl(`Items/${hero.SeriesId || hero.Id}/Images/Primary?quality=70&maxWidth=400&format=webp`);
             if(isGroup && hero.SeriesId) heroImg = client.getUrl(`Items/${hero.Id}/Images/Backdrop/0?quality=70&maxWidth=600&format=webp`);
             
-            // XSS FIX
             let heroTitle = escapeHtml(hero.Name), heroSub = '';
             if (hero.Type === 'Episode') { heroTitle = escapeHtml(formatEpisodeTitle(hero)); heroSub = escapeHtml(hero.SeriesName); } else { heroSub = hero.ProductionYear; }
             if (isGroup) { heroSub = `${escapeHtml(hero.SeriesName)} • ${hero.GroupCount} ${T.newEps}`; }
@@ -276,7 +275,6 @@
             const isGroup = !!item.IsGroup; 
             const imgUrl = client.getUrl(`Items/${item.Id}/Images/Primary?tag=${item.PrimaryImageTag || ''}&${isMusic ? 'fillHeight=100&fillWidth=100' : 'fillHeight=112&fillWidth=200'}&quality=80&format=webp`);
             
-            // XSS FIX
             let title = escapeHtml(item.Name), sub = item.ProductionYear;
             if (item.Type === 'Episode') { title = escapeHtml(formatEpisodeTitle(item)); sub = escapeHtml(item.SeriesName); }
             if (isGroup) { sub = `${escapeHtml(item.SeriesName)} • ${item.GroupCount} ${T.newEps}`; }

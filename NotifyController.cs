@@ -10,7 +10,7 @@ using System.Threading;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Net;
-using System.Linq; // Nécessaire pour le filtrage
+using System.Linq;
 
 namespace NotifySync
 {
@@ -25,7 +25,6 @@ namespace NotifySync
         private static ConcurrentDictionary<string, string>? _userDataCache;
         private static readonly Lock _fileLock = new();
 
-        // SÉCURITÉ (DoS) : Timestamp pour limiter la fréquence de rafraîchissement
         private static DateTime _lastRefreshTime = DateTime.MinValue;
         private static readonly Lock _refreshLock = new();
 
@@ -39,8 +38,6 @@ namespace NotifySync
         [HttpPost("Refresh")]
         public ActionResult Refresh()
         {
-            // SÉCURITÉ : Rate Limiting (Anti-Spam)
-            // On empêche de lancer un refresh si le dernier a eu lieu il y a moins de 60 secondes
             lock (_refreshLock)
             {
                 if ((DateTime.UtcNow - _lastRefreshTime).TotalSeconds < 60)
@@ -52,7 +49,6 @@ namespace NotifySync
 
             if (NotificationManager.Instance != null)
             {
-                // Lance le refresh en arrière-plan pour ne pas bloquer la requête HTTP
                 Task.Run(() => NotificationManager.Instance.Refresh());
                 return Ok("Refresh started");
             }
@@ -67,21 +63,17 @@ namespace NotifySync
 
             var rawNotifications = NotificationManager.Instance.GetRecentNotifications();
             
-            // SÉCURITÉ (Privacy) : Filtrage par permissions utilisateur
-            // Si un userId est fourni, on filtre les éléments qu'il n'a pas le droit de voir
             if (!string.IsNullOrEmpty(userId) && Guid.TryParse(userId, out var userGuid))
             {
                 var user = _userManager.GetUserById(userGuid);
                 if (user != null)
                 {
-                    // On ne garde que les items visibles pour cet utilisateur (Parents, Tags, Classification)
                     var filteredNotifications = new List<NotificationItem>(rawNotifications.Count);
                     foreach(var notif in rawNotifications)
                     {
                         if (Guid.TryParse(notif.Id, out var itemId))
                         {
                             var item = _libraryManager.GetItemById(itemId);
-                            // item.IsVisible vérifie les droits d'accès Jellyfin natifs
                             if (item != null && item.IsVisible(user))
                             {
                                 filteredNotifications.Add(notif);
@@ -89,11 +81,14 @@ namespace NotifySync
                         }
                     }
                     
-                    // On recalcule le hash ETag basé sur la liste FILTRÉE
-                    // Sinon le cache client pourrait afficher des données périmées ou incorrectes
+                    // --- CORRECTION ETAG ---
+                    // On ajoute la version globale du Manager au hash.
+                    // Si un titre change, NotificationManager incrémente sa version, 
+                    // donc ce hash change, et le navigateur retélécharge.
+                    var globalVersion = NotificationManager.Instance.GetVersionHash();
                     var filteredHash = filteredNotifications.Count > 0 
-                        ? filteredNotifications[0].DateCreated.Ticks + "-" + filteredNotifications.Count 
-                        : "empty";
+                        ? globalVersion + "-" + filteredNotifications[0].DateCreated.Ticks + "-" + filteredNotifications.Count 
+                        : "empty-" + globalVersion;
 
                     if (Request.Headers.TryGetValue("If-None-Match", out var clientTag))
                     {
@@ -105,8 +100,6 @@ namespace NotifySync
                 }
             }
 
-            // Fallback (si pas d'user, on renvoie tout ou rien, ici tout pour compatibilité)
-            // Dans un système ultra-strict, on renverrait une liste vide ici.
             var serverVersion = NotificationManager.Instance.GetVersionHash();
             if (Request.Headers.TryGetValue("If-None-Match", out var cTag))
             {
@@ -136,7 +129,6 @@ namespace NotifySync
                 if (Guid.TryParse(idStr, out var guid))
                 {
                     var item = _libraryManager.GetItemById(guid);
-                    // On vérifie aussi l'accès ici par sécurité
                     if (item is not null && item.IsVisible(user))
                     {
                         var userData = _userDataManager.GetUserData(user, item);

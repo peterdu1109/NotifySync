@@ -4,7 +4,9 @@
 
 > [!IMPORTANT]
 > **Mise à jour critique v4.6.5**
-> Cette version corrige des failles de sécurité importantes (XSS, Fuite de données entre utilisateurs) et intègre des protections contre le déni de service (DoS). La mise à jour est fortement recommandée.
+> Cette version corrige des failles de sécurité importantes (XSS, Fuite de données entre utilisateurs) et intègre des protections contre le déni de service (DoS).
+> Cette version introduit la **détection en temps réel des changements** (renommage de fichiers/séries) et corrige les problèmes de cache navigateur qui nécessitaient un "Ctrl+F5".
+> La mise à jour est fortement recommandée.
 
 ---
 
@@ -19,6 +21,11 @@
 * **Algorithme O(1)** : Vérification instantanée des bibliothèques via `HashSet` (plus de ralentissement avec de grosses bibliothèques).
 * **Zéro-Allocation** : Gestion mémoire optimisée pour réduire la pression sur le serveur.
 * **Navigation Fluide** : Le client utilise `decoding="async"` pour ne pas bloquer le défilement lors du chargement des images.
+
+### 🔄 Synchronisation Instantanée
+* **Support du Renommage** : Si vous renommez un film ou une série dans Jellyfin, la notification se met désormais à jour **automatiquement** dans la cloche. Plus besoin de rafraîchir manuellement la page.
+* **Cache Intelligent (ETag)** : Le navigateur ne retélécharge les données que si le contenu a réellement changé sur le serveur. Cela garantit que vous voyez toujours le titre le plus récent sans surcharger la bande passante.
+* **Refresh Fiabilisé** : Le bouton de rafraîchissement manuel a été ajusté pour garantir que les nouvelles données sont prêtes avant d'être affichées.
 
 ---
 

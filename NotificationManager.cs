@@ -5,7 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Text.Json;
 using System.Threading;
-using System.Runtime.CompilerServices; // Pour MethodImpl
+using System.Runtime.CompilerServices;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Model.IO;
@@ -55,6 +55,8 @@ namespace NotifySync
 
             _libraryManager.ItemAdded += OnItemAdded;
             _libraryManager.ItemRemoved += OnItemRemoved;
+            // --- CORRECTION : Écouter les mises à jour (renommage) ---
+            _libraryManager.ItemUpdated += OnItemUpdated;
         }
 
         public void Refresh()
@@ -67,7 +69,6 @@ namespace NotifySync
             ForceSaveNow(); 
         }
 
-        // OPTIMISATION : Inlining pour cette méthode très fréquemment appelée
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public string GetVersionHash()
         {
@@ -125,6 +126,51 @@ namespace NotifySync
             {
                 _eventBuffer.Enqueue(e.Item);
                 try { _bufferProcessTimer.Change(2000, Timeout.Infinite); } catch {}
+            }
+        }
+
+        // --- CORRECTION : Gérer le renommage ---
+        private void OnItemUpdated(object? sender, ItemChangeEventArgs e)
+        {
+            if (e.Item == null) return;
+            
+            var itemId = e.Item.Id.ToString();
+            bool changed = false;
+
+            _dataLock.EnterWriteLock();
+            try
+            {
+                var existingItem = _notifications.FirstOrDefault(n => n.Id == itemId);
+                if (existingItem != null)
+                {
+                    // Mise à jour du nom du film/épisode
+                    if (existingItem.Name != e.Item.Name)
+                    {
+                        existingItem.Name = e.Item.Name;
+                        changed = true;
+                    }
+                    
+                    // Si c'est un épisode, on vérifie si la série a été renommée
+                    if (e.Item is MediaBrowser.Controller.Entities.TV.Episode ep)
+                    {
+                        if (existingItem.SeriesName != ep.SeriesName)
+                        {
+                            existingItem.SeriesName = ep.SeriesName;
+                            changed = true;
+                        }
+                    }
+                }
+            }
+            finally
+            {
+                _dataLock.ExitWriteLock();
+            }
+
+            if (changed)
+            {
+                UpdateVersion(); // Important : change le hash global
+                _hasUnsavedChanges = true;
+                try { _saveTimer.Change(5000, Timeout.Infinite); } catch { }
             }
         }
 
@@ -343,12 +389,10 @@ namespace NotifySync
                 }
             }
 
-            // OPTIMISATION : Lazy allocation pour éviter de créer des listes vides
             List<string>? backdropTags = null;
             var imgInfo = item.GetImageInfo(ImageType.Backdrop, 0);
             if (imgInfo != null)
             {
-                // Syntaxe collection expression .NET 9
                 backdropTags = [imgInfo.DateModified.Ticks.ToString("x")];
             }
 
@@ -365,7 +409,6 @@ namespace NotifySync
                 Type = item.GetType().Name, 
                 RunTimeTicks = item.RunTimeTicks,
                 ProductionYear = item.ProductionYear,
-                // Utilise le tableau vide statique si null, évite l'allocation new List<>()
                 BackdropImageTags = backdropTags ?? [],
                 PrimaryImageTag = item.GetImageInfo(ImageType.Primary, 0)?.DateModified.Ticks.ToString("x"),
                 IndexNumber = episode?.IndexNumber,
@@ -460,6 +503,7 @@ namespace NotifySync
             {
                 _libraryManager.ItemAdded -= OnItemAdded;
                 _libraryManager.ItemRemoved -= OnItemRemoved;
+                _libraryManager.ItemUpdated -= OnItemUpdated;
             }
             GC.SuppressFinalize(this);
         }

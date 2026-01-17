@@ -3,7 +3,7 @@
   "Name": "NotifySync",
   "Description": "Notifications style Netflix. v4.6.5 : Correctifs de sécurité (XSS/Privacy) & Performance.",
   "Version": "4.6.5.0",
-  "Owner": "NotifySync",
+  "Owner": "ElieM",
   "Category": "UI",
   "TargetAbi": "10.11.5.0"
 }

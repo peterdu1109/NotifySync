@@ -3,7 +3,7 @@
     <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <Version>4.6.5</Version>
+    <Version>4.6.6</Version>
     <Authors>NotifySync</Authors>
     <Company>NotifySync</Company>
     <Product>NotifySync</Product>
@@ -12,9 +12,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Jellyfin.Controller" Version="10.11.5" />
-    <PackageReference Include="Jellyfin.Model" Version="10.11.5" />
-    <PackageReference Include="Jellyfin.Data" Version="10.11.5" />
+    <PackageReference Include="Jellyfin.Controller" Version="10.11.0" />
+    <PackageReference Include="Jellyfin.Model" Version="10.11.0" />
+    <PackageReference Include="Jellyfin.Data" Version="10.11.0" />
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
   

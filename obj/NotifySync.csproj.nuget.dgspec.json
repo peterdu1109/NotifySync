@@ -5,7 +5,7 @@
   },
   "projects": {
     "C:\\Users\\eliem\\Documents\\GitHub\\NotifySync\\NotifySync.csproj": {
-      "version": "4.6.5",
+      "version": "4.6.6",
       "restore": {
         "projectUniqueName": "C:\\Users\\eliem\\Documents\\GitHub\\NotifySync\\NotifySync.csproj",
         "projectName": "NotifySync",
@@ -46,15 +46,15 @@
           "dependencies": {
             "Jellyfin.Controller": {
               "target": "Package",
-              "version": "[10.11.5, )"
+              "version": "[10.11.0, )"
             },
             "Jellyfin.Data": {
               "target": "Package",
-              "version": "[10.11.5, )"
+              "version": "[10.11.0, )"
             },
             "Jellyfin.Model": {
               "target": "Package",
-              "version": "[10.11.5, )"
+              "version": "[10.11.0, )"
             }
           },
           "imports": [

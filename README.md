@@ -33,9 +33,8 @@ NotifySync transforme l'interface de Jellyfin en ajoutant une icône de notifica
 ## 📦 Installation
 
 ### 1. Pré-requis
-* **Jellyfin 10.11.5** ou supérieur.
+* **Jellyfin 10.11.X** ou supérieur.
 * **.NET 9 Runtime** (généralement inclus avec Jellyfin récent).
-* Plugin **"JavaScript Injector"** : https://github.com/n00bcodr/Jellyfin-JavaScript-Injector
 
 ### Méthode 1 : Via le Dépôt (Recommandé)
 1.  Ouvrez votre tableau de bord Jellyfin > **Extensions** > **Dépôts**.
@@ -56,18 +55,22 @@ NotifySync transforme l'interface de Jellyfin en ajoutant une icône de notifica
 | **Linux** | `/var/lib/jellyfin/plugins/NotifySync` |
 | **Windows** | `%ProgramData%\Jellyfin\Server\plugins\NotifySync` |
 
-### 3. Injection du Client (Frontend)
-Pour afficher la cloche, ajoutez ce snippet via le plugin **JavaScript Injector** :
+## Étape 2 : Activer l'Interface (Client)
+⚠️ **Cette étape est obligatoire** car Jellyfin 10.11+ sécurise l'interface web.
 
-1.  Ouvrez **Tableau de bord > JS Injector**.
-2.  Ajoutez un script nommé `NotifySync`.
-3.  **Cochez "Requires Authentication"** (⚠️ Indispensable pour la sécurité).
-4.  Code :
-    ```javascript
-    var script = document.createElement('script');
-    script.src = '/NotifySync/Client.js';
-    script.defer = true;
-    document.head.appendChild(script);
+Vous devez ajouter **une seule ligne** à votre fichier `index.html` pour charger la cloche.
+
+1.  Accédez au dossier d'installation de l'interface web Jellyfin :
+    * **Linux :** `/usr/share/jellyfin/web/index.html`
+    * **Docker :** `/jellyfin/jellyfin-web/index.html` (à monter en volume ou via CLI)
+    * **Windows :** `C:\Program Files\Jellyfin\Server\jellyfin-web\index.html`
+
+2.  Ouvrez `index.html` avec un éditeur de texte.
+
+3.  Ajoutez cette ligne tout en bas du fichier, juste **avant** la balise `</body>` :
+
+```html
+<script src="/NotifySync/Client.js" defer></script>
     ```
 
 ---

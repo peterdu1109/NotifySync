@@ -1,4 +1,4 @@
-/* NOTIFYSYNC V4.6.5 */
+/* NOTIFYSYNC V4.6.6 */
 (function () {
     let currentData = [];
     let groupedData = [];
@@ -322,7 +322,7 @@
     };
 
     const installBell = () => {
-        const header = document.querySelector('.headerRight') || document.querySelector('.headerButtons-right');
+        const header = document.querySelector('.headerRight') || document.querySelector('.headerButtons-right') || document.querySelector('.emby-header-right') || document.querySelector('.skinHeader-content');
         if (!header || document.getElementById('bell-container')) {
             if(document.getElementById('bell-container') && observerInstance) { observerInstance.disconnect(); observerInstance = null; monitorBellDisappearance(); }
             return;

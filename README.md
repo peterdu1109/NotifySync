@@ -70,7 +70,8 @@ Vous devez ajouter **une seule ligne** à votre fichier `index.html` pour charge
 3.  Ajoutez cette ligne tout en bas du fichier, juste **avant** la balise `</body>` :
 
 ```html
-<script src="/NotifySync/Client.js" defer></script>```
+<script src="/NotifySync/Client.js" defer></script>
+```
 
 ---
 

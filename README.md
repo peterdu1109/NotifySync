@@ -71,7 +71,7 @@ Vous devez ajouter **une seule ligne** à votre fichier `index.html` pour charge
 
 ```html
 <script src="/NotifySync/Client.js" defer></script>
-    ```
+
 
 ---
 

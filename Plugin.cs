@@ -29,7 +29,16 @@ namespace NotifySync
 
         public IEnumerable<PluginPageInfo> GetPages()
         {
-            return [new PluginPageInfo { Name = this.Name, EmbeddedResourcePath = GetType().Namespace + ".ConfigurationPage.html" }];
+            return new[]
+            {
+                new PluginPageInfo
+                {
+                    Name = this.Name,
+                    EmbeddedResourcePath = GetType().Namespace + ".ConfigurationPage.html",
+                    // C'est cette ligne qui fait apparaître le lien dans le menu "Extensions"
+                    EnableInMainMenu = true
+                }
+            };
         }
 
         public void Dispose()

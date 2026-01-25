@@ -22,7 +22,11 @@ namespace NotifySync
         private readonly ILibraryManager _libraryManager;
         private readonly IUserDataManager _userDataManager;
         
-        private static ConcurrentDictionary<string, string>? _userDataCache;
+        // Cache: UserId -> (ServerVersionHash, FilteredList, ETag)
+        // This avoids re-running IsVisible loop for every user every 60 seconds if nothing changed on server.
+        private static readonly ConcurrentDictionary<Guid, (string Version, List<NotificationItem> Items, string ETag)> _userViewCache = new();
+        
+        private static ConcurrentDictionary<string, string>? _userLastSeenCache;
         private static readonly Lock _fileLock = new();
 
         private static DateTime _lastRefreshTime = DateTime.MinValue;
@@ -49,6 +53,8 @@ namespace NotifySync
 
             if (NotificationManager.Instance != null)
             {
+                // Invalidate all user caches on manual refresh just to be safe/clean
+                _userViewCache.Clear();
                 Task.Run(() => NotificationManager.Instance.Refresh());
                 return Ok("Refresh started");
             }
@@ -60,53 +66,66 @@ namespace NotifySync
         public ActionResult GetData([FromQuery] string userId)
         {
             if (NotificationManager.Instance == null) return Ok(Array.Empty<object>());
+            if (string.IsNullOrEmpty(userId) || !Guid.TryParse(userId, out var userGuid)) return BadRequest("Invalid UserId");
 
-            var rawNotifications = NotificationManager.Instance.GetRecentNotifications();
-            
-            if (!string.IsNullOrEmpty(userId) && Guid.TryParse(userId, out var userGuid))
+            // Security check: Use IUserManager to verify user exists
+            var user = _userManager.GetUserById(userGuid);
+            if (user == null) return NotFound("User not found");
+
+            var currentGlobalVersion = NotificationManager.Instance.GetVersionHash();
+
+            // 1. Try to get from Cache
+            if (_userViewCache.TryGetValue(userGuid, out var cached))
             {
-                var user = _userManager.GetUserById(userGuid);
-                if (user != null)
+                // Verify if the cache is still valid (Server Version is same)
+                if (cached.Version == currentGlobalVersion)
                 {
-                    var filteredNotifications = new List<NotificationItem>(rawNotifications.Count);
-                    foreach(var notif in rawNotifications)
-                    {
-                        if (Guid.TryParse(notif.Id, out var itemId))
-                        {
-                            var item = _libraryManager.GetItemById(itemId);
-                            if (item != null && item.IsVisible(user))
-                            {
-                                filteredNotifications.Add(notif);
-                            }
-                        }
-                    }
-                    
-                    // --- CORRECTION ETAG ---
-                    // On ajoute la version globale du Manager au hash.
-                    // Si un titre change, NotificationManager incrémente sa version, 
-                    // donc ce hash change, et le navigateur retélécharge.
-                    var globalVersion = NotificationManager.Instance.GetVersionHash();
-                    var filteredHash = filteredNotifications.Count > 0 
-                        ? globalVersion + "-" + filteredNotifications[0].DateCreated.Ticks + "-" + filteredNotifications.Count 
-                        : "empty-" + globalVersion;
-
+                    // Check Client ETag against our Cached ETag
                     if (Request.Headers.TryGetValue("If-None-Match", out var clientTag))
                     {
-                        if (clientTag.ToString() == filteredHash) return StatusCode(304);
+                        if (clientTag.ToString() == cached.ETag) return StatusCode(304);
                     }
-
-                    Response.Headers["ETag"] = filteredHash;
-                    return Ok(filteredNotifications);
+                    
+                    Response.Headers["ETag"] = cached.ETag;
+                    return Ok(cached.Items);
                 }
             }
 
-            var serverVersion = NotificationManager.Instance.GetVersionHash();
+            // 2. Cache Miss or Stale -> Re-calculate
+            var rawNotifications = NotificationManager.Instance.GetRecentNotifications();
+            var filteredNotifications = new List<NotificationItem>(rawNotifications.Count);
+            
+            // Optimization: Avoid LINQ Where/ToList allocation
+            foreach(var notif in rawNotifications)
+            {
+                if (Guid.TryParse(notif.Id, out var itemId))
+                {
+                    var item = _libraryManager.GetItemById(itemId);
+                    // Critical Privacy Check: IsVisible
+                    if (item != null && item.IsVisible(user))
+                    {
+                        filteredNotifications.Add(notif);
+                    }
+                }
+            }
+
+            // Generate ETag based on Content + Version
+            var filteredHash = filteredNotifications.Count > 0 
+                ? currentGlobalVersion + "-" + filteredNotifications[0].DateCreated.Ticks + "-" + filteredNotifications.Count 
+                : "empty-" + currentGlobalVersion;
+            
+            // Update Cache
+            var cacheEntry = (currentGlobalVersion, filteredNotifications, filteredHash);
+            _userViewCache[userGuid] = cacheEntry;
+
+            // 3. Return Response (checking ETag again for the fresh result)
             if (Request.Headers.TryGetValue("If-None-Match", out var cTag))
             {
-                if (cTag.ToString() == serverVersion) return StatusCode(304);
+                if (cTag.ToString() == filteredHash) return StatusCode(304);
             }
-            Response.Headers["ETag"] = serverVersion;
-            return Ok(rawNotifications);
+
+            Response.Headers["ETag"] = filteredHash;
+            return Ok(filteredNotifications);
         }
 
         [HttpPost("BulkUserData")]
@@ -129,6 +148,8 @@ namespace NotifySync
                 if (Guid.TryParse(idStr, out var guid))
                 {
                     var item = _libraryManager.GetItemById(guid);
+                    // Privacy Check: Explicit visibility check before revealing Played status
+                    // This prevents IDOR where a user checks status of an item they can't see
                     if (item is not null && item.IsVisible(user))
                     {
                         var userData = _userDataManager.GetUserData(user, item);
@@ -154,6 +175,9 @@ namespace NotifySync
         {
             if (string.IsNullOrEmpty(userId)) return BadRequest();
 
+            // Simple validation that it's a GUID, though we treat it as string key
+            if (!Guid.TryParse(userId, out _)) return BadRequest();
+
             var data = GetCachedUserData();
             if (data.TryGetValue(userId, out var date)) return Ok(date);
             return Ok("2000-01-01T00:00:00.000Z");
@@ -163,10 +187,12 @@ namespace NotifySync
         public ActionResult SetLastSeen(string userId, [FromQuery] string date)
         {
             if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(date)) return BadRequest();
+            if (!Guid.TryParse(userId, out _)) return BadRequest();
             
             var data = GetCachedUserData();
             data.AddOrUpdate(userId, date, (_, _) => date);
             
+            // Fire and forget save
             Task.Run(() => 
             {
                 lock (_fileLock)
@@ -180,16 +206,16 @@ namespace NotifySync
 
         private ConcurrentDictionary<string, string> GetCachedUserData()
         {
-            if (_userDataCache == null)
+            if (_userLastSeenCache == null)
             {
                 lock (_fileLock)
                 {
-                    if (_userDataCache == null)
+                    if (_userLastSeenCache == null)
                     {
                         var path = Path.Combine(Plugin.Instance!.DataFolderPath, "user_data.json");
                         if (!System.IO.File.Exists(path)) 
                         {
-                            _userDataCache = new ConcurrentDictionary<string, string>();
+                            _userLastSeenCache = new ConcurrentDictionary<string, string>();
                         }
                         else
                         {
@@ -197,14 +223,14 @@ namespace NotifySync
                             {
                                 using var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
                                 var dict = JsonSerializer.Deserialize(fs, ControllerJsonContext.Default.DictionaryStringString);
-                                _userDataCache = new ConcurrentDictionary<string, string>(dict ?? []);
+                                _userLastSeenCache = new ConcurrentDictionary<string, string>(dict ?? []);
                             }
-                            catch { _userDataCache = new ConcurrentDictionary<string, string>(); }
+                            catch { _userLastSeenCache = new ConcurrentDictionary<string, string>(); }
                         }
                     }
                 }
             }
-            return _userDataCache;
+            return _userLastSeenCache;
         }
 
         private void SaveUserDataToDisk(ConcurrentDictionary<string, string> data)

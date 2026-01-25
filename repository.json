@@ -9,12 +9,12 @@
     "supportUrl": "https://github.com/",
     "versions": [
       {
-        "version": "4.6.6.0",
+        "version": "4.6.7.0",
         "changelog": "Release Notes: https://github.com/peterdu1109/NotifySync",
         "targetAbi": "10.11.0.0",
-        "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/v4.6.6/NotifySync.zip",
-        "checksum": "3AD65EF6768E43EBA09A08438DE21E3A",
-        "timestamp": "2026-01-17T19:30:00Z"
+        "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/v4.6.7/NotifySync.zip",
+        "checksum": "CHECKSUM_PLACEHOLDER",
+        "timestamp": "2026-01-25T12:00:00Z"
       }
     ]
   }

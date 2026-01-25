@@ -1,4 +1,4 @@
-/* NOTIFYSYNC V4.6.6 */
+/* NOTIFYSYNC V4.6.7 */
 (function () {
     let currentData = [];
     let groupedData = [];
@@ -6,15 +6,15 @@
     let isFetching = false;
     let retryDelay = 2000;
     let activeFilter = 'All';
-    let observerInstance = null; 
-    
+    let observerInstance = null;
+
     const userLang = navigator.language || 'en';
-    const T = userLang.startsWith('fr') 
+    const T = userLang.startsWith('fr')
         ? { header: "Quoi de neuf ?", empty: "Vous êtes à jour !", markAll: "Tout marquer comme vu", badgeNew: "NOUVEAU", newEps: "nouveaux épisodes", eps: "épisodes", filterAll: "Tout", filterMovie: "Films", filterSeries: "Séries", filterMusic: "Musique" }
         : { header: "What's New?", empty: "You're all caught up!", markAll: "Mark all read", badgeNew: "NEW", newEps: "new episodes", eps: "episodes", filterAll: "All", filterMovie: "Movies", filterSeries: "Series", filterMusic: "Music" };
 
     const rtf = new Intl.RelativeTimeFormat(userLang, { numeric: 'auto' });
-    
+
     const timeAgo = (date) => {
         const diff = (new Date(date) - new Date()) / 1000;
         if (Math.abs(diff) < 60) return rtf.format(Math.round(diff), 'second');
@@ -128,23 +128,23 @@
             } else { result.push(item); }
         }
         seriesMap.forEach((eps) => {
-            eps.sort((a,b) => new Date(b.DateCreated) - new Date(a.DateCreated));
+            eps.sort((a, b) => new Date(b.DateCreated) - new Date(a.DateCreated));
             if (eps.length === 0) return;
             const latest = eps[0];
-            const batchWindow = 12 * 60 * 60 * 1000; 
+            const batchWindow = 12 * 60 * 60 * 1000;
             const recentBatch = eps.filter(e => e.IsNew && (new Date(latest.DateCreated).getTime() - new Date(e.DateCreated).getTime() < batchWindow));
             if (recentBatch.length > 1) {
                 result.push({ ...latest, IsGroup: true, GroupCount: recentBatch.length, Name: latest.SeriesName, Id: latest.SeriesId, IsNew: true });
             } else { result.push(latest); }
         });
-        return result.sort((a,b) => new Date(b.DateCreated) - new Date(a.DateCreated));
+        return result.sort((a, b) => new Date(b.DateCreated) - new Date(a.DateCreated));
     };
 
     const fetchLastSeen = async () => {
         try {
             const res = await fetch(`/NotifySync/LastSeen/${getUserId()}`, { headers: getAuthHeaders() });
             lastSeenDate = new Date(JSON.parse(await res.text()));
-        } catch(e) { lastSeenDate = new Date(0); }
+        } catch (e) { lastSeenDate = new Date(0); }
     };
 
     const updateLastSeen = async () => {
@@ -160,7 +160,7 @@
         if (!currentData.length) return;
         try {
             const res = await fetch(`/NotifySync/BulkUserData?userId=${getUserId()}`, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(currentData.map(i => i.Id)) });
-            if(res.ok) {
+            if (res.ok) {
                 const statusMap = await res.json();
                 currentData.forEach(item => {
                     if (statusMap.hasOwnProperty(item.Id)) item.Played = statusMap[item.Id];
@@ -169,22 +169,22 @@
                 groupedData = processGrouping(currentData);
                 updateBadge();
             }
-        } catch(e) { console.error("Bulk check failed", e); }
+        } catch (e) { console.error("Bulk check failed", e); }
     };
 
     const fetchData = async () => {
-        if (isFetching) return; 
+        if (isFetching) return;
         isFetching = true;
         try {
             const lastSeenPromise = fetchLastSeen();
             const lastEtag = localStorage.getItem('ns-etag') || '';
             const headers = getAuthHeaders();
-            if(lastEtag) headers['If-None-Match'] = lastEtag;
-            
+            if (lastEtag) headers['If-None-Match'] = lastEtag;
+
             const dataPromise = fetch(`/NotifySync/Data?userId=${getUserId()}`, { headers: headers });
 
             const [_, res] = await Promise.all([lastSeenPromise, dataPromise]);
-            
+
             if (res.status === 304) {
                 await refreshPlayStates();
             }
@@ -192,94 +192,94 @@
                 const json = await res.json();
                 currentData = json;
                 const newEtag = res.headers.get('ETag');
-                if(newEtag) localStorage.setItem('ns-etag', newEtag);
+                if (newEtag) localStorage.setItem('ns-etag', newEtag);
                 localStorage.setItem('ns-data', JSON.stringify(currentData));
-                await refreshPlayStates(); 
+                await refreshPlayStates();
                 retryDelay = 2000;
             }
-            
-            const drop = document.getElementById('notification-dropdown');
-            if(drop && drop.style.display === 'flex') updateList(drop);
 
-        } catch (e) { 
+            const drop = document.getElementById('notification-dropdown');
+            if (drop && drop.style.display === 'flex') updateList(drop);
+
+        } catch (e) {
             setTimeout(fetchData, retryDelay);
-            retryDelay = Math.min(retryDelay * 2, 60000); 
+            retryDelay = Math.min(retryDelay * 2, 60000);
         } finally { isFetching = false; }
     };
-    
+
     const loadFromCache = () => {
         try {
             const cached = localStorage.getItem('ns-data');
             if (cached) { currentData = JSON.parse(cached); groupedData = processGrouping(currentData); updateBadge(); }
-        } catch(e) {}
+        } catch (e) { }
     };
 
     const triggerHardRefresh = async () => {
         const btn = document.querySelector('.tool-icon.refresh-icon');
-        if(btn) btn.classList.add('spinning');
+        if (btn) btn.classList.add('spinning');
         try {
             await fetch('/NotifySync/Refresh', { method: 'POST', headers: getAuthHeaders() });
             localStorage.removeItem('ns-etag');
             // --- CORRECTION : Attendre plus longtemps pour que le serveur finisse le scan ---
             await new Promise(r => setTimeout(r, 1500));
             await fetchData();
-        } finally { if(btn) btn.classList.remove('spinning'); }
+        } finally { if (btn) btn.classList.remove('spinning'); }
     };
 
     const updateBadge = () => {
         const bell = document.getElementById('netflix-bell');
-        if(!bell) return;
+        if (!bell) return;
         let badge = bell.querySelector('.ns-badge');
-        if(!badge) { badge = document.createElement('div'); badge.className = 'ns-badge'; bell.appendChild(badge); }
+        if (!badge) { badge = document.createElement('div'); badge.className = 'ns-badge'; bell.appendChild(badge); }
         const count = groupedData.filter(i => i.IsNew).length;
-        if(count > 0) { badge.innerText = count > 9 ? '9+' : count; badge.classList.add('visible'); } 
+        if (count > 0) { badge.innerText = count > 9 ? '9+' : count; badge.classList.add('visible'); }
         else { badge.classList.remove('visible'); }
     };
 
     const formatEpisodeTitle = (item) => {
-        const s = item.ParentIndexNumber ? `S${item.ParentIndexNumber.toString().padStart(2,'0')}` : '';
-        const e = item.IndexNumber ? `E${item.IndexNumber.toString().padStart(2,'0')}` : '';
+        const s = item.ParentIndexNumber ? `S${item.ParentIndexNumber.toString().padStart(2, '0')}` : '';
+        const e = item.IndexNumber ? `E${item.IndexNumber.toString().padStart(2, '0')}` : '';
         const se = (s || e) ? `${s}${e}` : '';
         if (se && item.Name.indexOf(se) !== -1) return item.Name;
         return se ? `${se} - ${item.Name}` : item.Name;
     };
 
     const updateList = (drop) => {
-        if(!drop) return;
+        if (!drop) return;
         const container = drop.querySelector('.list-container');
         let filtered = groupedData || [];
         if (activeFilter !== 'All') filtered = filtered.filter(i => i.Category === activeFilter);
         const cats = new Set(['All']); groupedData.forEach(i => cats.add(i.Category));
-        drop.querySelector('.filter-bar').innerHTML = Array.from(cats).map(c => `<div class="filter-pill ${activeFilter===c?'active':''}" onclick="document.dispatchEvent(new CustomEvent('ns-filter', {detail:'${c}'}))">${T['filter'+c]||c}</div>`).join('');
+        drop.querySelector('.filter-bar').innerHTML = Array.from(cats).map(c => `<div class="filter-pill ${activeFilter === c ? 'active' : ''}" onclick="document.dispatchEvent(new CustomEvent('ns-filter', {detail:'${escapeHtml(c)}'}))">${T['filter' + c] || escapeHtml(c)}</div>`).join('');
 
         if (filtered.length === 0) { container.innerHTML = `<div style="padding:60px 20px;text-align:center;color:#666;font-style:italic;">${T.empty}</div>`; return; }
 
         const htmlParts = [];
         const client = window.ApiClient;
         const hero = filtered.find(i => i.IsNew) || filtered[0];
-        
+
         if (hero) {
-            const isGroup = !!hero.IsGroup; 
+            const isGroup = !!hero.IsGroup;
             let heroImg = (hero.BackdropImageTags && hero.BackdropImageTags[0]) ? client.getUrl(`Items/${hero.Id}/Images/Backdrop/0?tag=${hero.BackdropImageTags[0]}&quality=70&maxWidth=600&format=webp`) : client.getUrl(`Items/${hero.SeriesId || hero.Id}/Images/Primary?quality=70&maxWidth=400&format=webp`);
-            if(isGroup && hero.SeriesId) heroImg = client.getUrl(`Items/${hero.Id}/Images/Backdrop/0?quality=70&maxWidth=600&format=webp`);
-            
+            if (isGroup && hero.SeriesId) heroImg = client.getUrl(`Items/${hero.Id}/Images/Backdrop/0?quality=70&maxWidth=600&format=webp`);
+
             let heroTitle = escapeHtml(hero.Name), heroSub = '';
             if (hero.Type === 'Episode') { heroTitle = escapeHtml(formatEpisodeTitle(hero)); heroSub = escapeHtml(hero.SeriesName); } else { heroSub = hero.ProductionYear; }
             if (isGroup) { heroSub = `${escapeHtml(hero.SeriesName)} • ${hero.GroupCount} ${T.newEps}`; }
-            
+
             htmlParts.push(`<div class="hero-section" onclick="document.dispatchEvent(new CustomEvent('ns-navigate', {detail: '${hero.Id}'}))"><div class="hero-bg" style="background-image:url('${heroImg}')"></div><div class="hero-overlay"></div><div class="hero-content">${hero.IsNew ? `<span class="hero-badge">${T.badgeNew}</span>` : ''}<div style="font-size:18px;font-weight:700;text-shadow:0 2px 4px #000;line-height:1.2;">${heroTitle}</div><div style="font-size:12px;opacity:0.8;margin-top:4px">${heroSub} &bull; ${timeAgo(hero.DateCreated)}</div></div></div>`);
         }
 
         filtered.filter(x => x !== hero).forEach(item => {
             const isMusic = item.Category === 'Music';
-            const isGroup = !!item.IsGroup; 
+            const isGroup = !!item.IsGroup;
             const imgUrl = client.getUrl(`Items/${item.Id}/Images/Primary?tag=${item.PrimaryImageTag || ''}&${isMusic ? 'fillHeight=100&fillWidth=100' : 'fillHeight=112&fillWidth=200'}&quality=80&format=webp`);
-            
+
             let title = escapeHtml(item.Name), sub = item.ProductionYear;
             if (item.Type === 'Episode') { title = escapeHtml(formatEpisodeTitle(item)); sub = escapeHtml(item.SeriesName); }
             if (isGroup) { sub = `${escapeHtml(item.SeriesName)} • ${item.GroupCount} ${T.newEps}`; }
-            
-            htmlParts.push(`<div class="dropdown-item ${item.IsNew ? 'style-new' : 'style-seen'}" onclick="document.dispatchEvent(new CustomEvent('ns-navigate', {detail: '${item.Id}'}))"><div class="status-dot"></div><div class="thumb-wrapper"><img data-src="${imgUrl}" decoding="async" class="dropdown-thumb ${isMusic?'music':''}" loading="lazy" onerror="this.style.display='none'"><span class="material-icons" style="color:#444;position:absolute;z-index:-1;">${isMusic?'album':'movie'}</span></div><div class="dropdown-info"><div class="dropdown-title">${title}</div><div class="dropdown-subtitle">${sub} &bull; ${timeAgo(item.DateCreated)}</div></div></div>`);
+
+            htmlParts.push(`<div class="dropdown-item ${item.IsNew ? 'style-new' : 'style-seen'}" onclick="document.dispatchEvent(new CustomEvent('ns-navigate', {detail: '${item.Id}'}))"><div class="status-dot"></div><div class="thumb-wrapper"><img data-src="${imgUrl}" decoding="async" class="dropdown-thumb ${isMusic ? 'music' : ''}" loading="lazy" onerror="this.style.display='none'"><span class="material-icons" style="color:#444;position:absolute;z-index:-1;">${isMusic ? 'album' : 'movie'}</span></div><div class="dropdown-info"><div class="dropdown-title">${title}</div><div class="dropdown-subtitle">${sub} &bull; ${timeAgo(item.DateCreated)}</div></div></div>`);
         });
 
         htmlParts.push(`<div class="footer-tools" onclick="document.dispatchEvent(new Event('ns-markall'))">${T.markAll}</div>`);
@@ -294,15 +294,15 @@
     const closeDropdown = () => {
         const drop = document.getElementById('notification-dropdown');
         const back = document.getElementById('notify-backdrop');
-        if(drop) drop.style.display = 'none';
-        if(back) back.style.display = 'none';
+        if (drop) drop.style.display = 'none';
+        if (back) back.style.display = 'none';
     };
 
     const toggleDropdown = () => {
         let drop = document.getElementById('notification-dropdown');
         const backdrop = document.getElementById('notify-backdrop');
-        
-        if(!drop) {
+
+        if (!drop) {
             drop = document.createElement('div'); drop.id = 'notification-dropdown';
             document.body.appendChild(drop);
             document.addEventListener('ns-filter', (e) => { activeFilter = e.detail; updateList(drop); });
@@ -312,19 +312,19 @@
 
             drop.innerHTML = `<div class="dropdown-header"><span class="header-title">${T.header}</span><div class="header-tools"><span class="material-icons tool-icon refresh-icon" onclick="document.dispatchEvent(new Event('ns-refresh'))">refresh</span></div></div><div class="filter-bar"></div><div class="list-container"></div>`;
         }
-        if(!backdrop) { const b = document.createElement('div'); b.id = 'notify-backdrop'; b.onclick = closeDropdown; document.body.appendChild(b); }
+        if (!backdrop) { const b = document.createElement('div'); b.id = 'notify-backdrop'; b.onclick = closeDropdown; document.body.appendChild(b); }
 
         if (drop.style.display !== 'flex') {
             fetchData().then(() => updateList(drop));
             document.getElementById('notify-backdrop').style.display = 'block';
-            drop.style.display = 'flex'; 
+            drop.style.display = 'flex';
         } else { closeDropdown(); }
     };
 
     const installBell = () => {
         const header = document.querySelector('.headerRight') || document.querySelector('.headerButtons-right') || document.querySelector('.emby-header-right') || document.querySelector('.skinHeader-content');
         if (!header || document.getElementById('bell-container')) {
-            if(document.getElementById('bell-container') && observerInstance) { observerInstance.disconnect(); observerInstance = null; monitorBellDisappearance(); }
+            if (document.getElementById('bell-container') && observerInstance) { observerInstance.disconnect(); observerInstance = null; monitorBellDisappearance(); }
             return;
         }
         injectStyles();
@@ -337,7 +337,7 @@
     };
 
     const monitorBellDisappearance = () => {
-        const obs = new MutationObserver(() => { if(!document.getElementById('bell-container')) { obs.disconnect(); startMainObserver(); } });
+        const obs = new MutationObserver(() => { if (!document.getElementById('bell-container')) { obs.disconnect(); startMainObserver(); } });
         obs.observe(document.body, { childList: true, subtree: true });
     };
 
@@ -346,7 +346,7 @@
         observerInstance.observe(document.body, { childList: true, subtree: true });
         installBell();
     };
-    
-    setInterval(() => { if(document.visibilityState === 'visible') fetchData(); }, 60000);
+
+    setInterval(() => { if (document.visibilityState === 'visible') fetchData(); }, 60000);
     startMainObserver();
 })();

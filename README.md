@@ -29,10 +29,11 @@ NotifySync transforme l'interface de Jellyfin en ajoutant une icône de notifica
 * **Anti-Spam :** Rate Limiting intégré.
 
 ### 🆕 Changelog v4.6.8
-* **Correctif Badge :** Le compteur de nouveautés s'affiche maintenant dès le chargement de la page (et non plus seulement au clic).
-* **Correctif Musique :** Les albums avec de nouvelles chansons remontent correctement dans les "Ajouts Récents".
+* **Correctif Badge :** Le compteur de nouveautés s'affiche maintenant dès le chargement de la page et persiste au rechargement (sauvegarde localStorage de `lastSeenDate`).
+* **Correctif Musique :** Les albums avec de nouvelles chansons remontent correctement dans les "Ajouts Récents". Le scan initial inclut maintenant les pistes Audio individuelles.
 * **Écriture Atomique :** Les fichiers de données (`user_data.json`) utilisent maintenant une écriture atomique (temp + rename) pour éviter toute corruption.
 * **Optimisation Mémoire :** Pré-dimensionnement des `HashSet` pour réduire les allocations.
+* **Nettoyage Code :** Suppression imports morts, commentaires dupliqués.
 
 ---
 

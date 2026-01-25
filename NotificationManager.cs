@@ -85,7 +85,7 @@ namespace NotifySync
             try
             {
                 var tempNotifs = new List<NotificationItem>();
-                var typesToScan = new[] { BaseItemKind.Movie, BaseItemKind.Episode, BaseItemKind.MusicAlbum };
+                var typesToScan = new[] { BaseItemKind.Movie, BaseItemKind.Episode, BaseItemKind.MusicAlbum, BaseItemKind.Audio };
                 var configCache = GetConfiguredCache();
                 int fetchLimit = 5000;
 

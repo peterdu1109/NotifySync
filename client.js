@@ -144,6 +144,7 @@
         try {
             const res = await fetch(`/NotifySync/LastSeen/${getUserId()}`, { headers: getAuthHeaders() });
             lastSeenDate = new Date(JSON.parse(await res.text()));
+            localStorage.setItem('ns-lastseen', lastSeenDate.toISOString());
         } catch (e) { lastSeenDate = new Date(0); }
     };
 
@@ -164,12 +165,17 @@
                 const statusMap = await res.json();
                 currentData.forEach(item => {
                     if (statusMap.hasOwnProperty(item.Id)) item.Played = statusMap[item.Id];
-                    item.IsNew = !item.Played && (new Date(item.DateCreated) > lastSeenDate);
                 });
-                groupedData = processGrouping(currentData);
-                updateBadge();
             }
         } catch (e) { console.error("Bulk check failed", e); }
+    };
+
+    const recalculateNewStatus = () => {
+        currentData.forEach(item => {
+            item.IsNew = !item.Played && (new Date(item.DateCreated) > lastSeenDate);
+        });
+        groupedData = processGrouping(currentData);
+        updateBadge();
     };
 
     const fetchData = async () => {
@@ -186,8 +192,9 @@
             const [_, res] = await Promise.all([lastSeenPromise, dataPromise]);
 
             if (res.status === 304) {
+                // Data unchanged, just refresh play states and recalculate
                 await refreshPlayStates();
-                updateBadge(); // Ensure badge updates even on 304
+                recalculateNewStatus();
             }
             else if (res.ok) {
                 const json = await res.json();
@@ -195,8 +202,13 @@
                 const newEtag = res.headers.get('ETag');
                 if (newEtag) localStorage.setItem('ns-etag', newEtag);
                 localStorage.setItem('ns-data', JSON.stringify(currentData));
+
+                // First show badge immediately with available data
+                recalculateNewStatus();
+
+                // Then fetch accurate play states and refresh
                 await refreshPlayStates();
-                updateBadge(); // Ensure badge updates after fresh data
+                recalculateNewStatus();
                 retryDelay = 2000;
             }
 
@@ -211,8 +223,22 @@
 
     const loadFromCache = () => {
         try {
+            // Restore lastSeenDate from localStorage first
+            const cachedLastSeen = localStorage.getItem('ns-lastseen');
+            if (cachedLastSeen) {
+                lastSeenDate = new Date(cachedLastSeen);
+            }
+
             const cached = localStorage.getItem('ns-data');
-            if (cached) { currentData = JSON.parse(cached); groupedData = processGrouping(currentData); updateBadge(); }
+            if (cached) {
+                currentData = JSON.parse(cached);
+                // Recalculate IsNew with restored lastSeenDate
+                currentData.forEach(item => {
+                    item.IsNew = !item.Played && (new Date(item.DateCreated) > lastSeenDate);
+                });
+                groupedData = processGrouping(currentData);
+                updateBadge();
+            }
         } catch (e) { }
     };
 

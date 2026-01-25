@@ -1,4 +1,4 @@
-/* NOTIFYSYNC V4.6.7 */
+/* NOTIFYSYNC V4.6.8 */
 (function () {
     let currentData = [];
     let groupedData = [];
@@ -187,6 +187,7 @@
 
             if (res.status === 304) {
                 await refreshPlayStates();
+                updateBadge(); // Ensure badge updates even on 304
             }
             else if (res.ok) {
                 const json = await res.json();
@@ -195,6 +196,7 @@
                 if (newEtag) localStorage.setItem('ns-etag', newEtag);
                 localStorage.setItem('ns-data', JSON.stringify(currentData));
                 await refreshPlayStates();
+                updateBadge(); // Ensure badge updates after fresh data
                 retryDelay = 2000;
             }
 

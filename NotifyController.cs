@@ -10,7 +10,6 @@ using System.Threading;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Net;
-using MediaBrowser.Model.Dto;
 using MediaBrowser.Model.Querying;
 using System.Linq;
 
@@ -94,7 +93,6 @@ namespace NotifySync
             }
 
             // 2. Cache Miss or Stale -> Re-calculate
-            // 2. Cache Miss or Stale -> Re-calculate
             var rawNotifications = NotificationManager.Instance.GetRecentNotifications();
             
             // Extract all IDs from notifications to query against User permissions
@@ -113,7 +111,11 @@ namespace NotifySync
             };
             
             var allowedItems = _libraryManager.GetItemList(query);
-            var allowedIdSet = new HashSet<Guid>(allowedItems.Select(i => i.Id));
+            var allowedIdSet = new HashSet<Guid>(allowedItems.Count);
+            foreach (var item in allowedItems)
+            {
+                allowedIdSet.Add(item.Id);
+            }
 
             var filteredNotifications = new List<NotificationItem>(rawNotifications.Count);
             foreach (var notif in rawNotifications)
@@ -266,10 +268,15 @@ namespace NotifySync
         {
             try {
                 var path = Path.Combine(Plugin.Instance!.DataFolderPath, "user_data.json");
+                var tempPath = path + ".tmp";
                 var dictToSave = new Dictionary<string, string>(data);
                 
-                using var fs = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None);
-                JsonSerializer.Serialize(fs, dictToSave, ControllerJsonContext.Default.DictionaryStringString);
+                using (var fs = new FileStream(tempPath, FileMode.Create, FileAccess.Write, FileShare.None))
+                {
+                    JsonSerializer.Serialize(fs, dictToSave, ControllerJsonContext.Default.DictionaryStringString);
+                }
+                
+                System.IO.File.Move(tempPath, path, true);
             } catch { }
         }
 

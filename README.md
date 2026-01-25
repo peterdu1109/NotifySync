@@ -1,4 +1,4 @@
-# 🔔 NotifySync
+# 🔔 NotifySync v4.6.8
 
 **Le centre de notifications moderne que Jellyfin attendait.**
 
@@ -17,7 +17,7 @@ NotifySync transforme l'interface de Jellyfin en ajoutant une icône de notifica
 * **Indicateurs de lecture :** Synchronisation en temps réel avec le statut "Vu" de Jellyfin.
 * **📱 Compatibilité :** Fonctionne sur PC (Windows/Linux) & Mac et applications mobiles (Android/Iphone).<br>(Note : Ne fonctionne pas sur les interfaces TV comme Android TV, Apple TV, Tizen, etc).
 
-### 🚀 Performance (v4.6.7)
+### 🚀 Performance (v4.6.8)
 * **Zéro-Latence (Nouveau) :** Architecture de cache "Per-User". Les notifications sont servies instantanément depuis le cache RAM, sans recalcul, tant que le contenu ne change pas sur le serveur.
 * **.NET 9 Native :** Utilisation intensive de `FrozenSet` et `System.Threading.Lock` pour une rapidité extrême.
 * **Optimisation Réseau :** ETags intelligents qui évitent tout retéléchargement inutile par les clients.
@@ -28,13 +28,19 @@ NotifySync transforme l'interface de Jellyfin en ajoutant une icône de notifica
 * **Protection IDOR & XSS :** Correctifs de sécurité avancés et sanitisation HTML.
 * **Anti-Spam :** Rate Limiting intégré.
 
+### 🆕 Changelog v4.6.8
+* **Correctif Badge :** Le compteur de nouveautés s'affiche maintenant dès le chargement de la page (et non plus seulement au clic).
+* **Correctif Musique :** Les albums avec de nouvelles chansons remontent correctement dans les "Ajouts Récents".
+* **Écriture Atomique :** Les fichiers de données (`user_data.json`) utilisent maintenant une écriture atomique (temp + rename) pour éviter toute corruption.
+* **Optimisation Mémoire :** Pré-dimensionnement des `HashSet` pour réduire les allocations.
+
 ---
 
 ## 📦 Installation
 
 ### 1. Pré-requis
 * **Jellyfin 10.11.X**
-* **.NET 9 Runtime** (Obligatoire pour v4.6.7+).
+* **.NET 9 Runtime** (Obligatoire pour v4.6.8+).
 
 ### Méthode 1 : Via le Dépôt (Recommandé)
 1.  Ouvrez votre tableau de bord Jellyfin > **Extensions** > **Dépôts**.
@@ -45,7 +51,7 @@ NotifySync transforme l'interface de Jellyfin en ajoutant une icône de notifica
 4.  Redémarrez votre serveur Jellyfin.
 
 ### Méthode 2 : Installation Manuelle
-1.  Téléchargez le fichier `.zip` depuis la page [Releases](https://github.com/peterdu1109/NotifySync/releases/tag/v4.6.7).
+1.  Téléchargez le fichier `.zip` depuis la page [Releases](https://github.com/peterdu1109/NotifySync/releases/tag/v4.6.8).
 2.  Décompressez la DLL dans le dossier `plugins/NotifySync` de votre serveur.
 3.  Redémarrez Jellyfin.
 

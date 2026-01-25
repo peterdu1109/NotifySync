@@ -251,7 +251,14 @@ namespace NotifySync
                 }
                 else
                 {
-                    finalResults.AddRange(groupList.OrderByDescending(x => x.DateCreated).Take(limitPerCat));
+                    // Deduplicate by ID (keep the latest), then take top N
+                    var uniqueLatest = groupList
+                        .GroupBy(x => x.Id)
+                        .Select(g => g.OrderByDescending(i => i.DateCreated).First())
+                        .OrderByDescending(x => x.DateCreated)
+                        .Take(limitPerCat);
+
+                    finalResults.AddRange(uniqueLatest);
                 }
             }
 
@@ -326,17 +333,37 @@ namespace NotifySync
 
             bool isMovie = item is MediaBrowser.Controller.Entities.Movies.Movie;
             bool isEpisode = item is MediaBrowser.Controller.Entities.TV.Episode;
-            bool isMusic = item is MediaBrowser.Controller.Entities.Audio.MusicAlbum;
+            bool isMusicAlbum = item is MediaBrowser.Controller.Entities.Audio.MusicAlbum;
+            bool isAudio = item is MediaBrowser.Controller.Entities.Audio.Audio;
 
-            // Si ce n'est ni un film, ni un épisode, ni un album, on rejette.
-            // Cela rejette automatiquement les dossiers, saisons, artistes, etc.
-            if (!isMovie && !isEpisode && !isMusic) return null;
+            // Si ce n'est ni un film, ni un épisode, ni un album, ni une musique, on rejette.
+            if (!isMovie && !isEpisode && !isMusicAlbum && !isAudio) return null;
+
+            // Handling Music logic:
+            // If it's an Audio track, we want to notify for the Album (Parent), but use the Track's "DateCreated" 
+            // so it bubbles up as new content.
+            BaseItem itemToNotify = item;
+            if (isAudio)
+            {
+                var parent = item.GetParents().FirstOrDefault(p => p is MediaBrowser.Controller.Entities.Audio.MusicAlbum);
+                if (parent != null)
+                {
+                    itemToNotify = parent;
+                    isMusicAlbum = true;
+                }
+                else
+                {
+                    // Loose audio file or unknown structure?
+                    // Keep it as Audio or skip? 
+                    // Let's keep it as is, mapped to "Music" category.
+                }
+            }
 
             bool hasRestrictions = cache.Enabled.Count > 0 || cache.Manual.Count > 0 || cache.ManualNames.Count > 0;
             string? matchedLibraryId = null;
 
             // Essayer de trouver la bibliothèque racine
-            var rootLibrary = _libraryManager.GetCollectionFolders(item).FirstOrDefault();
+            var rootLibrary = _libraryManager.GetCollectionFolders(itemToNotify).FirstOrDefault();
 
             if (hasRestrictions)
             {
@@ -351,7 +378,7 @@ namespace NotifySync
                 // Si pas trouvé via rootLibrary, on remonte les parents (utile pour la structure Musique complexe)
                 if (matchedLibraryId == null)
                 {
-                    foreach (var parent in item.GetParents())
+                    foreach (var parent in itemToNotify.GetParents())
                     {
                         if (cache.Enabled.Contains(parent.Id) || cache.Manual.Contains(parent.Id))
                         {
@@ -382,7 +409,7 @@ namespace NotifySync
 
             string category = "Movie";
             if (isEpisode) category = "Series";
-            else if (isMusic) category = "Music";
+            else if (isMusicAlbum || isAudio) category = "Music";
 
             if (matchedLibraryId != null && Guid.TryParse(matchedLibraryId, out var libGuid))
             {
@@ -393,27 +420,27 @@ namespace NotifySync
             }
 
             List<string>? backdropTags = null;
-            var imgInfo = item.GetImageInfo(ImageType.Backdrop, 0);
+            var imgInfo = itemToNotify.GetImageInfo(ImageType.Backdrop, 0);
             if (imgInfo != null)
             {
                 backdropTags = [imgInfo.DateModified.Ticks.ToString("x")];
             }
 
-            var episode = item as MediaBrowser.Controller.Entities.TV.Episode;
+            var episode = itemToNotify as MediaBrowser.Controller.Entities.TV.Episode;
 
             return new NotificationItem
             {
-                Id = item.Id.ToString(),
-                Name = item.Name,
+                Id = itemToNotify.Id.ToString(),
+                Name = itemToNotify.Name,
                 Category = category,
                 SeriesName = episode?.SeriesName,
                 SeriesId = episode?.SeriesId.ToString(),
-                DateCreated = item.DateCreated,
-                Type = item.GetType().Name, 
-                RunTimeTicks = item.RunTimeTicks,
-                ProductionYear = item.ProductionYear,
+                DateCreated = item.DateCreated, // Use the Trigger Item's date (New Song) even if we display Album
+                Type = itemToNotify.GetType().Name, 
+                RunTimeTicks = itemToNotify.RunTimeTicks,
+                ProductionYear = itemToNotify.ProductionYear,
                 BackdropImageTags = backdropTags ?? [],
-                PrimaryImageTag = item.GetImageInfo(ImageType.Primary, 0)?.DateModified.Ticks.ToString("x"),
+                PrimaryImageTag = itemToNotify.GetImageInfo(ImageType.Primary, 0)?.DateModified.Ticks.ToString("x"),
                 IndexNumber = episode?.IndexNumber,
                 ParentIndexNumber = episode?.ParentIndexNumber
             };

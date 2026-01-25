@@ -1,4 +1,4 @@
-# 🔔 NotifySync v4.6.7
+# 🔔 NotifySync
 
 **Le centre de notifications moderne que Jellyfin attendait.**
 
@@ -24,8 +24,8 @@ NotifySync transforme l'interface de Jellyfin en ajoutant une icône de notifica
 * **Moteur optimisé :** Algorithmes O(1) pour la résolution des bibliothèques parentes.
 
 ### 🛡️ Sécurité & Confidentialité
-* **Respect des Permissions (Privacy) :** Isolation stricte des caches. Un utilisateur ne verra **jamais** les contenus d'autrui.
-* **Protection IDOR & XSS :** Correctifs de sécurité avancés (sanitisation HTML stricte et vérification des droits de lecture avant tout accès API).
+* **Respect des Permissions (Privacy) :** Isolation stricte via le moteur Jellyfin ("Core Engine Isolation"). Utilisation de `InternalItemsQuery` pour garantir qu'un utilisateur ne verra **jamais** de contenu non autorisé (par Tags, Classification, ou Librairie).
+* **Protection IDOR & XSS :** Correctifs de sécurité avancés et sanitisation HTML.
 * **Anti-Spam :** Rate Limiting intégré.
 
 ---

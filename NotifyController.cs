@@ -10,6 +10,8 @@ using System.Threading;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Net;
+using MediaBrowser.Model.Dto;
+using MediaBrowser.Model.Querying;
 using System.Linq;
 
 namespace NotifySync
@@ -92,20 +94,34 @@ namespace NotifySync
             }
 
             // 2. Cache Miss or Stale -> Re-calculate
+            // 2. Cache Miss or Stale -> Re-calculate
             var rawNotifications = NotificationManager.Instance.GetRecentNotifications();
-            var filteredNotifications = new List<NotificationItem>(rawNotifications.Count);
             
-            // Optimization: Avoid LINQ Where/ToList allocation
-            foreach(var notif in rawNotifications)
+            // Extract all IDs from notifications to query against User permissions
+            var allIds = new List<Guid>(rawNotifications.Count);
+            foreach (var n in rawNotifications)
             {
-                if (Guid.TryParse(notif.Id, out var itemId))
+                if (Guid.TryParse(n.Id, out var g)) allIds.Add(g);
+            }
+
+            // Bulk Query: Ask Jellyfin Core which of these IDs the user is allowed to see.
+            // This handles Libraries, Parental Ratings, Tags, Blocks, etc. efficiently (O(1) query set).
+            var query = new InternalItemsQuery(user)
+            {
+                ItemIds = allIds.ToArray(),
+                EnableTotalRecordCount = false
+            };
+            
+            var allowedItems = _libraryManager.GetItemList(query);
+            var allowedIdSet = new HashSet<Guid>(allowedItems.Select(i => i.Id));
+
+            var filteredNotifications = new List<NotificationItem>(rawNotifications.Count);
+            foreach (var notif in rawNotifications)
+            {
+                // Only return notifications for items that were returned by the secure query
+                if (Guid.TryParse(notif.Id, out var id) && allowedIdSet.Contains(id))
                 {
-                    var item = _libraryManager.GetItemById(itemId);
-                    // Critical Privacy Check: IsVisible
-                    if (item != null && item.IsVisible(user))
-                    {
-                        filteredNotifications.Add(notif);
-                    }
+                    filteredNotifications.Add(notif);
                 }
             }
 
@@ -140,22 +156,35 @@ namespace NotifySync
             if (user == null) return Ok(new Dictionary<string, bool>());
 
             var result = new Dictionary<string, bool>(itemIds.Count);
+            var queryIds = new List<Guid>();
 
             foreach (var idStr in itemIds)
             {
                 result[idStr] = false;
+                if (Guid.TryParse(idStr, out var guid)) queryIds.Add(guid);
+            }
 
-                if (Guid.TryParse(idStr, out var guid))
+            if (queryIds.Count > 0)
+            {
+                var query = new InternalItemsQuery(user)
                 {
-                    var item = _libraryManager.GetItemById(guid);
-                    // Privacy Check: Explicit visibility check before revealing Played status
-                    // This prevents IDOR where a user checks status of an item they can't see
-                    if (item is not null && item.IsVisible(user))
+                    ItemIds = queryIds.ToArray(),
+                    EnableTotalRecordCount = false
+                };
+
+                // Bulk query allowed items
+                var allowedItems = _libraryManager.GetItemList(query);
+                var allowedItemMap = allowedItems.ToDictionary(i => i.Id);
+
+                foreach (var idStr in itemIds)
+                {
+                    if (Guid.TryParse(idStr, out var guid) && allowedItemMap.TryGetValue(guid, out var item))
                     {
+                        // Permission granted (item is in allowed list). Check UserData.
                         var userData = _userDataManager.GetUserData(user, item);
                         if (userData is not null)
                         {
-                            if (userData.Played) 
+                            if (userData.Played)
                             {
                                 result[idStr] = true;
                             }

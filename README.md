@@ -1,4 +1,4 @@
-# 🔔 NotifySync v4.6.8
+# 🔔 NotifySync
 
 **Le centre de notifications moderne que Jellyfin attendait.**
 
@@ -17,7 +17,7 @@ NotifySync transforme l'interface de Jellyfin en ajoutant une icône de notifica
 * **Indicateurs de lecture :** Synchronisation en temps réel avec le statut "Vu" de Jellyfin.
 * **📱 Compatibilité :** Fonctionne sur PC (Windows/Linux) & Mac et applications mobiles (Android/Iphone).<br>(Note : Ne fonctionne pas sur les interfaces TV comme Android TV, Apple TV, Tizen, etc).
 
-### 🚀 Performance (v4.6.8)
+### 🚀 Performance
 * **Zéro-Latence (Nouveau) :** Architecture de cache "Per-User". Les notifications sont servies instantanément depuis le cache RAM, sans recalcul, tant que le contenu ne change pas sur le serveur.
 * **.NET 9 Native :** Utilisation intensive de `FrozenSet` et `System.Threading.Lock` pour une rapidité extrême.
 * **Optimisation Réseau :** ETags intelligents qui évitent tout retéléchargement inutile par les clients.
@@ -27,13 +27,8 @@ NotifySync transforme l'interface de Jellyfin en ajoutant une icône de notifica
 * **Respect des Permissions (Privacy) :** Isolation stricte via le moteur Jellyfin ("Core Engine Isolation"). Utilisation de `InternalItemsQuery` pour garantir qu'un utilisateur ne verra **jamais** de contenu non autorisé (par Tags, Classification, ou Librairie).
 * **Protection IDOR & XSS :** Correctifs de sécurité avancés et sanitisation HTML.
 * **Anti-Spam :** Rate Limiting intégré.
-
-### 🆕 Changelog v4.6.8
-* **Correctif Badge :** Le compteur de nouveautés s'affiche maintenant dès le chargement de la page et persiste au rechargement (sauvegarde localStorage de `lastSeenDate`).
-* **Correctif Musique :** Les albums avec de nouvelles chansons remontent correctement dans les "Ajouts Récents". Le scan initial inclut maintenant les pistes Audio individuelles.
 * **Écriture Atomique :** Les fichiers de données (`user_data.json`) utilisent maintenant une écriture atomique (temp + rename) pour éviter toute corruption.
 * **Optimisation Mémoire :** Pré-dimensionnement des `HashSet` pour réduire les allocations.
-* **Nettoyage Code :** Suppression imports morts, commentaires dupliqués.
 
 ---
 
@@ -41,7 +36,7 @@ NotifySync transforme l'interface de Jellyfin en ajoutant une icône de notifica
 
 ### 1. Pré-requis
 * **Jellyfin 10.11.X**
-* **.NET 9 Runtime** (Obligatoire pour v4.6.8+).
+* **.NET 9 Runtime**
 
 ### Méthode 1 : Via le Dépôt (Recommandé)
 1.  Ouvrez votre tableau de bord Jellyfin > **Extensions** > **Dépôts**.
@@ -95,5 +90,12 @@ Allez dans **Tableau de bord > Extensions > NotifySync**.
 
 ## ❓ Dépannage
 
-* **La cloche n'apparaît pas ?** Assurez-vous d'avoir vidé le cache de votre navigateur et que le script JS est bien injecté.
-* **Mes albums de musique ne s'affichent pas ?** Vérifiez que le type de contenu de votre bibliothèque est bien défini sur "Music" dans Jellyfin.
+| Problème | Solution |
+|----------|----------|
+| **La cloche n'apparaît pas** | Videz le cache du navigateur (Ctrl+Shift+R). Vérifiez que le plugin est activé dans Extensions. |
+| **Le badge (chiffre) ne s'affiche pas** | Cliquez sur "Régénérer l'historique" dans la config du plugin. Videz le localStorage du navigateur. |
+| **Musique non synchronisée avec l'accueil** | Allez dans Config > "Régénérer l'historique" pour rescanner les pistes Audio. |
+| **Certains contenus n'apparaissent pas** | Vérifiez que la bibliothèque est cochée dans "Bibliothèques Surveillées". |
+| **Contenus visibles par un utilisateur non autorisé** | Le plugin respecte les permissions Jellyfin. Vérifiez les restrictions de l'utilisateur dans Jellyfin. |
+| **Erreur 429 lors du rafraîchissement** | Attendez 1 minute entre chaque clic sur "Régénérer l'historique" (protection anti-spam). |
+| **Plugin incompatible après mise à jour Jellyfin** | Vérifiez que vous utilisez Jellyfin 10.11.X avec .NET 9 Runtime. |

@@ -1,9 +1,11 @@
 using System;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using System.Collections.Generic;
 using System.Collections.Concurrent;
 using System.Threading.Tasks;
 using System.IO;
+using System.Security.Claims;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading;
@@ -17,6 +19,7 @@ namespace NotifySync
 {
     [ApiController]
     [Route("NotifySync")]
+    [Authorize]
     public class NotifyController : ControllerBase
     {
         private readonly IUserManager _userManager;
@@ -38,6 +41,32 @@ namespace NotifySync
             _userManager = userManager;
             _libraryManager = libraryManager;
             _userDataManager = userDataManager;
+        }
+
+        /// <summary>
+        /// Verifies the authenticated user is authorized to access data for the given userId.
+        /// Returns true if the authenticated user matches the requested userId, or if the user is an administrator.
+        /// </summary>
+        private bool IsAuthorizedForUser(string userId)
+        {
+            if (string.IsNullOrEmpty(userId)) return false;
+
+            // Get the authenticated user's ID from the claims
+            var authUserId = HttpContext.User.FindFirst("Jellyfin-UserId")?.Value;
+            if (string.IsNullOrEmpty(authUserId)) return false;
+
+            // Allow if the authenticated user matches the requested user
+            if (string.Equals(authUserId, userId, StringComparison.OrdinalIgnoreCase)) return true;
+
+            // Allow if this is an API key request
+            var isApiKey = HttpContext.User.FindFirst("Jellyfin-IsApiKey")?.Value;
+            if (string.Equals(isApiKey, "true", StringComparison.OrdinalIgnoreCase)) return true;
+
+            // Allow if the authenticated user is an admin (check claims)
+            var isAdmin = HttpContext.User.FindFirst("Jellyfin-IsAdministrator")?.Value;
+            if (string.Equals(isAdmin, "true", StringComparison.OrdinalIgnoreCase)) return true;
+
+            return false;
         }
 
         [HttpPost("Refresh")]
@@ -68,6 +97,9 @@ namespace NotifySync
         {
             if (NotificationManager.Instance == null) return Ok(Array.Empty<object>());
             if (string.IsNullOrEmpty(userId) || !Guid.TryParse(userId, out var userGuid)) return BadRequest("Invalid UserId");
+
+            // IDOR protection: verify authenticated user matches requested userId
+            if (!IsAuthorizedForUser(userId)) return Forbid();
 
             // Security check: Use IUserManager to verify user exists
             var user = _userManager.GetUserById(userGuid);
@@ -154,6 +186,9 @@ namespace NotifySync
                 return Ok(new Dictionary<string, bool>());
             }
 
+            // IDOR protection: verify authenticated user matches requested userId
+            if (!IsAuthorizedForUser(userId)) return Forbid();
+
             var user = _userManager.GetUserById(userGuid); 
             if (user == null) return Ok(new Dictionary<string, bool>());
 
@@ -209,6 +244,9 @@ namespace NotifySync
             // Simple validation that it's a GUID, though we treat it as string key
             if (!Guid.TryParse(userId, out _)) return BadRequest();
 
+            // IDOR protection: verify authenticated user matches requested userId
+            if (!IsAuthorizedForUser(userId)) return Forbid();
+
             var data = GetCachedUserData();
             if (data.TryGetValue(userId, out var date)) return Ok(date);
             return Ok("2000-01-01T00:00:00.000Z");
@@ -219,6 +257,9 @@ namespace NotifySync
         {
             if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(date)) return BadRequest();
             if (!Guid.TryParse(userId, out _)) return BadRequest();
+
+            // IDOR protection: verify authenticated user matches requested userId
+            if (!IsAuthorizedForUser(userId)) return Forbid();
             
             var data = GetCachedUserData();
             data.AddOrUpdate(userId, date, (_, _) => date);
@@ -277,11 +318,16 @@ namespace NotifySync
                 }
                 
                 System.IO.File.Move(tempPath, path, true);
-            } catch { }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[NotifySync] Failed to save user_data.json: {ex.Message}");
+            }
         }
 
         [HttpGet("Client.js")]
         [Produces("application/javascript")]
+        [AllowAnonymous]
         public ActionResult GetScript()
         {
             var assembly = typeof(NotifyController).Assembly;

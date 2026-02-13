@@ -1,5 +1,9 @@
 # 🔔 NotifySync
 
+![Dernière Version](https://img.shields.io/badge/version-4.6.9-blue)
+![Net Framework](https://img.shields.io/badge/.NET-9.0-purple)
+![Jellyfin](https://img.shields.io/badge/Jellyfin-10.11.X-blueviolet)
+
 **Le centre de notifications moderne que Jellyfin attendait.**
 
 NotifySync transforme l'interface de Jellyfin en ajoutant une icône de notification (cloche) native. Il permet à vos utilisateurs de voir instantanément les derniers ajouts (Films, Séries, Musique) sans quitter leur page actuelle, le tout avec un design fluide inspiré des plateformes de streaming majeures.
@@ -18,16 +22,18 @@ NotifySync transforme l'interface de Jellyfin en ajoutant une icône de notifica
 * **📱 Compatibilité :** Fonctionne sur PC (Windows/Linux) & Mac et applications mobiles (Android/Iphone).<br>(Note : Ne fonctionne pas sur les interfaces TV comme Android TV, Apple TV, Tizen, etc).
 
 ### 🚀 Performance
-* **Zéro-Latence (Nouveau) :** Architecture de cache "Per-User". Les notifications sont servies instantanément depuis le cache RAM, sans recalcul, tant que le contenu ne change pas sur le serveur.
+* **Zéro-Latence :** Architecture de cache "Per-User". Les notifications sont servies instantanément depuis le cache RAM, sans recalcul, tant que le contenu ne change pas sur le serveur.
 * **.NET 9 Native :** Utilisation intensive de `FrozenSet` et `System.Threading.Lock` pour une rapidité extrême.
 * **Optimisation Réseau :** ETags intelligents qui évitent tout retéléchargement inutile par les clients.
 * **Moteur optimisé :** Algorithmes O(1) pour la résolution des bibliothèques parentes.
 
 ### 🛡️ Sécurité & Confidentialité
 * **Respect des Permissions (Privacy) :** Isolation stricte via le moteur Jellyfin ("Core Engine Isolation"). Utilisation de `InternalItemsQuery` pour garantir qu'un utilisateur ne verra **jamais** de contenu non autorisé (par Tags, Classification, ou Librairie).
-* **Protection IDOR & XSS :** Correctifs de sécurité avancés et sanitisation HTML.
+* **🔒 Authentification obligatoire** (**Nouveau v4.6.9**) : Tous les endpoints API sont protégés par `[Authorize]`. L'authentification Jellyfin est requise pour accéder aux données.
+* **🛡️ Protection IDOR** (**Nouveau v4.6.9**) : Vérification que l'utilisateur authentifié correspond à l'utilisateur demandé. Un utilisateur ne peut pas accéder aux notifications d'un autre utilisateur (sauf les administrateurs).
+* **Protection XSS :** Sanitisation HTML sur toutes les données affichées.
 * **Anti-Spam :** Rate Limiting intégré.
-* **Écriture Atomique :** Les fichiers de données (`user_data.json`) utilisent maintenant une écriture atomique (temp + rename) pour éviter toute corruption.
+* **Écriture Atomique :** Les fichiers de données (`user_data.json`) utilisent une écriture atomique (temp + rename) pour éviter toute corruption.
 * **Optimisation Mémoire :** Pré-dimensionnement des `HashSet` pour réduire les allocations.
 
 ---
@@ -47,7 +53,7 @@ NotifySync transforme l'interface de Jellyfin en ajoutant une icône de notifica
 4.  Redémarrez votre serveur Jellyfin.
 
 ### Méthode 2 : Installation Manuelle
-1.  Téléchargez le fichier `.zip` depuis la page [Releases](https://github.com/peterdu1109/NotifySync/releases/tag/v4.6.8).
+1.  Téléchargez le fichier `.zip` depuis la page [Releases](https://github.com/peterdu1109/NotifySync/releases/tag/v4.6.9).
 2.  Décompressez la DLL dans le dossier `plugins/NotifySync` de votre serveur.
 3.  Redémarrez Jellyfin.
 
@@ -85,6 +91,15 @@ Allez dans **Tableau de bord > Extensions > NotifySync**.
 * **Bibliothèques Surveillées :** Cochez les dossiers que vous souhaitez voir apparaître dans les notifications.
 * **Mappage de Catégories :** Renommez vos bibliothèques pour l'affichage.
     * *Exemple :* Bibliothèque `4K-Movies` ➡️ Afficher comme `Films`.
+
+---
+
+## 📋 Changelog (v4.6.9)
+
+*   🔒 **Authentification obligatoire** : Ajout de `[Authorize]` sur tous les endpoints API (sauf Client.js).
+*   🛡️ **Protection IDOR** : Vérification d'identité sur les endpoints Data, BulkUserData, LastSeen.
+*   🔐 **Vérification admin** : Les administrateurs peuvent accéder aux données de tous les utilisateurs.
+*   🛠️ **Journalisation des erreurs** : Les erreurs de sauvegarde du fichier `user_data.json` sont désormais loguées au lieu d'être silencieusement ignorées.
 
 ---
 

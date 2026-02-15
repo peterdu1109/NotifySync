@@ -10,33 +10,24 @@ NotifySync transforme l'interface de Jellyfin en ajoutant une icône de notifica
 
 ---
 
-## ✨ Fonctionnalités
 
-### 🎨 Expérience Utilisateur Premium
-* **Design "Netflix-Style" :** Intégration transparente d'une cloche avec badge de nouveautés.
-* **Interface Moderne :** Menu déroulant avec effet de flou ("Glassmorphism"), animations fluides et chargement différé des images (Lazy Loading).
-* **Hero Section :** Mise en avant visuelle du contenu le plus récent en haut de la liste.
-* **Regroupement Intelligent :** Fini le spam ! Les épisodes d'une même saison sont regroupés (ex: *"S01 • 3 nouveaux épisodes"*).
-* **Support Complet :** Compatible avec les **Films**, **Séries** et **Albums de Musique**.
-* **Indicateurs de lecture :** Synchronisation en temps réel avec le statut "Vu" de Jellyfin.
-* **📱 Compatibilité :** Fonctionne sur PC (Windows/Linux) & Mac et applications mobiles (Android/Iphone).<br>(Note : Ne fonctionne pas sur les interfaces TV comme Android TV, Apple TV, Tizen, etc).
+## ✨ Fonctionnalités Principales
+
+### 🎨 Expérience Utilisateur
+*   **Design Moderne** : Intégration fluide "Netflix-Style" avec badge de nouveautés et effets visuels (Glassmorphism).
+*   **Navigation Intuitive** : "Hero Section" pour les derniers ajouts et regroupement intelligent des épisodes.
+*   **Synchronisation** : Indicateurs "Vu/Non vu" en temps réel avec Jellyfin.
+*   **Compatibilité** : PC/Mac et Mobiles (via app officielle). *Note : Non supporté sur TV.*
 
 ### 🚀 Performance
-* **Zéro-Latence :** Architecture de cache "Per-User". Les notifications sont servies instantanément depuis le cache RAM, sans recalcul, tant que le contenu ne change pas sur le serveur.
-* **.NET 9 Native :** Utilisation intensive de `FrozenSet` et `System.Threading.Lock` pour une rapidité extrême.
-* **Optimisation Réseau :** ETags intelligents qui évitent tout retéléchargement inutile par les clients.
-* **Moteur optimisé :** Algorithmes O(1) pour la résolution des bibliothèques parentes.
+*   **Zéro-Latence** : Système de cache RAM intelligent pour un affichage instantané.
+*   **Optimisé .NET 9** : Architecture haute performance et faible consommation.
+*   **Efficacité** : Gestion optimisée du réseau (ETags) et des ressources serveur.
 
 ### 🛡️ Sécurité & Confidentialité
-* **Respect des Permissions (Privacy) :** Isolation stricte via le moteur Jellyfin ("Core Engine Isolation"). Utilisation de `InternalItemsQuery` pour garantir qu'un utilisateur ne verra **jamais** de contenu non autorisé (par Tags, Classification, ou Librairie).
-* **🔒 Authentification obligatoire** (**Nouveau v4.6.9**) : Tous les endpoints API sont protégés par `[Authorize]`. L'authentification Jellyfin est requise pour accéder aux données.
-* **🛡️ Protection IDOR** (**Nouveau v4.6.9**) : Vérification que l'utilisateur authentifié correspond à l'utilisateur demandé. Un utilisateur ne peut pas accéder aux notifications d'un autre utilisateur (sauf les administrateurs).
-* **Protection XSS :** Sanitisation HTML sur toutes les données affichées.
-* **Anti-Spam :** Rate Limiting intégré.
-* **Écriture Atomique :** Les fichiers de données (`user_data.json`) utilisent une écriture atomique (temp + rename) pour éviter toute corruption.
-* **Optimisation Mémoire :** Pré-dimensionnement des `HashSet` pour réduire les allocations.
-
----
+*   **Respect des Permissions** : Isolation stricte des données (Tags, Classification, Bibliothèques).
+*   **Authentification Forte** : Protection de tous les endpoints API et vérification d'identité (Anti-IDOR).
+*   **Sécurité Active** : Protection XSS, Anti-Spam et écriture atomique des données.
 
 ## 📦 Installation
 
@@ -87,19 +78,9 @@ Vous devez ajouter **une seule ligne** à votre fichier `index.html` pour charge
 
 Allez dans **Tableau de bord > Extensions > NotifySync**.
 
-* **Quotas :** Définissez combien d'éléments afficher par catégorie (ex: 5 films, 5 séries...).
-* **Bibliothèques Surveillées :** Cochez les dossiers que vous souhaitez voir apparaître dans les notifications.
-* **Mappage de Catégories :** Renommez vos bibliothèques pour l'affichage.
-    * *Exemple :* Bibliothèque `4K-Movies` ➡️ Afficher comme `Films`.
-
----
-
-## 📋 Changelog (v4.6.9)
-
-*   🔒 **Authentification obligatoire** : Ajout de `[Authorize]` sur tous les endpoints API (sauf Client.js).
-*   🛡️ **Protection IDOR** : Vérification d'identité sur les endpoints Data, BulkUserData, LastSeen.
-*   🔐 **Vérification admin** : Les administrateurs peuvent accéder aux données de tous les utilisateurs.
-*   🛠️ **Journalisation des erreurs** : Les erreurs de sauvegarde du fichier `user_data.json` sont désormais loguées au lieu d'être silencieusement ignorées.
+* **Quotas** : Définissez combien d'éléments afficher par catégorie (ex: 5 films, 5 séries...).
+* **Bibliothèques Surveillées** : Cochez les dossiers que vous souhaitez voir apparaître dans les notifications.
+* **Mappage de Catégories** : Renommez vos bibliothèques pour l'affichage.
 
 ---
 

@@ -9,6 +9,22 @@
     "supportUrl": "https://github.com/",
     "versions": [
       {
+        "version": "4.7.6.0",
+        "changelog": "- FIX: TaskCanceledException on Client.js (optimized async streaming). (v4.7.6)",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/4.7.6/NotifySync_v4.7.6.zip",
+        "checksum": "6160B698C4CC381F588B85F0A9FCA9E8",
+        "timestamp": "2025-02-17T23:55:00Z"
+      },
+      {
+        "version": "4.7.5.0",
+        "changelog": "- FIX: DirectoryNotFoundException on Linux (failure to create data directory). (v4.7.5)",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/4.7.5/NotifySync_v4.7.5.zip",
+        "checksum": "5BD5C5ACB80166682605D1CE5CB9BDDA",
+        "timestamp": "2025-02-17T23:45:00Z"
+      },
+      {
         "version": "4.7.4.0",
         "changelog": "- FIX: Linux compatibility (case-insensitive User IDs). (v4.7.4)\n- FIX: Added error logging for file permission issues. (v4.7.4)",
         "targetAbi": "10.11.0.0",

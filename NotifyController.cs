@@ -316,6 +316,9 @@ namespace NotifySync
         {
             try {
                 var path = Path.Combine(Plugin.Instance!.DataFolderPath, "user_data.json");
+                var dir = Path.GetDirectoryName(path);
+                if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
+
                 var tempPath = path + ".tmp";
                 var dictToSave = new Dictionary<string, string>(data, StringComparer.OrdinalIgnoreCase);
                 
@@ -340,7 +343,7 @@ namespace NotifySync
             var assembly = typeof(NotifyController).Assembly;
             var stream = assembly.GetManifestResourceStream("NotifySync.client.js");
             if (stream == null) return NotFound();
-            return File(stream, "application/javascript");
+            return File(stream, "application/javascript", enableRangeProcessing: true);
         }
     }
 

@@ -484,6 +484,9 @@ namespace NotifySync
                     finally { _dataLock.ExitReadLock(); }
 
                     var tempPath = _jsonPath + ".tmp";
+                    var dir = Path.GetDirectoryName(_jsonPath);
+                    if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
+
                     using (var fs = new FileStream(tempPath, FileMode.Create, FileAccess.Write, FileShare.None))
                     {
                         JsonSerializer.Serialize(fs, copy, NotificationJsonContext.Default.ListNotificationItem);

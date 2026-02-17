@@ -1,4 +1,4 @@
-/* NOTIFYSYNC V4.7.1 */
+/* NOTIFYSYNC V4.7.2 */
 (function () {
     let currentData = [];
     let groupedData = [];
@@ -145,15 +145,19 @@
 
     const fetchLastSeen = async () => {
         const userId = getUserId();
-        if (!userId) {
-            lastSeenDate = new Date(0);
-            return;
-        }
+        if (!userId) return; // Keep existing lastSeenDate (from cache)
+
         try {
             const res = await fetch(`/NotifySync/LastSeen/${userId}`, { headers: getAuthHeaders() });
-            lastSeenDate = new Date(JSON.parse(await res.text()));
-            localStorage.setItem('ns-lastseen', lastSeenDate.toISOString());
-        } catch (e) { lastSeenDate = new Date(0); }
+            if (res.ok) {
+                const text = await res.text();
+                // Ensure valid date string
+                if (text && text.length > 5) {
+                    lastSeenDate = new Date(JSON.parse(text));
+                    localStorage.setItem('ns-lastseen', lastSeenDate.toISOString());
+                }
+            }
+        } catch (e) { console.warn("NotifySync: LastSeen fetch failed, using cache."); }
     };
 
     const updateLastSeen = async () => {

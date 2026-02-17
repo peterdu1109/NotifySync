@@ -9,6 +9,14 @@
     "supportUrl": "https://github.com/",
     "versions": [
       {
+        "version": "4.7.3.0",
+        "changelog": "- FIX: Private mode / Incognito initialization issue (bell missing). (v4.7.3)",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/4.7.3/NotifySync_v4.7.3.zip",
+        "checksum": "2068CF6B238F1028622D2C8A97281139",
+        "timestamp": "2025-02-17T23:25:00Z"
+      },
+      {
         "version": "4.7.2.0",
         "changelog": "- FIX: LastSeen reset on error (played items showing as new). (v4.7.2)",
         "targetAbi": "10.11.0.0",

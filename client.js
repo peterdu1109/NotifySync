@@ -1,4 +1,4 @@
-/* NOTIFYSYNC V4.7.2 */
+/* NOTIFYSYNC V4.7.3 */
 (function () {
     let currentData = [];
     let groupedData = [];
@@ -36,6 +36,7 @@
     };
 
     const getAuthHeaders = () => {
+        if (!window.ApiClient) return {};
         return {
             'Content-Type': 'application/json',
             'X-Emby-Token': window.ApiClient.accessToken()
@@ -115,6 +116,7 @@
     };
 
     const getUserId = () => {
+        if (!window.ApiClient) return null;
         const userId = window.ApiClient.getCurrentUserId();
         return (userId && userId !== 'null' && userId !== 'undefined') ? userId : null;
     };

@@ -31,6 +31,12 @@ NotifySync transforme l'interface de Jellyfin en ajoutant une icône de notifica
 
 ## 📦 Installation
 
+### v4.7.3 (2025-02-17)
+- **FIX**: Résolution du problème d'initialisation en Navigation Privée (ou session vide).
+- **FIX**: La cloche s'affiche correctement même si l'utilisateur n'était pas encore authentifié au chargement du script.
+
+### v4.7.2 (2025-02-17)
+
 ### 1. Pré-requis
 * **Jellyfin 10.11.X**
 * **.NET 9 Runtime**

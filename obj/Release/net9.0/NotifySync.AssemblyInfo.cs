@@ -13,11 +13,11 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("NotifySync")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyDescriptionAttribute("Centre de notifications sécurisé et haute performance pour Jellyfin")]
-[assembly: System.Reflection.AssemblyFileVersionAttribute("4.7.2.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("4.7.2+6ec5bdae3fd3e45434a09384f04a6a9d72145287")]
+[assembly: System.Reflection.AssemblyFileVersionAttribute("4.7.3.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("4.7.3+c1fc97f7af7979c3d04ac0ca85b6f72a4f5fe4ef")]
 [assembly: System.Reflection.AssemblyProductAttribute("NotifySync")]
 [assembly: System.Reflection.AssemblyTitleAttribute("NotifySync")]
-[assembly: System.Reflection.AssemblyVersionAttribute("4.7.2.0")]
+[assembly: System.Reflection.AssemblyVersionAttribute("4.7.3.0")]
 
 // Généré par la classe MSBuild WriteCodeFragment.
 

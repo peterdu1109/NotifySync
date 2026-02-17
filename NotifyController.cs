@@ -335,15 +335,31 @@ namespace NotifySync
             }
         }
 
+        private static byte[]? _clientJsCache;
+        private static readonly Lock _jsLock = new();
+
         [HttpGet("Client.js")]
         [Produces("application/javascript")]
         [AllowAnonymous]
         public ActionResult GetScript()
         {
-            var assembly = typeof(NotifyController).Assembly;
-            var stream = assembly.GetManifestResourceStream("NotifySync.client.js");
-            if (stream == null) return NotFound();
-            return File(stream, "application/javascript", enableRangeProcessing: true);
+            if (_clientJsCache == null)
+            {
+                lock (_jsLock)
+                {
+                    if (_clientJsCache == null)
+                    {
+                        var assembly = typeof(NotifyController).Assembly;
+                        using var stream = assembly.GetManifestResourceStream("NotifySync.client.js");
+                        if (stream == null) return NotFound();
+                        
+                        using var ms = new MemoryStream();
+                        stream.CopyTo(ms);
+                        _clientJsCache = ms.ToArray();
+                    }
+                }
+            }
+            return File(_clientJsCache, "application/javascript");
         }
     }
 

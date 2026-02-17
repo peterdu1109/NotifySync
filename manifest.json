@@ -1,8 +1,8 @@
 {
   "Guid": "95655672-2342-4321-8291-321312312312",
   "Name": "NotifySync",
-  "Description": "Notifications style Netflix. v4.7.3 : Fix Private Mode initialization.",
-  "Version": "4.7.3.0",
+  "Description": "Notifications style Netflix. v4.7.4 : Correctif Linux (Permissions/Case-sensitivity).",
+  "Version": "4.7.4.0",
   "Owner": "Peterdu1109 & ElieM",
   "Category": "UI",
   "TargetAbi": "10.11.0.0"

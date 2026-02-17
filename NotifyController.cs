@@ -9,8 +9,9 @@ using System.Security.Claims;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading;
-using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Entities;
+using MediaBrowser.Controller.Library;
+using Microsoft.Extensions.Logging;
 using MediaBrowser.Controller.Net;
 using MediaBrowser.Model.Querying;
 using System.Linq;
@@ -25,22 +26,24 @@ namespace NotifySync
         private readonly IUserManager _userManager;
         private readonly ILibraryManager _libraryManager;
         private readonly IUserDataManager _userDataManager;
+        private readonly ILogger<NotifyController> _logger;
         
         // Cache: UserId -> (ServerVersionHash, FilteredList, ETag)
-        // This avoids re-running IsVisible loop for every user every 60 seconds if nothing changed on server.
         private static readonly ConcurrentDictionary<Guid, (string Version, List<NotificationItem> Items, string ETag)> _userViewCache = new();
         
+        // Case-insensitive dictionary for User IDs (crucial for Linux/Reverse Proxy compatibility)
         private static ConcurrentDictionary<string, string>? _userLastSeenCache;
         private static readonly Lock _fileLock = new();
 
         private static DateTime _lastRefreshTime = DateTime.MinValue;
         private static readonly Lock _refreshLock = new();
 
-        public NotifyController(IUserManager userManager, ILibraryManager libraryManager, IUserDataManager userDataManager)
+        public NotifyController(IUserManager userManager, ILibraryManager libraryManager, IUserDataManager userDataManager, ILogger<NotifyController> logger)
         {
             _userManager = userManager;
             _libraryManager = libraryManager;
             _userDataManager = userDataManager;
+            _logger = logger;
         }
 
         /// <summary>
@@ -287,7 +290,7 @@ namespace NotifySync
                         var path = Path.Combine(Plugin.Instance!.DataFolderPath, "user_data.json");
                         if (!System.IO.File.Exists(path)) 
                         {
-                            _userLastSeenCache = new ConcurrentDictionary<string, string>();
+                            _userLastSeenCache = new ConcurrentDictionary<string, string>(StringComparer.OrdinalIgnoreCase);
                         }
                         else
                         {
@@ -295,9 +298,13 @@ namespace NotifySync
                             {
                                 using var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
                                 var dict = JsonSerializer.Deserialize(fs, ControllerJsonContext.Default.DictionaryStringString);
-                                _userLastSeenCache = new ConcurrentDictionary<string, string>(dict ?? []);
+                                _userLastSeenCache = new ConcurrentDictionary<string, string>(dict ?? [], StringComparer.OrdinalIgnoreCase);
                             }
-                            catch { _userLastSeenCache = new ConcurrentDictionary<string, string>(); }
+                            catch (Exception ex)
+                            {
+                                _logger.LogError(ex, "Erreur chargement user_data.json");
+                                _userLastSeenCache = new ConcurrentDictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                            }
                         }
                     }
                 }
@@ -310,7 +317,7 @@ namespace NotifySync
             try {
                 var path = Path.Combine(Plugin.Instance!.DataFolderPath, "user_data.json");
                 var tempPath = path + ".tmp";
-                var dictToSave = new Dictionary<string, string>(data);
+                var dictToSave = new Dictionary<string, string>(data, StringComparer.OrdinalIgnoreCase);
                 
                 using (var fs = new FileStream(tempPath, FileMode.Create, FileAccess.Write, FileShare.None))
                 {
@@ -321,7 +328,7 @@ namespace NotifySync
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[NotifySync] Failed to save user_data.json: {ex.Message}");
+                _logger.LogError(ex, "Erreur sauvegarde user_data.json");
             }
         }
 

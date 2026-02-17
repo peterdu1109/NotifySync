@@ -1,4 +1,4 @@
-/* NOTIFYSYNC V4.6.9 */
+/* NOTIFYSYNC V4.7.0 */
 (function () {
     let currentData = [];
     let groupedData = [];
@@ -114,7 +114,10 @@
         const style = document.createElement('style'); style.id = 'notifysync-css'; style.textContent = css; document.head.appendChild(style);
     };
 
-    const getUserId = () => window.ApiClient.getCurrentUserId();
+    const getUserId = () => {
+        const userId = window.ApiClient.getCurrentUserId();
+        return (userId && userId !== 'null' && userId !== 'undefined') ? userId : null;
+    };
 
     const processGrouping = (items) => {
         const seriesMap = new Map();
@@ -141,15 +144,23 @@
     };
 
     const fetchLastSeen = async () => {
+        const userId = getUserId();
+        if (!userId) {
+            lastSeenDate = new Date(0);
+            return;
+        }
         try {
-            const res = await fetch(`/NotifySync/LastSeen/${getUserId()}`, { headers: getAuthHeaders() });
+            const res = await fetch(`/NotifySync/LastSeen/${userId}`, { headers: getAuthHeaders() });
             lastSeenDate = new Date(JSON.parse(await res.text()));
             localStorage.setItem('ns-lastseen', lastSeenDate.toISOString());
         } catch (e) { lastSeenDate = new Date(0); }
     };
 
     const updateLastSeen = async () => {
-        await fetch(`/NotifySync/LastSeen/${getUserId()}?date=${encodeURIComponent(new Date().toISOString())}`, { method: 'POST', headers: getAuthHeaders() });
+        const userId = getUserId();
+        if (!userId) return;
+
+        await fetch(`/NotifySync/LastSeen/${userId}?date=${encodeURIComponent(new Date().toISOString())}`, { method: 'POST', headers: getAuthHeaders() });
         lastSeenDate = new Date();
         currentData.forEach(i => i.IsNew = false);
         groupedData = processGrouping(currentData);
@@ -158,9 +169,10 @@
     };
 
     const refreshPlayStates = async () => {
-        if (!currentData.length) return;
+        const userId = getUserId();
+        if (!currentData.length || !userId) return;
         try {
-            const res = await fetch(`/NotifySync/BulkUserData?userId=${getUserId()}`, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(currentData.map(i => i.Id)) });
+            const res = await fetch(`/NotifySync/BulkUserData?userId=${userId}`, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(currentData.map(i => i.Id)) });
             if (res.ok) {
                 const statusMap = await res.json();
                 currentData.forEach(item => {
@@ -180,6 +192,15 @@
 
     const fetchData = async () => {
         if (isFetching) return;
+
+        const userId = getUserId();
+        if (!userId) {
+            // No user ID yet (e.g. not logged in fully), retry with backoff
+            setTimeout(fetchData, retryDelay);
+            retryDelay = Math.min(retryDelay * 1.5, 60000); // 2s, 3s, 4.5s... max 60s
+            return;
+        }
+
         isFetching = true;
         try {
             const lastSeenPromise = fetchLastSeen();
@@ -187,7 +208,7 @@
             const headers = getAuthHeaders();
             if (lastEtag) headers['If-None-Match'] = lastEtag;
 
-            const dataPromise = fetch(`/NotifySync/Data?userId=${getUserId()}`, { headers: headers });
+            const dataPromise = fetch(`/NotifySync/Data?userId=${userId}`, { headers: headers });
 
             const [_, res] = await Promise.all([lastSeenPromise, dataPromise]);
 

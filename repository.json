@@ -9,6 +9,14 @@
     "supportUrl": "https://github.com/",
     "versions": [
       {
+        "version": "4.7.0.0",
+        "changelog": "- FIX: Résolution des erreurs 401 sur l'accueil causées par un `userId` null. (v4.7.0)\n- FIX: Protection contre les boucles de requêtes infinies (backoff). (v4.7.0)",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/4.7.0/NotifySync_v4.7.0.zip",
+        "checksum": "236EDE72BB0D27FC6A6687BDC3686D87",
+        "timestamp": "2025-02-17T22:40:00Z"
+      },
+      {
         "version": "4.6.9.0",
         "changelog": "- SECURITY: Added [Authorize] on all API endpoints (authentication required). (v4.6.9)\n- SECURITY: Added IDOR protection - users can only access their own notification data. (v4.6.9)\n- SECURITY: Client.js remains AllowAnonymous (static script). (v4.6.9)\n- FIX: Error logging for user_data.json save failures (no longer silently swallowed). (v4.6.9)",
         "targetAbi": "10.11.0.0",

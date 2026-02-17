@@ -1,8 +1,8 @@
 {
   "Guid": "95655672-2342-4321-8291-321312312312",
   "Name": "NotifySync",
-  "Description": "Notifications style Netflix. v4.6.8 : Optimisations & Correctifs.",
-  "Version": "4.6.8.0",
+  "Description": "Notifications style Netflix. v4.7.0 : Correctifs Cloudflare & UserId.",
+  "Version": "4.7.0.0",
   "Owner": "Peterdu1109 & ElieM",
   "Category": "UI",
   "TargetAbi": "10.11.0.0"

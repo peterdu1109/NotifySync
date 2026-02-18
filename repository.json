@@ -9,6 +9,38 @@
     "supportUrl": "https://github.com/",
     "versions": [
       {
+        "version": "4.7.11.0",
+        "changelog": "- FiX: Client.js polling improved. Added listener for 'viewshow' to detect login/navigation and retry auth instantly. (v4.7.11)",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/4.7.11/NotifySync_v4.7.11.zip",
+        "checksum": "F88A5863E91CC3ABDE8D57A5D87EFDBE",
+        "timestamp": "2025-02-18T00:55:00Z"
+      },
+      {
+        "version": "4.7.10.0",
+        "changelog": "- DEBUG: Added console logs for client-side debugging. (v4.7.10)",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/4.7.10/NotifySync_v4.7.10.zip",
+        "checksum": "7EAA03B0BD035A250A8FDF97CC5BB766",
+        "timestamp": "2025-02-18T00:45:00Z"
+      },
+      {
+        "version": "4.7.9.0",
+        "changelog": "- DEBUG: Added logging for Data Persistence & Auth (Private Mode/Linux fix attempt). (v4.7.9)",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/4.7.9/NotifySync_v4.7.9.zip",
+        "checksum": "581A02AE838DFAD8B610E128EEC140A3",
+        "timestamp": "2025-02-18T00:30:00Z"
+      },
+      {
+        "version": "4.7.8.0",
+        "changelog": "- DEBUG: Added extensive logging to Client.js loading. (v4.7.8)",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/4.7.8/NotifySync_v4.7.8.zip",
+        "checksum": "94AFAF5E4BAE251597C804C97A42834C",
+        "timestamp": "2025-02-18T00:15:00Z"
+      },
+      {
         "version": "4.7.7.0",
         "changelog": "- FIX: Client.js loading timeout/cancelation (Switched to Memory Cache). (v4.7.7)",
         "targetAbi": "10.11.0.0",

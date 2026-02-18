@@ -15,6 +15,7 @@ using Microsoft.Extensions.Logging;
 using MediaBrowser.Controller.Net;
 using MediaBrowser.Model.Querying;
 using System.Linq;
+using Microsoft.AspNetCore.Http;
 
 namespace NotifySync
 {
@@ -102,11 +103,21 @@ namespace NotifySync
             if (string.IsNullOrEmpty(userId) || !Guid.TryParse(userId, out var userGuid)) return BadRequest("Invalid UserId");
 
             // IDOR protection: verify authenticated user matches requested userId
-            if (!IsAuthorizedForUser(userId)) return Forbid();
+            if (!IsAuthorizedForUser(userId)) 
+            {
+                 _logger.LogWarning("GetData denied for user {UserId}", userId);
+                 return Forbid();
+            }
+
+            _logger.LogDebug("GetData requested for {UserId}", userId);
 
             // Security check: Use IUserManager to verify user exists
             var user = _userManager.GetUserById(userGuid);
-            if (user == null) return NotFound("User not found");
+            if (user == null) 
+            {
+                _logger.LogWarning("GetData: User {UserId} not found in UserManager", userId);
+                return NotFound("User not found");
+            }
 
             var currentGlobalVersion = NotificationManager.Instance.GetVersionHash();
 
@@ -240,30 +251,45 @@ namespace NotifySync
         }
 
         [HttpGet("LastSeen/{userId}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
         public ActionResult GetLastSeen(string userId)
         {
             if (string.IsNullOrEmpty(userId)) return BadRequest();
-
-            // Simple validation that it's a GUID, though we treat it as string key
             if (!Guid.TryParse(userId, out _)) return BadRequest();
 
-            // IDOR protection: verify authenticated user matches requested userId
-            if (!IsAuthorizedForUser(userId)) return Forbid();
+            // IDOR protection
+            if (!IsAuthorizedForUser(userId)) 
+            {
+                _logger.LogWarning("GetLastSeen denied for user {UserId} (Incident IDOR)", userId);
+                return Forbid();
+            }
 
             var data = GetCachedUserData();
-            if (data.TryGetValue(userId, out var date)) return Ok(date);
+            if (data.TryGetValue(userId, out var date)) 
+            {
+                _logger.LogDebug("GetLastSeen for {UserId}: Found {Date}", userId, date);
+                return Ok(date);
+            }
+
+            _logger.LogDebug("GetLastSeen for {UserId}: Not found, returning default", userId);
             return Ok("2000-01-01T00:00:00.000Z");
         }
 
         [HttpPost("LastSeen/{userId}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
         public ActionResult SetLastSeen(string userId, [FromQuery] string date)
         {
             if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(date)) return BadRequest();
             if (!Guid.TryParse(userId, out _)) return BadRequest();
 
-            // IDOR protection: verify authenticated user matches requested userId
             if (!IsAuthorizedForUser(userId)) return Forbid();
             
+            _logger.LogInformation("SetLastSeen for {UserId} to {Date}", userId, date);
+
             var data = GetCachedUserData();
             data.AddOrUpdate(userId, date, (_, _) => date);
             
@@ -288,8 +314,11 @@ namespace NotifySync
                     if (_userLastSeenCache == null)
                     {
                         var path = Path.Combine(Plugin.Instance!.DataFolderPath, "user_data.json");
+                        _logger.LogInformation("Loading user_data.json from {Path}", path);
+                        
                         if (!System.IO.File.Exists(path)) 
                         {
+                            _logger.LogWarning("user_data.json not found, creating new dictionary.");
                             _userLastSeenCache = new ConcurrentDictionary<string, string>(StringComparer.OrdinalIgnoreCase);
                         }
                         else
@@ -299,6 +328,7 @@ namespace NotifySync
                                 using var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
                                 var dict = JsonSerializer.Deserialize(fs, ControllerJsonContext.Default.DictionaryStringString);
                                 _userLastSeenCache = new ConcurrentDictionary<string, string>(dict ?? [], StringComparer.OrdinalIgnoreCase);
+                                _logger.LogInformation("Loaded {Count} entries from user_data.json", _userLastSeenCache.Count);
                             }
                             catch (Exception ex)
                             {
@@ -343,6 +373,7 @@ namespace NotifySync
         [AllowAnonymous]
         public ActionResult GetScript()
         {
+            _logger.LogInformation("Client.js requested by {IP}", HttpContext.Connection.RemoteIpAddress);
             if (_clientJsCache == null)
             {
                 lock (_jsLock)
@@ -351,11 +382,16 @@ namespace NotifySync
                     {
                         var assembly = typeof(NotifyController).Assembly;
                         using var stream = assembly.GetManifestResourceStream("NotifySync.client.js");
-                        if (stream == null) return NotFound();
+                        if (stream == null) 
+                        {
+                            _logger.LogError("Client.js resource NOT FOUND in assembly {Ass}", assembly.FullName);
+                            return NotFound();
+                        }
                         
                         using var ms = new MemoryStream();
                         stream.CopyTo(ms);
                         _clientJsCache = ms.ToArray();
+                        _logger.LogInformation("Client.js loaded into memory ({Size} bytes)", _clientJsCache.Length);
                     }
                 }
             }

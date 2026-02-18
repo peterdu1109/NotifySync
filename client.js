@@ -1,4 +1,4 @@
-/* NOTIFYSYNC V4.7.7 */
+/* NOTIFYSYNC V4.7.11 */
 (function () {
     let currentData = [];
     let groupedData = [];
@@ -201,12 +201,14 @@
 
         const userId = getUserId();
         if (!userId) {
+            console.warn("NotifySync: No userId auth found yet. Retrying in " + retryDelay + "ms");
             // No user ID yet (e.g. not logged in fully), retry with backoff
             setTimeout(fetchData, retryDelay);
             retryDelay = Math.min(retryDelay * 1.5, 60000); // 2s, 3s, 4.5s... max 60s
             return;
         }
 
+        console.log("NotifySync: Fetching data for UserID:", userId);
         isFetching = true;
         try {
             const lastSeenPromise = fetchLastSeen();
@@ -219,12 +221,14 @@
             const [_, res] = await Promise.all([lastSeenPromise, dataPromise]);
 
             if (res.status === 304) {
+                console.log("NotifySync: Data 304 Not Modified");
                 // Data unchanged, just refresh play states and recalculate
                 await refreshPlayStates();
                 recalculateNewStatus();
             }
             else if (res.ok) {
                 const json = await res.json();
+                console.log("NotifySync: Data received", json.length, "items");
                 currentData = json;
                 const newEtag = res.headers.get('ETag');
                 if (newEtag) localStorage.setItem('ns-etag', newEtag);
@@ -237,12 +241,15 @@
                 await refreshPlayStates();
                 recalculateNewStatus();
                 retryDelay = 2000;
+            } else {
+                console.error("NotifySync: Fetch failed", res.status, res.statusText);
             }
 
             const drop = document.getElementById('notification-dropdown');
             if (drop && drop.style.display === 'flex') updateList(drop);
 
         } catch (e) {
+            console.error("NotifySync: Error in fetchData", e);
             setTimeout(fetchData, retryDelay);
             retryDelay = Math.min(retryDelay * 2, 60000);
         } finally { isFetching = false; }
@@ -388,6 +395,8 @@
         div.firstChild.onclick = (e) => { e.preventDefault(); e.stopPropagation(); toggleDropdown(); };
         header.prepend(div);
         loadFromCache();
+
+        // Initial fetch attempt
         fetchData();
     };
 
@@ -401,6 +410,13 @@
         observerInstance.observe(document.body, { childList: true, subtree: true });
         installBell();
     };
+
+    // --- NEW: Listen for navigation/login events to retry auth check ---
+    document.addEventListener('viewshow', () => {
+        console.log("NotifySync: View changed, checking auth...");
+        retryDelay = 2000; // Reset backoff
+        fetchData();
+    });
 
     setInterval(() => { if (document.visibilityState === 'visible') fetchData(); }, 60000);
     startMainObserver();

@@ -59,6 +59,21 @@ NotifySync transforme l'interface de Jellyfin en ajoutant une icône de notifica
 
 Vous devez ajouter **une seule ligne** à votre fichier `index.html` pour charger la cloche.
 
+### Option A : Installation Automatique (Linux/Docker) - Recommandé
+
+Un script est fourni pour faire cette modification automatiquement.
+
+1.  Connectez-vous à votre serveur en SSH.
+2.  Téléchargez et lancez le script d'installation :
+    ```bash
+    curl -sL https://raw.githubusercontent.com/peterdu1109/NotifySync/main/scripts/install.sh | sudo bash
+    ```
+    *Le script détecte automatiquement votre installation Jellyfin (Native ou Docker).*
+
+### Option B : Modification Manuelle
+
+Si vous préférez le faire à la main :
+
 1.  Accédez au dossier d'installation de l'interface web Jellyfin :
     * **Linux :** `/usr/share/jellyfin/web/index.html`
     * **Docker :** `/jellyfin/jellyfin-web/index.html` (à monter en volume ou via CLI)

@@ -32,9 +32,25 @@ namespace NotifySync
         // Cache: UserId -> (ServerVersionHash, FilteredList, ETag)
         private static readonly ConcurrentDictionary<Guid, (string Version, List<NotificationItem> Items, string ETag)> _userViewCache = new();
         
-        // Case-insensitive dictionary for User IDs (crucial for Linux/Reverse Proxy compatibility)
         private static ConcurrentDictionary<string, string>? _userLastSeenCache;
         private static readonly Lock _fileLock = new();
+
+        private static readonly Timer _saveUserDataTimer = new Timer(SaveUserDataTimerCallback, null, Timeout.Infinite, Timeout.Infinite);
+        private static volatile bool _userDataHasUnsavedChanges = false;
+        private static ILogger<NotifyController>? _staticLogger;
+
+        private static void SaveUserDataTimerCallback(object? state)
+        {
+            if (_userDataHasUnsavedChanges)
+            {
+                _userDataHasUnsavedChanges = false;
+                lock (_fileLock)
+                {
+                    if (_userLastSeenCache != null)
+                        SaveUserDataToDisk(_userLastSeenCache);
+                }
+            }
+        }
 
         private static DateTime _lastRefreshTime = DateTime.MinValue;
         private static readonly Lock _refreshLock = new();
@@ -45,6 +61,7 @@ namespace NotifySync
             _libraryManager = libraryManager;
             _userDataManager = userDataManager;
             _logger = logger;
+            _staticLogger ??= logger;
         }
 
         /// <summary>
@@ -200,6 +217,11 @@ namespace NotifySync
                 return Ok(new Dictionary<string, bool>());
             }
 
+            if (itemIds.Count > 1000)
+            {
+                return BadRequest("Too many items requested.");
+            }
+
             // IDOR protection: verify authenticated user matches requested userId
             if (!IsAuthorizedForUser(userId)) return Forbid();
 
@@ -293,14 +315,8 @@ namespace NotifySync
             var data = GetCachedUserData();
             data.AddOrUpdate(userId, date, (_, _) => date);
             
-            // Fire and forget save
-            Task.Run(() => 
-            {
-                lock (_fileLock)
-                {
-                    SaveUserDataToDisk(data);
-                }
-            });
+            _userDataHasUnsavedChanges = true;
+            try { _saveUserDataTimer.Change(5000, Timeout.Infinite); } catch {}
 
             return Ok();
         }
@@ -342,7 +358,7 @@ namespace NotifySync
             return _userLastSeenCache;
         }
 
-        private void SaveUserDataToDisk(ConcurrentDictionary<string, string> data)
+        private static void SaveUserDataToDisk(ConcurrentDictionary<string, string> data)
         {
             try {
                 var path = Path.Combine(Plugin.Instance!.DataFolderPath, "user_data.json");
@@ -361,7 +377,7 @@ namespace NotifySync
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Erreur sauvegarde user_data.json");
+                _staticLogger?.LogError(ex, "Erreur sauvegarde user_data.json");
             }
         }
 

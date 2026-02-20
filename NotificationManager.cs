@@ -170,8 +170,11 @@ namespace NotifySync
             }
         }
 
+        private int _isProcessingBuffer = 0;
+
         private void ProcessBuffer(object? state)
         {
+            if (Interlocked.CompareExchange(ref _isProcessingBuffer, 1, 0) != 0) return;
             try
             {
                 if (_eventBuffer.IsEmpty) return;
@@ -204,6 +207,7 @@ namespace NotifySync
             }
             finally
             {
+                Interlocked.Exchange(ref _isProcessingBuffer, 0);
                 if (!_eventBuffer.IsEmpty)
                      try { _bufferProcessTimer.Change(1000, Timeout.Infinite); } catch {}
             }
@@ -214,60 +218,50 @@ namespace NotifySync
             var config = Plugin.Instance?.Configuration;
             int limitPerCat = Math.Max(config?.MaxItems ?? 5, 1);
 
-            List<NotificationItem> workingList;
-            _dataLock.EnterReadLock();
+            _dataLock.EnterWriteLock();
             try 
-            { 
-                workingList = isInitialLoad ? [] : new List<NotificationItem>(_notifications);
-            }
-            finally { _dataLock.ExitReadLock(); }
-
-            workingList.AddRange(incoming);
-
-            var finalResults = new List<NotificationItem>(workingList.Count);
-            var categoryGroups = workingList.GroupBy(n => n.Category);
-
-            foreach (var catGroup in categoryGroups)
             {
-                var groupList = catGroup.ToList();
-                bool containsEpisodes = groupList.Exists(x => x.Type == "Episode");
+                List<NotificationItem> workingList = isInitialLoad ? [] : new List<NotificationItem>(_notifications);
+                workingList.AddRange(incoming);
 
-                if (containsEpisodes)
+                var finalResults = new List<NotificationItem>(workingList.Count);
+                var categoryGroups = workingList.GroupBy(n => n.Category);
+
+                foreach (var catGroup in categoryGroups)
                 {
-                    var seriesClusters = groupList
-                        .GroupBy(x => x.SeriesId ?? x.Name) 
-                        .Select(g => new 
-                        { 
-                            SeriesGroup = g, 
-                            LatestDate = g.Max(x => x.DateCreated)
-                        })
-                        .OrderByDescending(x => x.LatestDate)
-                        .Take(limitPerCat); 
+                    var groupList = catGroup.ToList();
+                    bool containsEpisodes = groupList.Exists(x => x.Type == "Episode");
 
-                    foreach (var cluster in seriesClusters)
+                    if (containsEpisodes)
                     {
-                        finalResults.AddRange(cluster.SeriesGroup);
+                        var seriesClusters = groupList
+                            .GroupBy(x => x.SeriesId ?? x.Name) 
+                            .Select(g => new 
+                            { 
+                                SeriesGroup = g, 
+                                LatestDate = g.Max(x => x.DateCreated)
+                            })
+                            .OrderByDescending(x => x.LatestDate)
+                            .Take(limitPerCat); 
+
+                        foreach (var cluster in seriesClusters)
+                        {
+                            finalResults.AddRange(cluster.SeriesGroup);
+                        }
+                    }
+                    else
+                    {
+                        var uniqueLatest = groupList
+                            .GroupBy(x => x.Id)
+                            .Select(g => g.OrderByDescending(i => i.DateCreated).First())
+                            .OrderByDescending(x => x.DateCreated)
+                            .Take(limitPerCat);
+
+                        finalResults.AddRange(uniqueLatest);
                     }
                 }
-                else
-                {
-                    // Deduplicate by ID (keep the latest), then take top N
-                    var uniqueLatest = groupList
-                        .GroupBy(x => x.Id)
-                        .Select(g => g.OrderByDescending(i => i.DateCreated).First())
-                        .OrderByDescending(x => x.DateCreated)
-                        .Take(limitPerCat);
 
-                    finalResults.AddRange(uniqueLatest);
-                }
-            }
-
-            var sortedFinal = finalResults.OrderByDescending(x => x.DateCreated).ToList();
-
-            _dataLock.EnterWriteLock();
-            try
-            {
-                _notifications = sortedFinal;
+                _notifications = finalResults.OrderByDescending(x => x.DateCreated).ToList();
                 UpdateVersion(); 
             }
             finally
@@ -478,7 +472,7 @@ namespace NotifySync
                     _dataLock.EnterReadLock();
                     try
                     {
-                        copy = _notifications.ToList();
+                        copy = _notifications.Select(n => n.Clone()).ToList();
                         _hasUnsavedChanges = false;
                     }
                     finally { _dataLock.ExitReadLock(); }
@@ -521,7 +515,7 @@ namespace NotifySync
         public List<NotificationItem> GetRecentNotifications()
         {
             _dataLock.EnterReadLock();
-            try { return _notifications.ToList(); }
+            try { return _notifications.Select(n => n.Clone()).ToList(); }
             finally { _dataLock.ExitReadLock(); }
         }
 
@@ -573,6 +567,26 @@ namespace NotifySync
         
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public int? ParentIndexNumber { get; set; } 
+
+        public NotificationItem Clone()
+        {
+            return new NotificationItem
+            {
+                Id = Id,
+                Name = Name,
+                Category = Category,
+                SeriesName = SeriesName,
+                SeriesId = SeriesId,
+                DateCreated = DateCreated,
+                Type = Type,
+                RunTimeTicks = RunTimeTicks,
+                ProductionYear = ProductionYear,
+                BackdropImageTags = [.. BackdropImageTags],
+                PrimaryImageTag = PrimaryImageTag,
+                IndexNumber = IndexNumber,
+                ParentIndexNumber = ParentIndexNumber
+            };
+        }
     }
 
     [JsonSerializable(typeof(List<NotificationItem>))]

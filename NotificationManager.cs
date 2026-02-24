@@ -33,6 +33,9 @@ namespace NotifySync
         
         private List<NotificationItem> _notifications = [];
         private long _versionCounter = DateTime.UtcNow.Ticks;
+        
+        private readonly CancellationTokenSource _disposeCts = new();
+        private const int GlobalRetentionLimit = 2000;
 
         public static NotificationManager? Instance { get; private set; }
 
@@ -55,7 +58,7 @@ namespace NotifySync
 
             if (_notifications.Count == 0)
             {
-                System.Threading.Tasks.Task.Run(PopulateInitialHistory);
+                System.Threading.Tasks.Task.Run(() => PopulateInitialHistory(_disposeCts.Token));
             }
 
             _libraryManager.ItemAdded += OnItemAdded;
@@ -67,7 +70,7 @@ namespace NotifySync
         {
             // On ne vide plus _notifications ici pour éviter la perte de données visuelles.
             // Le scan PopulateInitialHistory s'en occupera de manière atomique à la fin.
-            System.Threading.Tasks.Task.Run(PopulateInitialHistory);
+            System.Threading.Tasks.Task.Run(() => PopulateInitialHistory(_disposeCts.Token));
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -82,10 +85,11 @@ namespace NotifySync
             Interlocked.Increment(ref _versionCounter);
         }
 
-        private void PopulateInitialHistory()
+        private void PopulateInitialHistory(CancellationToken cancellationToken)
         {
             try
             {
+                _logger.LogInformation("Début du scan de l'historique initial.");
                 var tempNotifs = new List<NotificationItem>();
                 var typesToScan = new[] { BaseItemKind.Movie, BaseItemKind.Episode, BaseItemKind.MusicAlbum, BaseItemKind.Audio };
                 var configCache = GetConfiguredCache();
@@ -99,31 +103,46 @@ namespace NotifySync
 
                 foreach (var type in typesToScan)
                 {
-                    var query = new InternalItemsQuery
+                    if (cancellationToken.IsCancellationRequested) return;
+
+                    try
                     {
-                        IncludeItemTypes = [type],
-                        OrderBy = [(Jellyfin.Data.Enums.ItemSortBy.DateCreated, Jellyfin.Database.Implementations.Enums.SortOrder.Descending)],
-                        Limit = fetchLimit, 
-                        Recursive = true,
-                        IsVirtualItem = false,
-                        EnableTotalRecordCount = false
-                    };
-                    
-                    var items = _libraryManager.GetItemList(query);
-                    foreach (var item in items)
+                        var query = new InternalItemsQuery
+                        {
+                            IncludeItemTypes = [type],
+                            OrderBy = [(Jellyfin.Data.Enums.ItemSortBy.DateCreated, Jellyfin.Database.Implementations.Enums.SortOrder.Descending)],
+                            Limit = fetchLimit, 
+                            Recursive = true,
+                            IsVirtualItem = false,
+                            EnableTotalRecordCount = false
+                        };
+                        
+                        var items = _libraryManager.GetItemList(query);
+                        _logger.LogDebug("Scan {Type} : {Count} éléments trouvés.", type, items.Count);
+
+                        foreach (var item in items)
+                        {
+                            if (cancellationToken.IsCancellationRequested) return;
+                            var notif = CreateNotificationFromItem(item, configCache, allCollectionFolders);
+                            if (notif != null) tempNotifs.Add(notif);
+                        }
+                    }
+                    catch (Exception ex)
                     {
-                        var notif = CreateNotificationFromItem(item, configCache, allCollectionFolders);
-                        if (notif != null) tempNotifs.Add(notif);
+                        _logger.LogError(ex, "Erreur lors du scan du type {Type}", type);
                     }
                 }
+
+                if (cancellationToken.IsCancellationRequested) return;
 
                 ApplyCategoryQuotas(tempNotifs, isInitialLoad: true);
                 _hasUnsavedChanges = true;
                 try { _saveTimer.Change(2000, Timeout.Infinite); } catch {}
+                _logger.LogInformation("Scan de l'historique terminé. {Count} notifications générées.", _notifications.Count);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Erreur scan historique.");
+                _logger.LogError(ex, "Erreur critique scan historique.");
             }
         }
 
@@ -273,7 +292,7 @@ namespace NotifySync
                     }
                 }
 
-                _notifications = finalResults.OrderByDescending(x => x.DateCreated).ToList();
+                _notifications = finalResults.OrderByDescending(x => x.DateCreated).Take(GlobalRetentionLimit).ToList();
                 UpdateVersion(); 
             }
             finally
@@ -530,10 +549,12 @@ namespace NotifySync
 
         public void Dispose()
         {
+            _disposeCts.Cancel();
             _bufferProcessTimer?.Dispose();
             _saveTimer?.Dispose();
             if (_hasUnsavedChanges) ForceSaveNow();
             _dataLock?.Dispose();
+            _disposeCts.Dispose();
 
             if (_libraryManager != null)
             {

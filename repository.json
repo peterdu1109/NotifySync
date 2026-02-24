@@ -9,12 +9,12 @@
     "supportUrl": "https://github.com/",
     "versions": [
       {
-        "version": "4.7.13.0",
-        "changelog": "- PERF : Optimisation massive CPU & DB via cache mémoire (v4.7.13)\n- PERF : Limite de scan réduite à 1000 par catégorie pour la stabilité sur Ubuntu (v4.7.13)\n- SEC : Mises à jour atomiques pour éviter la perte de données (v4.7.13)\n- FIX : Création proactive du dossier de données pour éviter les erreurs de chemin (v4.7.13)\n- Version synchronisée sur tous les fichiers du projet.",
+        "version": "4.7.14.0",
+        "changelog": "- STABILITÉ : Ajout de limites de rétention (2000 éléments) pour protéger le serveur (v4.7.14)\n- STABILITÉ : Support de l'annulation (CancellationToken) pour des arrêts propres (v4.7.14)\n- STABILITÉ : Isolation des erreurs par catégorie lors du scan initial (v4.7.14)\n- PERF : Optimisation massive CPU & DB via cache mémoire (v4.7.14)\n- Version finale ultra-stable.",
         "targetAbi": "10.11.0.0",
-        "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/4.7.13/NotifySync_v4.7.13.zip",
-        "checksum": "7C37EDD20663DFE0CA81EF6EC39FFDB65",
-        "timestamp": "2026-02-24T19:30:00Z"
+        "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/4.7.14/NotifySync_v4.7.14.zip",
+        "checksum": "F69714D61795AC0F6EFB1972649E1EAA",
+        "timestamp": "2026-02-24T19:35:00Z"
       },
       {
         "version": "4.7.12.0",

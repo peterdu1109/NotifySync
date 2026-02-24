@@ -41,6 +41,11 @@ namespace NotifySync
             _libraryManager = libraryManager;
             _logger = logger;
             _jsonPath = Path.Combine(Plugin.Instance!.DataFolderPath, "notifications.json");
+            
+            // Sécurité : S'assurer que le dossier existe dès le départ
+            var dir = Path.GetDirectoryName(_jsonPath);
+            if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
+
             Instance = this;
             
             LoadNotifications();
@@ -60,12 +65,9 @@ namespace NotifySync
 
         public void Refresh()
         {
-            _dataLock.EnterWriteLock();
-            try { _notifications.Clear(); }
-            finally { _dataLock.ExitWriteLock(); }
-            
-            PopulateInitialHistory();
-            ForceSaveNow(); 
+            // On ne vide plus _notifications ici pour éviter la perte de données visuelles.
+            // Le scan PopulateInitialHistory s'en occupera de manière atomique à la fin.
+            System.Threading.Tasks.Task.Run(PopulateInitialHistory);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -87,7 +89,13 @@ namespace NotifySync
                 var tempNotifs = new List<NotificationItem>();
                 var typesToScan = new[] { BaseItemKind.Movie, BaseItemKind.Episode, BaseItemKind.MusicAlbum, BaseItemKind.Audio };
                 var configCache = GetConfiguredCache();
-                int fetchLimit = 5000;
+                
+                // OPTIMISATION : Charger les dossiers de collection UNE SEULE FOIS pour toute la session de scan
+                var allCollectionFolders = _libraryManager.GetItemList(new InternalItemsQuery { IncludeItemTypes = [BaseItemKind.CollectionFolder] })
+                    .ToDictionary(i => i.Id);
+
+                // Réduction du fetchLimit de 5000 à 1000 pour préserver RAM/CPU
+                int fetchLimit = 1000; 
 
                 foreach (var type in typesToScan)
                 {
@@ -104,14 +112,14 @@ namespace NotifySync
                     var items = _libraryManager.GetItemList(query);
                     foreach (var item in items)
                     {
-                        var notif = CreateNotificationFromItem(item, configCache);
+                        var notif = CreateNotificationFromItem(item, configCache, allCollectionFolders);
                         if (notif != null) tempNotifs.Add(notif);
                     }
                 }
 
                 ApplyCategoryQuotas(tempNotifs, isInitialLoad: true);
                 _hasUnsavedChanges = true;
-                try { _saveTimer.Change(10000, Timeout.Infinite); } catch {}
+                try { _saveTimer.Change(2000, Timeout.Infinite); } catch {}
             }
             catch (Exception ex)
             {
@@ -181,13 +189,17 @@ namespace NotifySync
 
                 var newItems = new List<NotificationItem>();
                 var configCache = GetConfiguredCache();
+                
+                // Même optimisation pour le buffer : charger les dossiers une seule fois pour le lot
+                var allCollectionFolders = _libraryManager.GetItemList(new InternalItemsQuery { IncludeItemTypes = [BaseItemKind.CollectionFolder] })
+                    .ToDictionary(i => i.Id);
 
                 int processed = 0;
                 while (processed < 100 && _eventBuffer.TryDequeue(out var item))
                 {
                     try 
                     {
-                        var notif = CreateNotificationFromItem(item, configCache);
+                        var notif = CreateNotificationFromItem(item, configCache, allCollectionFolders);
                         if (notif != null) newItems.Add(notif);
                         processed++;
                     }
@@ -198,7 +210,7 @@ namespace NotifySync
                 {
                     ApplyCategoryQuotas(newItems);
                     _hasUnsavedChanges = true; 
-                    try { _saveTimer.Change(10000, Timeout.Infinite); } catch {}
+                    try { _saveTimer.Change(5000, Timeout.Infinite); } catch {}
                 }
             }
             catch (Exception ex)
@@ -318,11 +330,8 @@ namespace NotifySync
             return c;
         }
 
-        private NotificationItem? CreateNotificationFromItem(BaseItem item, ConfigCache cache)
+        private NotificationItem? CreateNotificationFromItem(BaseItem item, ConfigCache cache, Dictionary<Guid, BaseItem>? allCollectionFolders = null)
         {
-            // --- CORRECTION MAJEURE ---
-            // On supprime complètement la vérification "is Folder".
-            // On laisse le filtrage se faire uniquement sur les types explicites ci-dessous.
             if (item.IsVirtualItem) return null;
 
             bool isMovie = item is MediaBrowser.Controller.Entities.Movies.Movie;
@@ -330,12 +339,8 @@ namespace NotifySync
             bool isMusicAlbum = item is MediaBrowser.Controller.Entities.Audio.MusicAlbum;
             bool isAudio = item is MediaBrowser.Controller.Entities.Audio.Audio;
 
-            // Si ce n'est ni un film, ni un épisode, ni un album, ni une musique, on rejette.
             if (!isMovie && !isEpisode && !isMusicAlbum && !isAudio) return null;
 
-            // Handling Music logic:
-            // If it's an Audio track, we want to notify for the Album (Parent), but use the Track's "DateCreated" 
-            // so it bubbles up as new content.
             BaseItem itemToNotify = item;
             if (isAudio)
             {
@@ -345,19 +350,24 @@ namespace NotifySync
                     itemToNotify = parent;
                     isMusicAlbum = true;
                 }
-                else
-                {
-                    // Loose audio file or unknown structure?
-                    // Keep it as Audio or skip? 
-                    // Let's keep it as is, mapped to "Music" category.
-                }
             }
 
             bool hasRestrictions = cache.Enabled.Count > 0 || cache.Manual.Count > 0 || cache.ManualNames.Count > 0;
             string? matchedLibraryId = null;
 
-            // Essayer de trouver la bibliothèque racine
-            var rootLibrary = _libraryManager.GetCollectionFolders(itemToNotify).FirstOrDefault();
+            // OPTIMISATION : Utiliser le dictionnaire pré-chargé si disponible pour éviter GetCollectionFolders
+            BaseItem? rootLibrary = null;
+            if (allCollectionFolders != null)
+            {
+                foreach(var parent in itemToNotify.GetParents())
+                {
+                    if (allCollectionFolders.TryGetValue(parent.Id, out rootLibrary)) break;
+                }
+            }
+            else
+            {
+                rootLibrary = _libraryManager.GetCollectionFolders(itemToNotify).FirstOrDefault();
+            }
 
             if (hasRestrictions)
             {
@@ -369,7 +379,6 @@ namespace NotifySync
                     }
                 }
 
-                // Si pas trouvé via rootLibrary, on remonte les parents (utile pour la structure Musique complexe)
                 if (matchedLibraryId == null)
                 {
                     foreach (var parent in itemToNotify.GetParents())
@@ -429,7 +438,7 @@ namespace NotifySync
                 Category = category,
                 SeriesName = episode?.SeriesName,
                 SeriesId = episode?.SeriesId.ToString(),
-                DateCreated = item.DateCreated, // Use the Trigger Item's date (New Song) even if we display Album
+                DateCreated = item.DateCreated,
                 Type = itemToNotify.GetType().Name, 
                 RunTimeTicks = itemToNotify.RunTimeTicks,
                 ProductionYear = itemToNotify.ProductionYear,

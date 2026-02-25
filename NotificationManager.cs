@@ -348,8 +348,8 @@ namespace NotifySync
                     Type = item.GetType().Name,
                     RunTimeTicks = item.RunTimeTicks,
                     ProductionYear = item.ProductionYear,
-                    BackdropImageTags = item.GetImages(ImageType.Backdrop).Select(i => i.Path).ToList(),
-                    PrimaryImageTag = item.GetImages(ImageType.Primary).FirstOrDefault()?.Path,
+                    BackdropImageTags = item.GetImages(ImageType.Backdrop).Select(i => i.Tag).ToList(),
+                    PrimaryImageTag = item.GetImages(ImageType.Primary).FirstOrDefault()?.Tag,
                     IndexNumber = item.IndexNumber,
                     ParentIndexNumber = item.ParentIndexNumber
                 };

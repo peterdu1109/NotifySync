@@ -172,13 +172,12 @@ namespace NotifySync
         }
 
         /// <summary>
-        /// Sets the last seen timestamp for a user.
+        /// Gets the last seen timestamp for a user.
         /// </summary>
         /// <param name="userId">The user identifier.</param>
-        /// <param name="timestamp">The timestamp.</param>
-        /// <returns>An ActionResult indicating the status.</returns>
-        [HttpPost("Seen")]
-        public ActionResult SetSeen([FromQuery] string userId, [FromQuery] long timestamp)
+        /// <returns>An ActionResult containing the last seen timestamp.</returns>
+        [HttpGet("LastSeen/{userId}")]
+        public ActionResult GetLastSeen([FromRoute] string userId)
         {
             if (string.IsNullOrEmpty(userId))
             {
@@ -189,6 +188,32 @@ namespace NotifySync
             {
                 return Forbid();
             }
+
+            long lastSeen = GetUserLastSeen(userId);
+            return Ok(JsonSerializer.Serialize(new DateTime(lastSeen).ToString("O"), PluginJsonContext.Default.Object));
+        }
+
+        /// <summary>
+        /// Sets the last seen timestamp for a user.
+        /// </summary>
+        /// <param name="userId">The user identifier.</param>
+        /// <param name="date">The ISO date string (optional, defaults to now).</param>
+        /// <returns>An ActionResult indicating the status.</returns>
+        [HttpPost("LastSeen/{userId}")]
+        public ActionResult SetLastSeen([FromRoute] string userId, [FromQuery] string? date)
+        {
+            if (string.IsNullOrEmpty(userId))
+            {
+                return BadRequest();
+            }
+
+            if (!IsAuthorizedForUser(userId))
+            {
+                return Forbid();
+            }
+
+            DateTime dt = string.IsNullOrEmpty(date) ? DateTime.UtcNow : DateTime.Parse(date);
+            long timestamp = dt.Ticks;
 
             UserLastSeenCache[userId] = timestamp;
             SaveUserLastSeen(userId, timestamp);
@@ -201,6 +226,65 @@ namespace NotifySync
             }
 
             return Ok();
+        }
+
+        /// <summary>
+        /// Gets played status for a list of items.
+        /// </summary>
+        /// <param name="userId">The user identifier.</param>
+        /// <returns>An ActionResult containing a dictionary of item IDs and their played status.</returns>
+        [HttpPost("BulkUserData")]
+        public async Task<ActionResult> GetBulkUserData([FromQuery] string userId)
+        {
+            if (string.IsNullOrEmpty(userId) || !Guid.TryParse(userId, out _))
+            {
+                return BadRequest();
+            }
+
+            if (!IsAuthorizedForUser(userId))
+            {
+                return Forbid();
+            }
+
+            try
+            {
+                using var reader = new StreamReader(Request.Body);
+                var body = await reader.ReadToEndAsync();
+                var itemIds = JsonSerializer.Deserialize(body, PluginJsonContext.Default.ListString);
+
+                if (itemIds == null)
+                {
+                    return BadRequest();
+                }
+
+                var user = _userManager.GetUserById(Guid.Parse(userId));
+                if (user == null)
+                {
+                    return NotFound();
+                }
+
+                var results = new Dictionary<string, bool>();
+                foreach (var id in itemIds)
+                {
+                    var item = _libraryManager.GetItemById(id);
+                    if (item != null)
+                    {
+                        var userData = _userDataManager.GetUserData(user, item);
+                        results[id] = userData.Played;
+                    }
+                    else
+                    {
+                        results[id] = false;
+                    }
+                }
+
+                return new JsonResult(results, PluginJsonContext.Default.DictionaryStringBool);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in BulkUserData for user {UserId}", userId);
+                return StatusCode(500);
+            }
         }
 
         private bool IsAuthorizedForUser(string userId)

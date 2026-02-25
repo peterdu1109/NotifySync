@@ -22,17 +22,17 @@ namespace NotifySync
         /// <summary>
         /// Gets or sets the list of enabled library IDs.
         /// </summary>
-        public IReadOnlyList<string> EnabledLibraries { get; set; }
+        public List<string> EnabledLibraries { get; set; }
 
         /// <summary>
         /// Gets or sets the list of manual library IDs.
         /// </summary>
-        public IReadOnlyList<string> ManualLibraryIds { get; set; }
+        public List<string> ManualLibraryIds { get; set; }
 
         /// <summary>
         /// Gets or sets the list of category mappings.
         /// </summary>
-        public IReadOnlyList<CategoryMapping> CategoryMappings { get; set; }
+        public List<CategoryMapping> CategoryMappings { get; set; }
 
         /// <summary>
         /// Gets or sets the maximum number of items per category.

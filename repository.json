@@ -9,12 +9,12 @@
     "supportUrl": "https://github.com/",
     "versions": [
       {
-        "version": "4.7.16.2",
-        "changelog": "- FIX : Harmonisation du GUID entre le code et le dépôt (résout l'erreur 'Développeur Inconnu').",
+        "version": "4.7.16.4",
+        "changelog": "- FIX : Correction de l'index de lecture SQLite (DateCreated fix).\n- FIX : Passage aux Tags pour les images (corrige l'affichage des affiches).\n- NETTOYAGE : Suppression des fichiers temporaires et optimisation finale.",
         "targetAbi": "10.11.0.0",
-        "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/4.7.16.2/NotifySync_v4.7.16.2.zip",
-        "checksum": "80438AADDBE59E966D593AA128F973EC",
-        "timestamp": "2026-02-25T19:30:00Z"
+        "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/4.7.16.4/NotifySync_v4.7.16.4.zip",
+        "checksum": "9B1E721DBCEDE1C0B5A02390DE4275A7",
+        "timestamp": "2026-02-25T19:40:00Z"
       },
       {
         "version": "4.7.16.1",

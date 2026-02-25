@@ -1,61 +1,57 @@
 using System;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Authorization;
-using System.Collections.Generic;
 using System.Collections.Concurrent;
-using System.Threading.Tasks;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Security.Claims;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading;
+using System.Threading.Tasks;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Library;
-using Microsoft.Extensions.Logging;
 using MediaBrowser.Controller.Net;
+using MediaBrowser.Model.Entities; // Added for BaseItemKind
 using MediaBrowser.Model.Querying;
-using System.Linq;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 
 namespace NotifySync
 {
+    /// <summary>
+    /// API Controller for NotifySync notifications.
+    /// </summary>
     [ApiController]
-    [Route("NotifySync")]
     [Authorize]
+    [Route("NotifySync")]
     public class NotifyController : ControllerBase
     {
+        private static readonly ConcurrentDictionary<string, byte[]> UserViewCache = new ();
+        private static readonly ConcurrentDictionary<string, long> UserLastSeenCache = new ();
+        private static readonly object GlobalFileLock = new ();
+        private static long _lastRefreshTime;
+        private static ILogger<NotifyController>? _staticLogger;
+
         private readonly IUserManager _userManager;
         private readonly ILibraryManager _libraryManager;
         private readonly IUserDataManager _userDataManager;
         private readonly ILogger<NotifyController> _logger;
-        
-        // Cache: UserId -> (ServerVersionHash, FilteredList, ETag)
-        private static readonly ConcurrentDictionary<Guid, (string Version, List<NotificationItem> Items, string ETag)> _userViewCache = new();
-        
-        private static ConcurrentDictionary<string, string>? _userLastSeenCache;
-        private static readonly Lock _fileLock = new();
+        private readonly object _refreshLock = new ();
 
-        private static readonly Timer _saveUserDataTimer = new Timer(SaveUserDataTimerCallback, null, Timeout.Infinite, Timeout.Infinite);
-        private static volatile bool _userDataHasUnsavedChanges = false;
-        private static ILogger<NotifyController>? _staticLogger;
-
-        private static void SaveUserDataTimerCallback(object? state)
-        {
-            if (_userDataHasUnsavedChanges)
-            {
-                _userDataHasUnsavedChanges = false;
-                lock (_fileLock)
-                {
-                    if (_userLastSeenCache != null)
-                        SaveUserDataToDisk(_userLastSeenCache);
-                }
-            }
-        }
-
-        private static DateTime _lastRefreshTime = DateTime.MinValue;
-        private static readonly Lock _refreshLock = new();
-
-        public NotifyController(IUserManager userManager, ILibraryManager libraryManager, IUserDataManager userDataManager, ILogger<NotifyController> logger)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="NotifyController"/> class.
+        /// </summary>
+        /// <param name="userManager">The user manager.</param>
+        /// <param name="libraryManager">The library manager.</param>
+        /// <param name="userDataManager">The user data manager.</param>
+        /// <param name="logger">The logger.</param>
+        public NotifyController(
+            IUserManager userManager,
+            ILibraryManager libraryManager,
+            IUserDataManager userDataManager,
+            ILogger<NotifyController> logger)
         {
             _userManager = userManager;
             _libraryManager = libraryManager;
@@ -65,357 +61,261 @@ namespace NotifySync
         }
 
         /// <summary>
-        /// Verifies the authenticated user is authorized to access data for the given userId.
-        /// Returns true if the authenticated user matches the requested userId, or if the user is an administrator.
+        /// Triggers a manual refresh of the notification history.
         /// </summary>
-        private bool IsAuthorizedForUser(string userId)
-        {
-            if (string.IsNullOrEmpty(userId)) return false;
-
-            // Get the authenticated user's ID from the claims
-            var authUserId = HttpContext.User.FindFirst("Jellyfin-UserId")?.Value;
-            if (string.IsNullOrEmpty(authUserId)) return false;
-
-            // Allow if the authenticated user matches the requested user
-            if (string.Equals(authUserId, userId, StringComparison.OrdinalIgnoreCase)) return true;
-
-            // Allow if this is an API key request
-            var isApiKey = HttpContext.User.FindFirst("Jellyfin-IsApiKey")?.Value;
-            if (string.Equals(isApiKey, "true", StringComparison.OrdinalIgnoreCase)) return true;
-
-            // Allow if the authenticated user is an admin (check claims)
-            var isAdmin = HttpContext.User.FindFirst("Jellyfin-IsAdministrator")?.Value;
-            if (string.Equals(isAdmin, "true", StringComparison.OrdinalIgnoreCase)) return true;
-
-            return false;
-        }
-
+        /// <returns>An ActionResult indicating the status.</returns>
         [HttpPost("Refresh")]
         public ActionResult Refresh()
         {
-            lock (_refreshLock)
+            bool lockTaken = false;
+            try
             {
-                if ((DateTime.UtcNow - _lastRefreshTime).TotalSeconds < 60)
+                Monitor.TryEnter(_refreshLock, TimeSpan.FromSeconds(5), ref lockTaken);
+                if (!lockTaken)
+                {
+                    return StatusCode(StatusCodes.Status503ServiceUnavailable, "Système occupé.");
+                }
+
+                if ((DateTime.UtcNow - new DateTime(_lastRefreshTime)).TotalSeconds < 60)
                 {
                     return StatusCode(429, "Veuillez attendre 1 minute entre chaque rafraîchissement.");
                 }
-                _lastRefreshTime = DateTime.UtcNow;
+
+                _lastRefreshTime = DateTime.UtcNow.Ticks;
+            }
+            finally
+            {
+                if (lockTaken)
+                {
+                    Monitor.Exit(_refreshLock);
+                }
             }
 
             if (NotificationManager.Instance != null)
             {
-                // Invalidate all user caches on manual refresh just to be safe/clean
-                _userViewCache.Clear();
-                Task.Run(() => NotificationManager.Instance.Refresh());
+                UserViewCache.Clear();
+                Task.Run(() => NotificationManager.Instance.ManualHistoryScan(null!, CancellationToken.None));
                 return Ok("Refresh started");
             }
+
             return NotFound();
         }
 
+        /// <summary>
+        /// Gets notification data for a specific user.
+        /// </summary>
+        /// <param name="userId">The user identifier.</param>
+        /// <returns>An ActionResult containing the notification data.</returns>
         [HttpGet("Data")]
-        [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)] 
+        [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
         public ActionResult GetData([FromQuery] string userId)
         {
-            if (NotificationManager.Instance == null) return Ok(Array.Empty<object>());
-            if (string.IsNullOrEmpty(userId) || !Guid.TryParse(userId, out var userGuid)) return BadRequest("Invalid UserId");
-
-            // IDOR protection: verify authenticated user matches requested userId
-            if (!IsAuthorizedForUser(userId)) 
+            if (NotificationManager.Instance == null)
             {
-                 _logger.LogWarning("GetData denied for user {UserId}", userId);
-                 return Forbid();
+                return Ok(Array.Empty<object>());
+            }
+
+            if (string.IsNullOrEmpty(userId) || !Guid.TryParse(userId, out _))
+            {
+                return BadRequest("Invalid UserId");
+            }
+
+            if (!IsAuthorizedForUser(userId))
+            {
+                _logger.LogWarning("GetData denied for user {UserId}", userId);
+                return Forbid();
             }
 
             _logger.LogDebug("GetData requested for {UserId}", userId);
 
-            // Security check: Use IUserManager to verify user exists
-            var user = _userManager.GetUserById(userGuid);
-            if (user == null) 
+            try
             {
-                _logger.LogWarning("GetData: User {UserId} not found in UserManager", userId);
-                return NotFound("User not found");
-            }
+                var hash = NotificationManager.Instance.GetVersionHash();
+                string cacheKey = userId + "_" + hash;
 
-            var currentGlobalVersion = NotificationManager.Instance.GetVersionHash();
-
-            // 1. Try to get from Cache
-            if (_userViewCache.TryGetValue(userGuid, out var cached))
-            {
-                // Verify if the cache is still valid (Server Version is same)
-                if (cached.Version == currentGlobalVersion)
+                if (UserViewCache.TryGetValue(cacheKey, out var cachedData))
                 {
-                    // Check Client ETag against our Cached ETag
-                    if (Request.Headers.TryGetValue("If-None-Match", out var clientTag))
-                    {
-                        if (clientTag.ToString() == cached.ETag) return StatusCode(304);
-                    }
-                    
-                    Response.Headers["ETag"] = cached.ETag;
-                    return Ok(cached.Items);
+                    return new FileContentResult(cachedData, "application/json");
                 }
-            }
 
-            // 2. Cache Miss or Stale -> Re-calculate
-            var rawNotifications = NotificationManager.Instance.GetRecentNotifications();
-            
-            // Extract all IDs from notifications to query against User permissions
-            var allIds = new List<Guid>(rawNotifications.Count);
-            foreach (var n in rawNotifications)
-            {
-                if (Guid.TryParse(n.Id, out var g)) allIds.Add(g);
-            }
-
-            // Bulk Query: Ask Jellyfin Core which of these IDs the user is allowed to see.
-            // This handles Libraries, Parental Ratings, Tags, Blocks, etc. efficiently (O(1) query set).
-            var query = new InternalItemsQuery(user)
-            {
-                ItemIds = allIds.ToArray(),
-                EnableTotalRecordCount = false
-            };
-            
-            var allowedItems = _libraryManager.GetItemList(query);
-            var allowedIdSet = new HashSet<Guid>(allowedItems.Count);
-            foreach (var item in allowedItems)
-            {
-                allowedIdSet.Add(item.Id);
-            }
-
-            var filteredNotifications = new List<NotificationItem>(rawNotifications.Count);
-            foreach (var notif in rawNotifications)
-            {
-                // Only return notifications for items that were returned by the secure query
-                if (Guid.TryParse(notif.Id, out var id) && allowedIdSet.Contains(id))
+                var allNotifs = NotificationManager.Instance.GetRecentNotifications();
+                var user = (dynamic?)_userManager.GetUserById(Guid.Parse(userId));
+                if (user == null)
                 {
-                    filteredNotifications.Add(notif);
+                    return NotFound();
                 }
-            }
 
-            // Generate ETag based on Content + Version
-            var filteredHash = filteredNotifications.Count > 0 
-                ? currentGlobalVersion + "-" + filteredNotifications[0].DateCreated.Ticks + "-" + filteredNotifications.Count 
-                : "empty-" + currentGlobalVersion;
-            
-            // Update Cache
-            var cacheEntry = (currentGlobalVersion, filteredNotifications, filteredHash);
-            _userViewCache[userGuid] = cacheEntry;
-
-            // 3. Return Response (checking ETag again for the fresh result)
-            if (Request.Headers.TryGetValue("If-None-Match", out var cTag))
-            {
-                if (cTag.ToString() == filteredHash) return StatusCode(304);
-            }
-
-            Response.Headers["ETag"] = filteredHash;
-            return Ok(filteredNotifications);
-        }
-
-        [HttpPost("BulkUserData")]
-        public ActionResult GetBulkUserData([FromBody] List<string> itemIds, [FromQuery] string userId)
-        {
-            if (string.IsNullOrEmpty(userId) || itemIds is null || itemIds.Count == 0 || !Guid.TryParse(userId, out var userGuid))
-            {
-                return Ok(new Dictionary<string, bool>());
-            }
-
-            if (itemIds.Count > 1000)
-            {
-                return BadRequest("Too many items requested.");
-            }
-
-            // IDOR protection: verify authenticated user matches requested userId
-            if (!IsAuthorizedForUser(userId)) return Forbid();
-
-            var user = _userManager.GetUserById(userGuid); 
-            if (user == null) return Ok(new Dictionary<string, bool>());
-
-            var result = new Dictionary<string, bool>(itemIds.Count);
-            var queryIds = new List<Guid>();
-
-            foreach (var idStr in itemIds)
-            {
-                result[idStr] = false;
-                if (Guid.TryParse(idStr, out var guid)) queryIds.Add(guid);
-            }
-
-            if (queryIds.Count > 0)
-            {
-                var query = new InternalItemsQuery(user)
+                var filtered = allNotifs.Where(n =>
                 {
-                    ItemIds = queryIds.ToArray(),
-                    EnableTotalRecordCount = false
+                    var item = _libraryManager.GetItemById(n.Id);
+                    return item != null && item.IsVisible(user);
+                }).ToList();
+
+                long lastSeen = GetUserLastSeen(userId);
+                var result = new
+                {
+                    Hash = hash,
+                    LastSeen = lastSeen,
+                    Notifications = filtered
                 };
 
-                // Bulk query allowed items
-                var allowedItems = _libraryManager.GetItemList(query);
-                var allowedItemMap = allowedItems.ToDictionary(i => i.Id);
+                byte[] serialized = JsonSerializer.SerializeToUtf8Bytes(result, PluginJsonContext.Default.Object);
+                UserViewCache.TryAdd(cacheKey, serialized);
 
-                foreach (var idStr in itemIds)
-                {
-                    if (Guid.TryParse(idStr, out var guid) && allowedItemMap.TryGetValue(guid, out var item))
-                    {
-                        // Permission granted (item is in allowed list). Check UserData.
-                        var userData = _userDataManager.GetUserData(user, item);
-                        if (userData is not null)
-                        {
-                            if (userData.Played)
-                            {
-                                result[idStr] = true;
-                            }
-                            else if (item.RunTimeTicks > 0 && userData.PlaybackPositionTicks > (item.RunTimeTicks.Value * 0.9))
-                            {
-                                result[idStr] = true;
-                            }
-                        }
-                    }
-                }
+                return new FileContentResult(serialized, "application/json");
             }
-            return Ok(result);
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting data for user {UserId}", userId);
+                return StatusCode(500);
+            }
         }
 
-        [HttpGet("LastSeen/{userId}")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status403Forbidden)]
-        public ActionResult GetLastSeen(string userId)
+        /// <summary>
+        /// Sets the last seen timestamp for a user.
+        /// </summary>
+        /// <param name="userId">The user identifier.</param>
+        /// <param name="timestamp">The timestamp.</param>
+        /// <returns>An ActionResult indicating the status.</returns>
+        [HttpPost("Seen")]
+        public ActionResult SetSeen([FromQuery] string userId, [FromQuery] long timestamp)
         {
-            if (string.IsNullOrEmpty(userId)) return BadRequest();
-            if (!Guid.TryParse(userId, out _)) return BadRequest();
-
-            // IDOR protection
-            if (!IsAuthorizedForUser(userId)) 
+            if (string.IsNullOrEmpty(userId))
             {
-                _logger.LogWarning("GetLastSeen denied for user {UserId} (Incident IDOR)", userId);
+                return BadRequest();
+            }
+
+            if (!IsAuthorizedForUser(userId))
+            {
                 return Forbid();
             }
 
-            var data = GetCachedUserData();
-            if (data.TryGetValue(userId, out var date)) 
+            UserLastSeenCache[userId] = timestamp;
+            SaveUserLastSeen(userId, timestamp);
+
+            // Invalidate cache for this user because LastSeen changed
+            var keysToRemove = UserViewCache.Keys.Where(k => k.StartsWith(userId, StringComparison.Ordinal)).ToList();
+            foreach (var key in keysToRemove)
             {
-                _logger.LogDebug("GetLastSeen for {UserId}: Found {Date}", userId, date);
-                return Ok(date);
+                UserViewCache.TryRemove(key, out _);
             }
-
-            _logger.LogDebug("GetLastSeen for {UserId}: Not found, returning default", userId);
-            return Ok("2000-01-01T00:00:00.000Z");
-        }
-
-        [HttpPost("LastSeen/{userId}")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status403Forbidden)]
-        public ActionResult SetLastSeen(string userId, [FromQuery] string date)
-        {
-            if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(date)) return BadRequest();
-            if (!Guid.TryParse(userId, out _)) return BadRequest();
-
-            if (!IsAuthorizedForUser(userId)) return Forbid();
-            
-            _logger.LogInformation("SetLastSeen for {UserId} to {Date}", userId, date);
-
-            var data = GetCachedUserData();
-            data.AddOrUpdate(userId, date, (_, _) => date);
-            
-            _userDataHasUnsavedChanges = true;
-            try { _saveUserDataTimer.Change(5000, Timeout.Infinite); } catch {}
 
             return Ok();
         }
 
-        private ConcurrentDictionary<string, string> GetCachedUserData()
+        private bool IsAuthorizedForUser(string userId)
         {
-            if (_userLastSeenCache == null)
+            var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(currentUserId))
             {
-                lock (_fileLock)
-                {
-                    if (_userLastSeenCache == null)
-                    {
-                        var path = Path.Combine(Plugin.Instance!.DataFolderPath, "user_data.json");
-                        _logger.LogInformation("Loading user_data.json from {Path}", path);
-                        
-                        if (!System.IO.File.Exists(path)) 
-                        {
-                            _logger.LogWarning("user_data.json not found, creating new dictionary.");
-                            _userLastSeenCache = new ConcurrentDictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-                        }
-                        else
-                        {
-                            try 
-                            {
-                                using var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-                                var dict = JsonSerializer.Deserialize(fs, ControllerJsonContext.Default.DictionaryStringString);
-                                _userLastSeenCache = new ConcurrentDictionary<string, string>(dict ?? [], StringComparer.OrdinalIgnoreCase);
-                                _logger.LogInformation("Loaded {Count} entries from user_data.json", _userLastSeenCache.Count);
-                            }
-                            catch (Exception ex)
-                            {
-                                _logger.LogError(ex, "Erreur chargement user_data.json");
-                                _userLastSeenCache = new ConcurrentDictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-                            }
-                        }
-                    }
-                }
+                return false;
             }
-            return _userLastSeenCache;
+
+            if (currentUserId == userId)
+            {
+                return true;
+            }
+
+            var currentUser = (dynamic?)_userManager.GetUserById(Guid.Parse(currentUserId));
+            return currentUser?.Policy.IsAdministrator == true;
         }
 
-        private static void SaveUserDataToDisk(ConcurrentDictionary<string, string> data)
+        private long GetUserLastSeen(string userId)
         {
-            try {
-                var path = Path.Combine(Plugin.Instance!.DataFolderPath, "user_data.json");
-                var dir = Path.GetDirectoryName(path);
-                if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
+            if (UserLastSeenCache.TryGetValue(userId, out var ts))
+            {
+                return ts;
+            }
 
-                var tempPath = path + ".tmp";
-                var dictToSave = new Dictionary<string, string>(data, StringComparer.OrdinalIgnoreCase);
-                
-                using (var fs = new FileStream(tempPath, FileMode.Create, FileAccess.Write, FileShare.None))
+            bool lockTaken = false;
+            try
+            {
+                Monitor.TryEnter(GlobalFileLock, TimeSpan.FromSeconds(5), ref lockTaken);
+                if (!lockTaken)
                 {
-                    JsonSerializer.Serialize(fs, dictToSave, ControllerJsonContext.Default.DictionaryStringString);
+                    return 0;
                 }
-                
-                System.IO.File.Move(tempPath, path, true);
-            }
-            catch (Exception ex)
-            {
-                _staticLogger?.LogError(ex, "Erreur sauvegarde user_data.json");
-            }
-        }
 
-        private static byte[]? _clientJsCache;
-        private static readonly Lock _jsLock = new();
-
-        [HttpGet("Client.js")]
-        [Produces("application/javascript")]
-        [AllowAnonymous]
-        public ActionResult GetScript()
-        {
-            _logger.LogInformation("Client.js requested by {IP}", HttpContext.Connection.RemoteIpAddress);
-            if (_clientJsCache == null)
-            {
-                lock (_jsLock)
+                string path = Path.Combine(Plugin.Instance!.DataFolderPath, "users_seen.json");
+                if (!System.IO.File.Exists(path))
                 {
-                    if (_clientJsCache == null)
+                    return 0;
+                }
+
+                try
+                {
+                    var json = System.IO.File.ReadAllText(path);
+                    var data = JsonSerializer.Deserialize(json, PluginJsonContext.Default.DictionaryStringInt64);
+                    if (data != null && data.TryGetValue(userId, out var val))
                     {
-                        var assembly = typeof(NotifyController).Assembly;
-                        using var stream = assembly.GetManifestResourceStream("NotifySync.client.js");
-                        if (stream == null) 
-                        {
-                            _logger.LogError("Client.js resource NOT FOUND in assembly {Ass}", assembly.FullName);
-                            return NotFound();
-                        }
-                        
-                        using var ms = new MemoryStream();
-                        stream.CopyTo(ms);
-                        _clientJsCache = ms.ToArray();
-                        _logger.LogInformation("Client.js loaded into memory ({Size} bytes)", _clientJsCache.Length);
+                        UserLastSeenCache[userId] = val;
+                        return val;
                     }
                 }
+                catch
+                {
+                    // Ignore errors during read
+                }
             }
-            return File(_clientJsCache, "application/javascript");
+            finally
+            {
+                if (lockTaken)
+                {
+                    Monitor.Exit(GlobalFileLock);
+                }
+            }
+
+            return 0;
+        }
+
+        private void SaveUserLastSeen(string userId, long timestamp)
+        {
+            Task.Run(() =>
+            {
+                bool lockTaken = false;
+                try
+                {
+                    Monitor.TryEnter(GlobalFileLock, TimeSpan.FromSeconds(30), ref lockTaken);
+                    if (!lockTaken)
+                    {
+                        return;
+                    }
+
+                    string path = Path.Combine(Plugin.Instance!.DataFolderPath, "users_seen.json");
+                    Dictionary<string, long> data;
+
+                    if (System.IO.File.Exists(path))
+                    {
+                        try
+                        {
+                            var json = System.IO.File.ReadAllText(path);
+                            data = JsonSerializer.Deserialize(json, PluginJsonContext.Default.DictionaryStringInt64) ?? new Dictionary<string, long>();
+                        }
+                        catch
+                        {
+                            data = new Dictionary<string, long>();
+                        }
+                    }
+                    else
+                    {
+                        data = new Dictionary<string, long>();
+                    }
+
+                    data[userId] = timestamp;
+                    System.IO.File.WriteAllText(path, JsonSerializer.Serialize(data, PluginJsonContext.Default.DictionaryStringInt64));
+                }
+                catch (Exception ex)
+                {
+                    _staticLogger?.LogError(ex, "Error saving user seen data");
+                }
+                finally
+                {
+                    if (lockTaken)
+                    {
+                        Monitor.Exit(GlobalFileLock);
+                    }
+                }
+            });
         }
     }
-
-    [JsonSerializable(typeof(Dictionary<string, string>))]
-    [JsonSerializable(typeof(Dictionary<string, bool>))]
-    internal partial class ControllerJsonContext : JsonSerializerContext { }
 }

@@ -3,19 +3,37 @@
     <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <Version>4.7.14</Version>
-    <Authors>NotifySync</Authors>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    
+    <!-- Versioning & Metadata -->
+    <AssemblyVersion>4.7.16</AssemblyVersion>
+    <FileVersion>4.7.16</FileVersion>
+    <Version>4.7.16</Version>
+    <Authors>Peterdu1109, ElieM</Authors>
     <Company>NotifySync</Company>
     <Product>NotifySync</Product>
-    <Description>Centre de notifications sécurisé et haute performance pour Jellyfin</Description>
+    <Description>NotifySync transforme l'interface de Jellyfin en ajoutant une icône de notification (cloche) native. Il permet à vos utilisateurs de voir instantanément les derniers ajouts (Films, Séries, Musique) sans quitter leur page actuelle.</Description>
+    <Copyright>Copyright © 2026 Peterdu1109 &amp; ElieM</Copyright>
+    
+    <!-- Optimisations -->
     <TieredPGO>true</TieredPGO>
+    <AnalysisMode>AllEnabledByDefault</AnalysisMode>
+    <CodeAnalysisRuleSet>jellyfin.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Jellyfin.Controller" Version="10.11.0" />
     <PackageReference Include="Jellyfin.Model" Version="10.11.0" />
     <PackageReference Include="Jellyfin.Data" Version="10.11.0" />
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="9.0.2" />
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <PackageReference Include="SerilogAnalyzer" Version="0.15.0" PrivateAssets="All" />
+    <PackageReference Include="StyleCop.Analyzers" Version="1.1.118" PrivateAssets="All" />
+    <PackageReference Include="SmartAnalyzers.MultithreadingAnalyzer" Version="1.1.31" PrivateAssets="All" />
   </ItemGroup>
   
   <ItemGroup>

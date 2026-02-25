@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "VBhoLaOLHdw=",
+  "dgSpecHash": "tsvhC/XdKlQ=",
   "success": true,
   "projectFilePath": "C:\\Users\\eliem\\Documents\\GitHub\\NotifySync\\NotifySync.csproj",
   "expectedPackageFiles": [
@@ -17,6 +17,8 @@
     "C:\\Users\\eliem\\.nuget\\packages\\jellyfin.mediaencoding.keyframes\\10.11.0\\jellyfin.mediaencoding.keyframes.10.11.0.nupkg.sha512",
     "C:\\Users\\eliem\\.nuget\\packages\\jellyfin.model\\10.11.0\\jellyfin.model.10.11.0.nupkg.sha512",
     "C:\\Users\\eliem\\.nuget\\packages\\jellyfin.naming\\10.11.0\\jellyfin.naming.10.11.0.nupkg.sha512",
+    "C:\\Users\\eliem\\.nuget\\packages\\microsoft.data.sqlite\\9.0.2\\microsoft.data.sqlite.9.0.2.nupkg.sha512",
+    "C:\\Users\\eliem\\.nuget\\packages\\microsoft.data.sqlite.core\\9.0.2\\microsoft.data.sqlite.core.9.0.2.nupkg.sha512",
     "C:\\Users\\eliem\\.nuget\\packages\\microsoft.entityframeworkcore\\9.0.10\\microsoft.entityframeworkcore.9.0.10.nupkg.sha512",
     "C:\\Users\\eliem\\.nuget\\packages\\microsoft.entityframeworkcore.abstractions\\9.0.10\\microsoft.entityframeworkcore.abstractions.9.0.10.nupkg.sha512",
     "C:\\Users\\eliem\\.nuget\\packages\\microsoft.entityframeworkcore.analyzers\\9.0.10\\microsoft.entityframeworkcore.analyzers.9.0.10.nupkg.sha512",
@@ -36,7 +38,15 @@
     "C:\\Users\\eliem\\.nuget\\packages\\nebml\\1.1.0.5\\nebml.1.1.0.5.nupkg.sha512",
     "C:\\Users\\eliem\\.nuget\\packages\\polly\\8.6.4\\polly.8.6.4.nupkg.sha512",
     "C:\\Users\\eliem\\.nuget\\packages\\polly.core\\8.6.4\\polly.core.8.6.4.nupkg.sha512",
+    "C:\\Users\\eliem\\.nuget\\packages\\seriloganalyzer\\0.15.0\\seriloganalyzer.0.15.0.nupkg.sha512",
+    "C:\\Users\\eliem\\.nuget\\packages\\smartanalyzers.multithreadinganalyzer\\1.1.31\\smartanalyzers.multithreadinganalyzer.1.1.31.nupkg.sha512",
+    "C:\\Users\\eliem\\.nuget\\packages\\sqlitepclraw.bundle_e_sqlite3\\2.1.10\\sqlitepclraw.bundle_e_sqlite3.2.1.10.nupkg.sha512",
+    "C:\\Users\\eliem\\.nuget\\packages\\sqlitepclraw.core\\2.1.10\\sqlitepclraw.core.2.1.10.nupkg.sha512",
+    "C:\\Users\\eliem\\.nuget\\packages\\sqlitepclraw.lib.e_sqlite3\\2.1.10\\sqlitepclraw.lib.e_sqlite3.2.1.10.nupkg.sha512",
+    "C:\\Users\\eliem\\.nuget\\packages\\sqlitepclraw.provider.e_sqlite3\\2.1.10\\sqlitepclraw.provider.e_sqlite3.2.1.10.nupkg.sha512",
+    "C:\\Users\\eliem\\.nuget\\packages\\stylecop.analyzers\\1.1.118\\stylecop.analyzers.1.1.118.nupkg.sha512",
     "C:\\Users\\eliem\\.nuget\\packages\\system.globalization\\4.3.0\\system.globalization.4.3.0.nupkg.sha512",
+    "C:\\Users\\eliem\\.nuget\\packages\\system.memory\\4.5.3\\system.memory.4.5.3.nupkg.sha512",
     "C:\\Users\\eliem\\.nuget\\packages\\system.runtime\\4.3.0\\system.runtime.4.3.0.nupkg.sha512",
     "C:\\Users\\eliem\\.nuget\\packages\\system.text.json\\9.0.10\\system.text.json.9.0.10.nupkg.sha512",
     "C:\\Users\\eliem\\.nuget\\packages\\system.threading.tasks.dataflow\\9.0.10\\system.threading.tasks.dataflow.9.0.10.nupkg.sha512"

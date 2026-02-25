@@ -1,19 +1,42 @@
-using MediaBrowser.Model.Plugins;
 using System.Collections.Generic;
+using MediaBrowser.Model.Plugins;
 
-namespace NotifySync.Configuration
+namespace NotifySync
 {
+    /// <summary>
+    /// Configuration for the NotifySync plugin.
+    /// </summary>
     public class PluginConfiguration : BasePluginConfiguration
     {
-        public int MaxItems { get; set; } = 5;
-        public List<string> EnabledLibraries { get; set; } = [];
-        public List<string> ManualLibraryIds { get; set; } = [];
-        public List<CategoryMapping> CategoryMappings { get; set; } = [];
-    }
+        /// <summary>
+        /// Initializes a new instance of the <see cref="PluginConfiguration"/> class.
+        /// </summary>
+        public PluginConfiguration()
+        {
+            EnabledLibraries = new List<string>();
+            ManualLibraryIds = new List<string>();
+            CategoryMappings = new List<CategoryMapping>();
+            MaxItems = 10;
+        }
 
-    public class CategoryMapping
-    {
-        public string LibraryId { get; set; } = string.Empty;
-        public string CategoryName { get; set; } = string.Empty;
+        /// <summary>
+        /// Gets or sets the list of enabled library IDs.
+        /// </summary>
+        public IReadOnlyList<string> EnabledLibraries { get; set; }
+
+        /// <summary>
+        /// Gets or sets the list of manual library IDs.
+        /// </summary>
+        public IReadOnlyList<string> ManualLibraryIds { get; set; }
+
+        /// <summary>
+        /// Gets or sets the list of category mappings.
+        /// </summary>
+        public IReadOnlyList<CategoryMapping> CategoryMappings { get; set; }
+
+        /// <summary>
+        /// Gets or sets the maximum number of items per category.
+        /// </summary>
+        public int MaxItems { get; set; }
     }
 }

@@ -6,45 +6,70 @@ using MediaBrowser.Controller.Library;
 using MediaBrowser.Model.Plugins;
 using MediaBrowser.Model.Serialization;
 using Microsoft.Extensions.Logging;
-using NotifySync.Configuration;
-using MediaBrowser.Model.IO;
 
 namespace NotifySync
 {
-    public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages, IDisposable
+    /// <summary>
+    /// The main plugin class for NotifySync.
+    /// </summary>
+    public sealed class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages, IDisposable
     {
-        public override string Name => "NotifySync";
-        public override Guid Id => Guid.Parse("95655672-2342-4321-8291-321312312312");
-        
-        public static Plugin? Instance { get; private set; }
+        private NotificationManager? _notificationManager;
 
-        private readonly NotificationManager _notificationManager;
-
-        public Plugin(IApplicationPaths applicationPaths, IXmlSerializer xmlSerializer, ILibraryManager libraryManager, IFileSystem fileSystem, ILogger<NotificationManager> logger)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Plugin"/> class.
+        /// </summary>
+        /// <param name="applicationPaths">The application paths.</param>
+        /// <param name="xmlSerializer">The XML serializer.</param>
+        /// <param name="libraryManager">The library manager.</param>
+        /// <param name="loggerFactory">The logger factory.</param>
+        /// <param name="fileSystem">The file system.</param>
+        public Plugin(
+            IApplicationPaths applicationPaths,
+            IXmlSerializer xmlSerializer,
+            ILibraryManager libraryManager,
+            ILoggerFactory loggerFactory,
+            MediaBrowser.Model.IO.IFileSystem fileSystem)
             : base(applicationPaths, xmlSerializer)
         {
             Instance = this;
-            _notificationManager = NotificationManager.Instance ?? new NotificationManager(libraryManager, logger, fileSystem);
+            _notificationManager = new NotificationManager(libraryManager, loggerFactory.CreateLogger<NotificationManager>(), fileSystem);
         }
 
+        /// <summary>
+        /// Gets the singleton instance.
+        /// </summary>
+        public static Plugin? Instance { get; private set; }
+
+        /// <inheritdoc />
+        public override string Name => "NotifySync";
+
+        /// <inheritdoc />
+        public override Guid Id => Guid.Parse("f8b2d3e1-4c5d-6e7f-8a9b-0c1d2e3f4a5b");
+
+        /// <summary>
+        /// Gets the notification manager.
+        /// </summary>
+        public NotificationManager? NotificationManager => _notificationManager;
+
+        /// <inheritdoc />
         public IEnumerable<PluginPageInfo> GetPages()
         {
             return new[]
             {
                 new PluginPageInfo
                 {
-                    Name = this.Name,
-                    EmbeddedResourcePath = GetType().Namespace + ".ConfigurationPage.html",
-                    // C'est cette ligne qui fait apparaître le lien dans le menu "Extensions"
-                    EnableInMainMenu = true
+                    Name = "NotifySync",
+                    EmbeddedResourcePath = GetType().Namespace + ".ConfigurationPage.html"
                 }
             };
         }
 
+        /// <inheritdoc />
         public void Dispose()
         {
             _notificationManager?.Dispose();
-            Instance = null;
+            _notificationManager = null;
             GC.SuppressFinalize(this);
         }
     }

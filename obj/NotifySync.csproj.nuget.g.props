@@ -15,4 +15,9 @@
   <ImportGroup Condition=" '$(ExcludeRestorePackageImports)' != 'true' ">
     <Import Project="$(NuGetPackageRoot)microsoft.entityframeworkcore\9.0.10\buildTransitive\net8.0\Microsoft.EntityFrameworkCore.props" Condition="Exists('$(NuGetPackageRoot)microsoft.entityframeworkcore\9.0.10\buildTransitive\net8.0\Microsoft.EntityFrameworkCore.props')" />
   </ImportGroup>
+  <PropertyGroup Condition=" '$(ExcludeRestorePackageImports)' != 'true' ">
+    <PkgStyleCop_Analyzers Condition=" '$(PkgStyleCop_Analyzers)' == '' ">C:\Users\eliem\.nuget\packages\stylecop.analyzers\1.1.118</PkgStyleCop_Analyzers>
+    <PkgSmartAnalyzers_MultithreadingAnalyzer Condition=" '$(PkgSmartAnalyzers_MultithreadingAnalyzer)' == '' ">C:\Users\eliem\.nuget\packages\smartanalyzers.multithreadinganalyzer\1.1.31</PkgSmartAnalyzers_MultithreadingAnalyzer>
+    <PkgSerilogAnalyzer Condition=" '$(PkgSerilogAnalyzer)' == '' ">C:\Users\eliem\.nuget\packages\seriloganalyzer\0.15.0</PkgSerilogAnalyzer>
+  </PropertyGroup>
 </Project>

@@ -1,0 +1,395 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>NotifySync</name>
+    </assembly>
+    <members>
+        <member name="T:NotifySync.CategoryMapping">
+            <summary>
+            Represents a mapping between a library and a category name.
+            </summary>
+        </member>
+        <member name="P:NotifySync.CategoryMapping.LibraryId">
+            <summary>
+            Gets or sets the library identifier.
+            </summary>
+        </member>
+        <member name="P:NotifySync.CategoryMapping.CategoryName">
+            <summary>
+            Gets or sets the name of the category.
+            </summary>
+        </member>
+        <member name="T:NotifySync.HistoryScanTask">
+            <summary>
+            A scheduled task to scan the library and populate the notification history.
+            </summary>
+        </member>
+        <member name="P:NotifySync.HistoryScanTask.Name">
+            <inheritdoc />
+        </member>
+        <member name="P:NotifySync.HistoryScanTask.Key">
+            <inheritdoc />
+        </member>
+        <member name="P:NotifySync.HistoryScanTask.Description">
+            <inheritdoc />
+        </member>
+        <member name="P:NotifySync.HistoryScanTask.Category">
+            <inheritdoc />
+        </member>
+        <member name="M:NotifySync.HistoryScanTask.ExecuteAsync(System.IProgress{System.Double},System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:NotifySync.HistoryScanTask.GetDefaultTriggers">
+            <inheritdoc />
+        </member>
+        <member name="T:NotifySync.NotificationDatabase">
+            <summary>
+            Handles SQLite database operations for notification persistence.
+            </summary>
+        </member>
+        <member name="M:NotifySync.NotificationDatabase.#ctor(System.String,Microsoft.Extensions.Logging.ILogger)">
+            <summary>
+            Initializes a new instance of the <see cref="T:NotifySync.NotificationDatabase"/> class.
+            </summary>
+            <param name="dataFolderPath">The path to the data folder.</param>
+            <param name="logger">The logger.</param>
+        </member>
+        <member name="M:NotifySync.NotificationDatabase.InitializeDatabase">
+            <summary>
+            Initializes the database schema and sets PRAGMAs.
+            </summary>
+        </member>
+        <member name="M:NotifySync.NotificationDatabase.SaveNotifications(System.Collections.Generic.IEnumerable{NotifySync.NotificationItem})">
+            <summary>
+            Saves a collection of notifications to the database.
+            </summary>
+            <param name="items">The items to save.</param>
+        </member>
+        <member name="M:NotifySync.NotificationDatabase.GetAllNotifications">
+            <summary>
+            Retrieves all notifications from the database.
+            </summary>
+            <returns>A collection of notification items.</returns>
+        </member>
+        <member name="M:NotifySync.NotificationDatabase.Dispose">
+            <inheritdoc />
+        </member>
+        <member name="T:NotifySync.NotificationItem">
+            <summary>
+            Represents a single notification item for the NotifySync plugin.
+            </summary>
+        </member>
+        <member name="P:NotifySync.NotificationItem.Id">
+            <summary>
+            Gets or sets the item identifier.
+            </summary>
+        </member>
+        <member name="P:NotifySync.NotificationItem.Name">
+            <summary>
+            Gets or sets the item name.
+            </summary>
+        </member>
+        <member name="P:NotifySync.NotificationItem.Category">
+            <summary>
+            Gets or sets the category name.
+            </summary>
+        </member>
+        <member name="P:NotifySync.NotificationItem.SeriesName">
+            <summary>
+            Gets or sets the name of the series, if applicable.
+            </summary>
+        </member>
+        <member name="P:NotifySync.NotificationItem.SeriesId">
+            <summary>
+            Gets or sets the series identifier, if applicable.
+            </summary>
+        </member>
+        <member name="P:NotifySync.NotificationItem.DateCreated">
+            <summary>
+            Gets or sets the date the item was created.
+            </summary>
+        </member>
+        <member name="P:NotifySync.NotificationItem.Type">
+            <summary>
+            Gets or sets the type of the item.
+            </summary>
+        </member>
+        <member name="P:NotifySync.NotificationItem.RunTimeTicks">
+            <summary>
+            Gets or sets the runtime in ticks.
+            </summary>
+        </member>
+        <member name="P:NotifySync.NotificationItem.ProductionYear">
+            <summary>
+            Gets or sets the production year.
+            </summary>
+        </member>
+        <member name="P:NotifySync.NotificationItem.BackdropImageTags">
+            <summary>
+            Gets or sets the list of backdrop image tags.
+            </summary>
+        </member>
+        <member name="P:NotifySync.NotificationItem.PrimaryImageTag">
+            <summary>
+            Gets or sets the primary image tag.
+            </summary>
+        </member>
+        <member name="P:NotifySync.NotificationItem.IndexNumber">
+            <summary>
+            Gets or sets the index number (episode number).
+            </summary>
+        </member>
+        <member name="P:NotifySync.NotificationItem.ParentIndexNumber">
+            <summary>
+            Gets or sets the parent index number (season number).
+            </summary>
+        </member>
+        <member name="M:NotifySync.NotificationItem.Clone">
+            <summary>
+            Creates a shallow copy of the current notification item.
+            </summary>
+            <returns>A new <see cref="T:NotifySync.NotificationItem"/>.</returns>
+        </member>
+        <member name="T:NotifySync.NotificationManager">
+            <summary>
+            Manages notifications and their persistence in SQLite.
+            </summary>
+        </member>
+        <member name="M:NotifySync.NotificationManager.#ctor(MediaBrowser.Controller.Library.ILibraryManager,Microsoft.Extensions.Logging.ILogger{NotifySync.NotificationManager},MediaBrowser.Model.IO.IFileSystem)">
+            <summary>
+            Initializes a new instance of the <see cref="T:NotifySync.NotificationManager"/> class.
+            </summary>
+            <param name="libraryManager">The library manager.</param>
+            <param name="logger">The logger.</param>
+            <param name="fileSystem">The file system.</param>
+        </member>
+        <member name="P:NotifySync.NotificationManager.Instance">
+            <summary>
+            Gets the singleton instance.
+            </summary>
+        </member>
+        <member name="M:NotifySync.NotificationManager.ManualHistoryScan(System.IProgress{System.Double},System.Threading.CancellationToken)">
+            <summary>
+            Triggers a manual history scan.
+            </summary>
+            <param name="progress">The progress object.</param>
+            <param name="cancellationToken">The cancellation token.</param>
+        </member>
+        <member name="M:NotifySync.NotificationManager.GetVersionHash">
+            <summary>
+            Gets the current version hash.
+            </summary>
+            <returns>A string representation of the version.</returns>
+        </member>
+        <member name="M:NotifySync.NotificationManager.GetRecentNotifications">
+            <summary>
+            Returns all recent notifications.
+            </summary>
+            <returns>A collection of notification items.</returns>
+        </member>
+        <member name="M:NotifySync.NotificationManager.Dispose">
+            <inheritdoc />
+        </member>
+        <member name="T:NotifySync.NotifyController">
+            <summary>
+            API Controller for NotifySync notifications.
+            </summary>
+        </member>
+        <member name="M:NotifySync.NotifyController.#ctor(MediaBrowser.Controller.Library.IUserManager,MediaBrowser.Controller.Library.ILibraryManager,MediaBrowser.Controller.Library.IUserDataManager,Microsoft.Extensions.Logging.ILogger{NotifySync.NotifyController})">
+            <summary>
+            Initializes a new instance of the <see cref="T:NotifySync.NotifyController"/> class.
+            </summary>
+            <param name="userManager">The user manager.</param>
+            <param name="libraryManager">The library manager.</param>
+            <param name="userDataManager">The user data manager.</param>
+            <param name="logger">The logger.</param>
+        </member>
+        <member name="M:NotifySync.NotifyController.Refresh">
+            <summary>
+            Triggers a manual refresh of the notification history.
+            </summary>
+            <returns>An ActionResult indicating the status.</returns>
+        </member>
+        <member name="M:NotifySync.NotifyController.GetData(System.String)">
+            <summary>
+            Gets notification data for a specific user.
+            </summary>
+            <param name="userId">The user identifier.</param>
+            <returns>An ActionResult containing the notification data.</returns>
+        </member>
+        <member name="M:NotifySync.NotifyController.SetSeen(System.String,System.Int64)">
+            <summary>
+            Sets the last seen timestamp for a user.
+            </summary>
+            <param name="userId">The user identifier.</param>
+            <param name="timestamp">The timestamp.</param>
+            <returns>An ActionResult indicating the status.</returns>
+        </member>
+        <member name="T:NotifySync.Plugin">
+            <summary>
+            The main plugin class for NotifySync.
+            </summary>
+        </member>
+        <member name="M:NotifySync.Plugin.#ctor(MediaBrowser.Common.Configuration.IApplicationPaths,MediaBrowser.Model.Serialization.IXmlSerializer,MediaBrowser.Controller.Library.ILibraryManager,Microsoft.Extensions.Logging.ILoggerFactory,MediaBrowser.Model.IO.IFileSystem)">
+            <summary>
+            Initializes a new instance of the <see cref="T:NotifySync.Plugin"/> class.
+            </summary>
+            <param name="applicationPaths">The application paths.</param>
+            <param name="xmlSerializer">The XML serializer.</param>
+            <param name="libraryManager">The library manager.</param>
+            <param name="loggerFactory">The logger factory.</param>
+            <param name="fileSystem">The file system.</param>
+        </member>
+        <member name="P:NotifySync.Plugin.Instance">
+            <summary>
+            Gets the singleton instance.
+            </summary>
+        </member>
+        <member name="P:NotifySync.Plugin.Name">
+            <inheritdoc />
+        </member>
+        <member name="P:NotifySync.Plugin.Id">
+            <inheritdoc />
+        </member>
+        <member name="P:NotifySync.Plugin.NotificationManager">
+            <summary>
+            Gets the notification manager.
+            </summary>
+        </member>
+        <member name="M:NotifySync.Plugin.GetPages">
+            <inheritdoc />
+        </member>
+        <member name="M:NotifySync.Plugin.Dispose">
+            <inheritdoc />
+        </member>
+        <member name="T:NotifySync.PluginConfiguration">
+            <summary>
+            Configuration for the NotifySync plugin.
+            </summary>
+        </member>
+        <member name="M:NotifySync.PluginConfiguration.#ctor">
+            <summary>
+            Initializes a new instance of the <see cref="T:NotifySync.PluginConfiguration"/> class.
+            </summary>
+        </member>
+        <member name="P:NotifySync.PluginConfiguration.EnabledLibraries">
+            <summary>
+            Gets or sets the list of enabled library IDs.
+            </summary>
+        </member>
+        <member name="P:NotifySync.PluginConfiguration.ManualLibraryIds">
+            <summary>
+            Gets or sets the list of manual library IDs.
+            </summary>
+        </member>
+        <member name="P:NotifySync.PluginConfiguration.CategoryMappings">
+            <summary>
+            Gets or sets the list of category mappings.
+            </summary>
+        </member>
+        <member name="P:NotifySync.PluginConfiguration.MaxItems">
+            <summary>
+            Gets or sets the maximum number of items per category.
+            </summary>
+        </member>
+        <member name="T:NotifySync.PluginJsonContext">
+            <summary>
+            Unified JSON serialization context for the NotifySync plugin.
+            </summary>
+        </member>
+        <member name="P:NotifySync.PluginJsonContext.CategoryMapping">
+            <summary>
+            Defines the source generated JSON serialization contract metadata for a given type.
+            </summary>
+        </member>
+        <member name="P:NotifySync.PluginJsonContext.NotificationItem">
+            <summary>
+            Defines the source generated JSON serialization contract metadata for a given type.
+            </summary>
+        </member>
+        <member name="P:NotifySync.PluginJsonContext.PluginConfiguration">
+            <summary>
+            Defines the source generated JSON serialization contract metadata for a given type.
+            </summary>
+        </member>
+        <member name="P:NotifySync.PluginJsonContext.DictionaryStringInt64">
+            <summary>
+            Defines the source generated JSON serialization contract metadata for a given type.
+            </summary>
+        </member>
+        <member name="P:NotifySync.PluginJsonContext.IReadOnlyListCategoryMapping">
+            <summary>
+            Defines the source generated JSON serialization contract metadata for a given type.
+            </summary>
+        </member>
+        <member name="P:NotifySync.PluginJsonContext.IReadOnlyListString">
+            <summary>
+            Defines the source generated JSON serialization contract metadata for a given type.
+            </summary>
+        </member>
+        <member name="P:NotifySync.PluginJsonContext.ListNotificationItem">
+            <summary>
+            Defines the source generated JSON serialization contract metadata for a given type.
+            </summary>
+        </member>
+        <member name="P:NotifySync.PluginJsonContext.ListString">
+            <summary>
+            Defines the source generated JSON serialization contract metadata for a given type.
+            </summary>
+        </member>
+        <member name="P:NotifySync.PluginJsonContext.DateTime">
+            <summary>
+            Defines the source generated JSON serialization contract metadata for a given type.
+            </summary>
+        </member>
+        <member name="P:NotifySync.PluginJsonContext.Int32">
+            <summary>
+            Defines the source generated JSON serialization contract metadata for a given type.
+            </summary>
+        </member>
+        <member name="P:NotifySync.PluginJsonContext.NullableInt32">
+            <summary>
+            Defines the source generated JSON serialization contract metadata for a given type.
+            </summary>
+        </member>
+        <member name="P:NotifySync.PluginJsonContext.Int64">
+            <summary>
+            Defines the source generated JSON serialization contract metadata for a given type.
+            </summary>
+        </member>
+        <member name="P:NotifySync.PluginJsonContext.NullableInt64">
+            <summary>
+            Defines the source generated JSON serialization contract metadata for a given type.
+            </summary>
+        </member>
+        <member name="P:NotifySync.PluginJsonContext.Object">
+            <summary>
+            Defines the source generated JSON serialization contract metadata for a given type.
+            </summary>
+        </member>
+        <member name="P:NotifySync.PluginJsonContext.String">
+            <summary>
+            Defines the source generated JSON serialization contract metadata for a given type.
+            </summary>
+        </member>
+        <member name="P:NotifySync.PluginJsonContext.Default">
+            <summary>
+            The default <see cref="T:System.Text.Json.Serialization.JsonSerializerContext"/> associated with a default <see cref="T:System.Text.Json.JsonSerializerOptions"/> instance.
+            </summary>
+        </member>
+        <member name="P:NotifySync.PluginJsonContext.GeneratedSerializerOptions">
+            <summary>
+            The source-generated options associated with this context.
+            </summary>
+        </member>
+        <member name="M:NotifySync.PluginJsonContext.#ctor">
+            <inheritdoc/>
+        </member>
+        <member name="M:NotifySync.PluginJsonContext.#ctor(System.Text.Json.JsonSerializerOptions)">
+            <inheritdoc/>
+        </member>
+        <member name="M:NotifySync.PluginJsonContext.GetTypeInfo(System.Type)">
+            <inheritdoc/>
+        </member>
+    </members>
+</doc>

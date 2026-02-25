@@ -48,3 +48,5 @@ C:\Users\eliem\Documents\GitHub\NotifySync\obj\Release\net9.0\NotifySync.dll
 C:\Users\eliem\Documents\GitHub\NotifySync\obj\Release\net9.0\refint\NotifySync.dll
 C:\Users\eliem\Documents\GitHub\NotifySync\obj\Release\net9.0\NotifySync.pdb
 C:\Users\eliem\Documents\GitHub\NotifySync\obj\Release\net9.0\ref\NotifySync.dll
+C:\Users\eliem\Documents\GitHub\NotifySync\bin\Release\net9.0\NotifySync.xml
+C:\Users\eliem\Documents\GitHub\NotifySync\obj\Release\net9.0\NotifySync.xml

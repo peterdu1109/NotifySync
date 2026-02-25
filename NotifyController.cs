@@ -324,19 +324,37 @@ namespace NotifySync
 
         private bool IsAuthorizedForUser(string userId)
         {
+            // First try NameIdentifier (Standard)
             var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            // Fallback to "Name" or "UserId" claims if NameIdentifier is missing
             if (string.IsNullOrEmpty(currentUserId))
             {
+                currentUserId = User.FindFirst("UserId")?.Value ?? User.Identity?.Name;
+            }
+
+            if (string.IsNullOrEmpty(currentUserId))
+            {
+                _logger.LogWarning("NotifySync: No user identity found in request principal.");
                 return false;
             }
 
-            if (currentUserId == userId)
+            if (currentUserId.Equals(userId, StringComparison.OrdinalIgnoreCase))
             {
                 return true;
             }
 
-            var currentUser = (dynamic?)_userManager.GetUserById(Guid.Parse(currentUserId));
-            return currentUser?.Policy.IsAdministrator == true;
+            if (Guid.TryParse(currentUserId, out var guid))
+            {
+                var jUser = (dynamic?)_userManager.GetUserById(guid);
+                if (jUser != null && jUser.Policy.IsAdministrator)
+                {
+                    return true;
+                }
+            }
+
+            _logger.LogWarning("NotifySync: Authorization denied. Current: {Current}, Requested: {Requested}", currentUserId, userId);
+            return false;
         }
 
         private long GetUserLastSeen(string userId)

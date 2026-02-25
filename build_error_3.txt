@@ -1,0 +1,11 @@
+  Identification des projets ├á restaurer...
+  Tous les projets sont ├á jour pour la restauration.
+C:\Users\eliem\Documents\GitHub\NotifySync\NotifyController.cs(350,44): error CS1061: 'User' ne contient pas de d├®finition pour 'Policy' et aucune m├®thode d'extension accessible 'Policy' acceptant un premier argument de type 'User' n'a ├®t├® trouv├®e (une directive using ou une r├®f├®rence d'assembly est-elle manquante┬á?) [C:\Users\eliem\Documents\GitHub\NotifySync\NotifySync.csproj]
+
+├ëCHEC de la build.
+
+C:\Users\eliem\Documents\GitHub\NotifySync\NotifyController.cs(350,44): error CS1061: 'User' ne contient pas de d├®finition pour 'Policy' et aucune m├®thode d'extension accessible 'Policy' acceptant un premier argument de type 'User' n'a ├®t├® trouv├®e (une directive using ou une r├®f├®rence d'assembly est-elle manquante┬á?) [C:\Users\eliem\Documents\GitHub\NotifySync\NotifySync.csproj]
+    0 Avertissement(s)
+    1 Erreur(s)
+
+Temps ├®coul├® 00:00:00.62

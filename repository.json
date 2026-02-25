@@ -9,6 +9,14 @@
     "supportUrl": "https://github.com/",
     "versions": [
       {
+        "version": "4.7.16.2",
+        "changelog": "- FIX : Harmonisation du GUID entre le code et le dépôt (résout l'erreur 'Développeur Inconnu').",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/4.7.16.2/NotifySync_v4.7.16.2.zip",
+        "checksum": "80438AADDBE59E966D593AA128F973EC",
+        "timestamp": "2026-02-25T19:30:00Z"
+      },
+      {
         "version": "4.7.16.1",
         "changelog": "- FIX : Correction de l'erreur SQLite Error 14 (création automatique du dossier de données).",
         "targetAbi": "10.11.0.0",

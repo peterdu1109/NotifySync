@@ -45,7 +45,7 @@ namespace NotifySync
         public override string Name => "NotifySync";
 
         /// <inheritdoc />
-        public override Guid Id => Guid.Parse("f8b2d3e1-4c5d-6e7f-8a9b-0c1d2e3f4a5b");
+        public override Guid Id => Guid.Parse("95655672-2342-4321-8291-321312312312");
 
         /// <summary>
         /// Gets the notification manager.

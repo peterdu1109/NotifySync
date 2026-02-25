@@ -7,9 +7,9 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     
     <!-- Versioning & Metadata -->
-    <AssemblyVersion>4.7.16.1</AssemblyVersion>
-    <FileVersion>4.7.16.1</FileVersion>
-    <Version>4.7.16.1</Version>
+    <AssemblyVersion>4.7.16.2</AssemblyVersion>
+    <FileVersion>4.7.16.2</FileVersion>
+    <Version>4.7.16.2</Version>
     <Authors>Peterdu1109, ElieM</Authors>
     <Company>NotifySync</Company>
     <Product>NotifySync</Product>

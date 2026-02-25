@@ -208,6 +208,7 @@
             return;
         }
 
+        if (isFetching) return;
         console.log("NotifySync: Fetching data for UserID:", userId);
         isFetching = true;
         try {

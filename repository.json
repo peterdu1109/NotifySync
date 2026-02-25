@@ -9,6 +9,22 @@
     "supportUrl": "https://github.com/",
     "versions": [
       {
+        "version": "4.7.16.7",
+        "changelog": "- STABILISATION : Audit approfondi du code et optimisation des performances.\n- FIX : Gestion robuste des IDs de bibliothèque malformés.\n- AMELIORATION : Filtrage plus efficace des événements système.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/4.7.16.7/NotifySync_v4.7.16.7.zip",
+        "checksum": "9A8F97A8DDF2445D9A69C13860FCC459",
+        "timestamp": "2026-02-25T20:30:00Z"
+      },
+      {
+        "version": "4.7.16.6",
+        "changelog": "- FIX : Correction de l'erreur sur le bouton Régénérer (Maintenance Fix).\n- AMELIORATION : Logs détaillés pour le diagnostic backend.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/4.7.16.6/NotifySync_v4.7.16.6.zip",
+        "checksum": "4F40F736D34ECBF7E13EEA77D3811868",
+        "timestamp": "2026-02-25T20:25:00Z"
+      },
+      {
         "version": "4.7.16.5",
         "changelog": "- FIX : Correction de l'erreur 404 sur Client.js (ajout du point de terminaison).\n- STABILISATION : Optimisation finale des routes API.",
         "targetAbi": "10.11.0.0",

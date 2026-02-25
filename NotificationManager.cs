@@ -168,7 +168,7 @@ namespace NotifySync
 
         private void OnItemAdded(object? sender, ItemChangeEventArgs e)
         {
-            if (e.Item == null)
+            if (e.Item == null || (e.Item.GetType().Name != "Movie" && e.Item.GetType().Name != "Episode"))
             {
                 return;
             }
@@ -329,7 +329,7 @@ namespace NotifySync
                 {
                     foreach (var map in config.CategoryMappings)
                     {
-                        if (owners.Contains(Guid.Parse(map.LibraryId)))
+                        if (Guid.TryParse(map.LibraryId, out var libGuid) && owners.Contains(libGuid))
                         {
                             category = map.CategoryName;
                             break;

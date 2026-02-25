@@ -67,21 +67,25 @@ namespace NotifySync
         [HttpPost("Refresh")]
         public ActionResult Refresh()
         {
+            _logger.LogInformation("NotifySync: Manual refresh requested from UI.");
             bool lockTaken = false;
             try
             {
                 Monitor.TryEnter(_refreshLock, TimeSpan.FromSeconds(5), ref lockTaken);
                 if (!lockTaken)
                 {
+                    _logger.LogWarning("NotifySync: Refresh ignored, lock busy.");
                     return StatusCode(StatusCodes.Status503ServiceUnavailable, "Système occupé.");
                 }
 
-                if ((DateTime.UtcNow - new DateTime(_lastRefreshTime)).TotalSeconds < 60)
+                var now = DateTime.UtcNow;
+                if ((now - new DateTime(_lastRefreshTime)).TotalSeconds < 30)
                 {
-                    return StatusCode(429, "Veuillez attendre 1 minute entre chaque rafraîchissement.");
+                    _logger.LogWarning("NotifySync: Refresh rate limited.");
+                    return StatusCode(429, "Veuillez attendre 30 secondes.");
                 }
 
-                _lastRefreshTime = DateTime.UtcNow.Ticks;
+                _lastRefreshTime = now.Ticks;
             }
             finally
             {
@@ -93,12 +97,14 @@ namespace NotifySync
 
             if (NotificationManager.Instance != null)
             {
+                _logger.LogInformation("NotifySync: Starting manual history scan...");
                 UserViewCache.Clear();
                 Task.Run(() => NotificationManager.Instance.ManualHistoryScan(null!, CancellationToken.None));
-                return Ok("Refresh started");
+                return Ok(new { Message = "Refresh started" });
             }
 
-            return NotFound();
+            _logger.LogError("NotifySync: NotificationManager.Instance is null during refresh!");
+            return StatusCode(500, "Manager non initialisé.");
         }
 
         /// <summary>

@@ -13,7 +13,7 @@
         "changelog": "- HARMONISATION : Compatibilité totale avec Jellyfin 10.11.0 (API stability fixes).\n- QUALITÉ : Build parfait avec 0 erreurs et 0 avertissements (StyleCop & CA).\n- ARCHITECTURE : Consolidation du contexte JSON (PluginJsonContext), scellement des classes et pattern Dispose robuste.\n- STABILITÉ : Isolation SQLite WAL et optimisation des performances.",
         "targetAbi": "10.11.0.0",
         "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/4.7.16/NotifySync_v4.7.16.zip",
-        "checksum": "D16BCBFE9117CF610A6A616FF556EF5DF",
+        "checksum": "D16BCBFE9117CF610A6A616F556EF5DF",
         "timestamp": "2026-02-25T15:10:00Z"
       },
       {

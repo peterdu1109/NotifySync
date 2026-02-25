@@ -1,8 +1,8 @@
 {
   "Guid": "95655672-2342-4321-8291-321312312312",
   "Name": "NotifySync",
-  "Description": "Notifications style Netflix. v4.7.16.4 : Final Audit Stability Fix.",
-  "version": "4.7.16.4",
+  "Description": "Notifications style Netflix. v4.7.16.5 : Final Client.js 404 Fix.",
+  "version": "4.7.16.5",
   "Owner": "Peterdu1109 & ElieM",
   "Category": "UI",
   "TargetAbi": "10.11.0.0"

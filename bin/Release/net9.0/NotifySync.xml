@@ -210,6 +210,12 @@
             </summary>
             <returns>An ActionResult indicating the status.</returns>
         </member>
+        <member name="M:NotifySync.NotifyController.GetClientJs">
+            <summary>
+            Serves the client-side script for NotifySync.
+            </summary>
+            <returns>The javascript file.</returns>
+        </member>
         <member name="M:NotifySync.NotifyController.GetData(System.String)">
             <summary>
             Gets notification data for a specific user.

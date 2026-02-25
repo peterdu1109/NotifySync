@@ -1,13 +1,13 @@
+C:\Users\eliem\Documents\GitHub\NotifySync\bin\Release\net9.0\NotifySync.deps.json
+C:\Users\eliem\Documents\GitHub\NotifySync\bin\Release\net9.0\NotifySync.dll
+C:\Users\eliem\Documents\GitHub\NotifySync\bin\Release\net9.0\NotifySync.pdb
+C:\Users\eliem\Documents\GitHub\NotifySync\bin\Release\net9.0\NotifySync.xml
 C:\Users\eliem\Documents\GitHub\NotifySync\obj\Release\net9.0\NotifySync.csproj.AssemblyReference.cache
 C:\Users\eliem\Documents\GitHub\NotifySync\obj\Release\net9.0\NotifySync.GeneratedMSBuildEditorConfig.editorconfig
 C:\Users\eliem\Documents\GitHub\NotifySync\obj\Release\net9.0\NotifySync.AssemblyInfoInputs.cache
 C:\Users\eliem\Documents\GitHub\NotifySync\obj\Release\net9.0\NotifySync.AssemblyInfo.cs
 C:\Users\eliem\Documents\GitHub\NotifySync\obj\Release\net9.0\NotifySync.csproj.CoreCompileInputs.cache
 C:\Users\eliem\Documents\GitHub\NotifySync\obj\Release\net9.0\NotifySync.sourcelink.json
-C:\Users\eliem\Documents\GitHub\NotifySync\bin\Release\net9.0\NotifySync.deps.json
-C:\Users\eliem\Documents\GitHub\NotifySync\bin\Release\net9.0\NotifySync.dll
-C:\Users\eliem\Documents\GitHub\NotifySync\bin\Release\net9.0\NotifySync.pdb
-C:\Users\eliem\Documents\GitHub\NotifySync\bin\Release\net9.0\NotifySync.xml
 C:\Users\eliem\Documents\GitHub\NotifySync\obj\Release\net9.0\NotifySync.dll
 C:\Users\eliem\Documents\GitHub\NotifySync\obj\Release\net9.0\refint\NotifySync.dll
 C:\Users\eliem\Documents\GitHub\NotifySync\obj\Release\net9.0\NotifySync.xml

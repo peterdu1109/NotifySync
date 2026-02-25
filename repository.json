@@ -9,6 +9,14 @@
     "supportUrl": "https://github.com/",
     "versions": [
       {
+        "version": "4.7.16.5",
+        "changelog": "- FIX : Correction de l'erreur 404 sur Client.js (ajout du point de terminaison).\n- STABILISATION : Optimisation finale des routes API.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/4.7.16.5/NotifySync_v4.7.16.5.zip",
+        "checksum": "63694A410674C1E1B970FF71ECB554BB",
+        "timestamp": "2026-02-25T20:15:00Z"
+      },
+      {
         "version": "4.7.16.4",
         "changelog": "- FIX : Correction de l'index de lecture SQLite (DateCreated fix).\n- FIX : Passage aux Tags pour les images (corrige l'affichage des affiches).\n- NETTOYAGE : Suppression des fichiers temporaires et optimisation finale.",
         "targetAbi": "10.11.0.0",

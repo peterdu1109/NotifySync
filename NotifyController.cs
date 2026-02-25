@@ -102,6 +102,28 @@ namespace NotifySync
         }
 
         /// <summary>
+        /// Serves the client-side script for NotifySync.
+        /// </summary>
+        /// <returns>The javascript file.</returns>
+        [HttpGet("Client.js")]
+        [AllowAnonymous]
+        [ResponseCache(Duration = 3600, Location = ResponseCacheLocation.Any)]
+        public ActionResult GetClientJs()
+        {
+            var assembly = GetType().Assembly;
+            const string ResourceName = "NotifySync.client.js";
+            using var stream = assembly.GetManifestResourceStream(ResourceName);
+            if (stream == null)
+            {
+                _logger.LogError("NotifySync: client.js resource not found! Expected: {ResourceName}", ResourceName);
+                return NotFound();
+            }
+
+            using var reader = new StreamReader(stream);
+            return Content(reader.ReadToEnd(), "application/javascript");
+        }
+
+        /// <summary>
         /// Gets notification data for a specific user.
         /// </summary>
         /// <param name="userId">The user identifier.</param>

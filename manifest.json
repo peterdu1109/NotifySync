@@ -1,8 +1,8 @@
 {
   "Guid": "95655672-2342-4321-8291-321312312312",
   "Name": "NotifySync",
-  "Description": "Notifications style Netflix. v4.7.16.8 : Authentication & Date Robustness Fix.",
-  "version": "4.7.16.8",
+  "Description": "Notifications style Netflix. v4.7.16.9 : GUID Normalization Fix.",
+  "version": "4.7.16.9",
   "Owner": "Peterdu1109 & ElieM",
   "Category": "UI",
   "TargetAbi": "10.11.0.0"

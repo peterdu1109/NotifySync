@@ -339,7 +339,11 @@ namespace NotifySync
                 return false;
             }
 
-            if (currentUserId.Equals(userId, StringComparison.OrdinalIgnoreCase))
+            // Normalize both IDs for comparison (handle hyphenated vs non-hyphenated formats)
+            var normalizedCurrent = currentUserId.Replace("-", string.Empty, StringComparison.OrdinalIgnoreCase).ToLowerInvariant();
+            var normalizedRequested = userId.Replace("-", string.Empty, StringComparison.OrdinalIgnoreCase).ToLowerInvariant();
+
+            if (normalizedCurrent == normalizedRequested)
             {
                 return true;
             }

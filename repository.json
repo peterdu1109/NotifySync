@@ -9,6 +9,14 @@
     "supportUrl": "https://github.com/",
     "versions": [
       {
+        "version": "4.7.16.9",
+        "changelog": "- FIX : Normalisation des GUID pour corriger l'erreur 403 Forbidden.\n- AMELIORATION : Comparaison d'identité utilisateur plus robuste.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/4.7.16.9/NotifySync_v4.7.16.9.zip",
+        "checksum": "3B4AA85BACCBD11288A0BB8988742D8C",
+        "timestamp": "2026-02-25T20:55:00Z"
+      },
+      {
         "version": "4.7.16.8",
         "changelog": "- FIX : Correction de l'erreur 403 Forbidden (Autorisation).\n- FIX : Robustesse du parsing des dates SQLite.\n- AMELIORATION : Logs de diagnostic pour l'authentification.",
         "targetAbi": "10.11.0.0",

@@ -217,13 +217,27 @@
             <param name="userId">The user identifier.</param>
             <returns>An ActionResult containing the notification data.</returns>
         </member>
-        <member name="M:NotifySync.NotifyController.SetSeen(System.String,System.Int64)">
+        <member name="M:NotifySync.NotifyController.GetLastSeen(System.String)">
+            <summary>
+            Gets the last seen timestamp for a user.
+            </summary>
+            <param name="userId">The user identifier.</param>
+            <returns>An ActionResult containing the last seen timestamp.</returns>
+        </member>
+        <member name="M:NotifySync.NotifyController.SetLastSeen(System.String,System.String)">
             <summary>
             Sets the last seen timestamp for a user.
             </summary>
             <param name="userId">The user identifier.</param>
-            <param name="timestamp">The timestamp.</param>
+            <param name="date">The ISO date string (optional, defaults to now).</param>
             <returns>An ActionResult indicating the status.</returns>
+        </member>
+        <member name="M:NotifySync.NotifyController.GetBulkUserData(System.String)">
+            <summary>
+            Gets played status for a list of items.
+            </summary>
+            <param name="userId">The user identifier.</param>
+            <returns>An ActionResult containing a dictionary of item IDs and their played status.</returns>
         </member>
         <member name="T:NotifySync.Plugin">
             <summary>
@@ -297,6 +311,11 @@
             Unified JSON serialization context for the NotifySync plugin.
             </summary>
         </member>
+        <member name="P:NotifySync.PluginJsonContext.Boolean">
+            <summary>
+            Defines the source generated JSON serialization contract metadata for a given type.
+            </summary>
+        </member>
         <member name="P:NotifySync.PluginJsonContext.CategoryMapping">
             <summary>
             Defines the source generated JSON serialization contract metadata for a given type.
@@ -312,17 +331,22 @@
             Defines the source generated JSON serialization contract metadata for a given type.
             </summary>
         </member>
+        <member name="P:NotifySync.PluginJsonContext.DictionaryStringBoolean">
+            <summary>
+            Defines the source generated JSON serialization contract metadata for a given type.
+            </summary>
+        </member>
         <member name="P:NotifySync.PluginJsonContext.DictionaryStringInt64">
             <summary>
             Defines the source generated JSON serialization contract metadata for a given type.
             </summary>
         </member>
-        <member name="P:NotifySync.PluginJsonContext.IReadOnlyListCategoryMapping">
+        <member name="P:NotifySync.PluginJsonContext.IReadOnlyListString">
             <summary>
             Defines the source generated JSON serialization contract metadata for a given type.
             </summary>
         </member>
-        <member name="P:NotifySync.PluginJsonContext.IReadOnlyListString">
+        <member name="P:NotifySync.PluginJsonContext.ListCategoryMapping">
             <summary>
             Defines the source generated JSON serialization contract metadata for a given type.
             </summary>

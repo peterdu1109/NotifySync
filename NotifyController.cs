@@ -139,7 +139,7 @@ namespace NotifySync
                 }
 
                 var allNotifs = NotificationManager.Instance.GetRecentNotifications();
-                var user = (dynamic?)_userManager.GetUserById(Guid.Parse(userId));
+                var user = _userManager.GetUserById(Guid.Parse(userId));
                 if (user == null)
                 {
                     return NotFound();
@@ -212,7 +212,7 @@ namespace NotifySync
                 return Forbid();
             }
 
-            DateTime dt = string.IsNullOrEmpty(date) ? DateTime.UtcNow : DateTime.Parse(date);
+            DateTime dt = string.IsNullOrEmpty(date) ? DateTime.UtcNow : DateTime.Parse(date, System.Globalization.CultureInfo.InvariantCulture);
             long timestamp = dt.Ticks;
 
             UserLastSeenCache[userId] = timestamp;
@@ -249,7 +249,7 @@ namespace NotifySync
             try
             {
                 using var reader = new StreamReader(Request.Body);
-                var body = await reader.ReadToEndAsync();
+                var body = await reader.ReadToEndAsync().ConfigureAwait(false);
                 var itemIds = JsonSerializer.Deserialize(body, PluginJsonContext.Default.ListString);
 
                 if (itemIds == null)
@@ -264,12 +264,19 @@ namespace NotifySync
                 }
 
                 var results = new Dictionary<string, bool>();
-                foreach (var id in itemIds)
+#pragma warning disable CS8602
+                foreach (var id in itemIds!)
                 {
+                    if (string.IsNullOrEmpty(id))
+                    {
+                        continue;
+                    }
+
                     var item = _libraryManager.GetItemById(id);
                     if (item != null)
                     {
-                        var userData = _userDataManager.GetUserData(user, item);
+                        var userObj = user!;
+                        var userData = _userDataManager.GetUserData(userObj, item);
                         results[id] = userData.Played;
                     }
                     else
@@ -278,7 +285,7 @@ namespace NotifySync
                     }
                 }
 
-                return new JsonResult(results, PluginJsonContext.Default.DictionaryStringBool);
+                return new JsonResult(results, PluginJsonContext.Default.DictionaryStringBoolean);
             }
             catch (Exception ex)
             {

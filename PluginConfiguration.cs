@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using MediaBrowser.Model.Plugins;
 
+#pragma warning disable CA2227, CA1002
 namespace NotifySync
 {
     /// <summary>

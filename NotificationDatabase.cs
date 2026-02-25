@@ -27,6 +27,12 @@ namespace NotifySync
         public NotificationDatabase(string dataFolderPath, ILogger logger)
         {
             _logger = logger;
+
+            if (!Directory.Exists(dataFolderPath))
+            {
+                Directory.CreateDirectory(dataFolderPath);
+            }
+
             _dbPath = Path.Combine(dataFolderPath, "notifications.db");
             _connectionString = new SqliteConnectionStringBuilder
             {

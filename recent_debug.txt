@@ -1,0 +1,101 @@
+[2026-02-25 17:53:53.502 +01:00] [INF] [10] Emby.Server.Implementations.Plugins.PluginManager: Loaded plugin: "NotifySync" "4.7.16.0"
+[2026-02-25 17:53:53.521 +01:00] [INF] [10] XFusion.Service.EpgDatabase: EpgDatabase: Initialized at "C:\ProgramData\Jellyfin\Server\plugins\configurations\epg.db"
+[2026-02-25 17:53:53.526 +01:00] [INF] [10] XFusion.Service.VodDatabase: VodDatabase: Initialized at "C:\ProgramData\Jellyfin\Server\plugins\configurations\vod.db"
+[2026-02-25 17:53:53.529 +01:00] [INF] [10] XFusion.Service.StreamProxyService: [XFusion] Loaded AES proxy key from "C:\ProgramData\Jellyfin\Server\plugins\configurations\proxy_key.bin"
+[2026-02-25 17:53:53.530 +01:00] [INF] [10] Emby.Server.Implementations.Plugins.PluginManager: Loaded plugin: "X-Fusion" "0.11.0.9"
+[2026-02-25 17:53:53.531 +01:00] [INF] [10] Emby.Server.Implementations.Plugins.PluginManager: Loaded plugin: "TMDb" "10.11.6.0"
+[2026-02-25 17:53:53.533 +01:00] [INF] [10] Emby.Server.Implementations.Plugins.PluginManager: Loaded plugin: "Studio Images" "10.11.6.0"
+[2026-02-25 17:53:53.534 +01:00] [INF] [10] Emby.Server.Implementations.Plugins.PluginManager: Loaded plugin: "OMDb" "10.11.6.0"
+[2026-02-25 17:53:53.540 +01:00] [INF] [10] Emby.Server.Implementations.Plugins.PluginManager: Loaded plugin: "MusicBrainz" "10.11.6.0"
+[2026-02-25 17:53:53.541 +01:00] [INF] [10] Emby.Server.Implementations.Plugins.PluginManager: Loaded plugin: "AudioDB" "10.11.6.0"
+[2026-02-25 17:53:53.558 +01:00] [INF] [10] Jellyfin.Server.Migrations.JellyfinMigrationService: There are 0 migrations for stage AppInitialisation.
+[2026-02-25 17:53:53.583 +01:00] [INF] [15] Main: Kestrel is listening on "0.0.0.0"
+[2026-02-25 17:53:53.826 +01:00] [INF] [15] Emby.Server.Implementations.ApplicationHost: Running startup tasks
+[2026-02-25 17:53:53.831 +01:00] [INF] [15] Emby.Server.Implementations.ScheduledTasks.TaskManager: Daily trigger for "Synchronisation du cache VOD & Séries" set to fire at 2026-02-26 03:00:00.000 +01:00, which is 09:06:06.1682834 from now.
+[2026-02-25 17:53:53.834 +01:00] [INF] [15] Emby.Server.Implementations.ScheduledTasks.TaskManager: Daily trigger for "Nettoyage de la base EPG" set to fire at 2026-02-26 04:00:00.000 +01:00, which is 10:06:06.1655753 from now.
+[2026-02-25 17:53:53.840 +01:00] [INF] [15] Emby.Server.Implementations.ScheduledTasks.TaskManager: Daily trigger for "Générer des images Trickplay" set to fire at 2026-02-26 03:00:00.000 +01:00, which is 09:06:06.1596890 from now.
+[2026-02-25 17:53:53.843 +01:00] [INF] [15] Emby.Server.Implementations.ScheduledTasks.TaskManager: Daily trigger for "Extraire les images de chapitre" set to fire at 2026-02-26 02:00:00.000 +01:00, which is 08:06:06.1562607 from now.
+[2026-02-25 17:53:53.877 +01:00] [INF] [15] MediaBrowser.MediaEncoding.Encoder.MediaEncoder: Found ffmpeg version "7.1.3"
+[2026-02-25 17:53:53.907 +01:00] [INF] [15] MediaBrowser.MediaEncoding.Encoder.MediaEncoder: Available "decoders": ["libdav1d", "av1", "av1_cuvid", "av1_qsv", "h264", "h264_qsv", "h264_cuvid", "hevc", "hevc_qsv", "hevc_cuvid", "mpeg2video", "mpeg2_qsv", "mpeg2_cuvid", "mpeg4", "mpeg4_cuvid", "msmpeg4", "vc1_qsv", "vc1_cuvid", "vp8", "libvpx", "vp8_cuvid", "vp8_qsv", "vp9", "libvpx-vp9", "vp9_cuvid", "vp9_qsv", "aac", "ac3", "ac4", "dca", "flac", "mp3", "truehd"]
+[2026-02-25 17:53:53.960 +01:00] [INF] [15] MediaBrowser.MediaEncoding.Encoder.MediaEncoder: Available "encoders": ["libsvtav1", "av1_nvenc", "av1_qsv", "av1_amf", "libx264", "h264_amf", "h264_nvenc", "h264_qsv", "libx265", "hevc_amf", "hevc_nvenc", "hevc_qsv", "mjpeg_qsv", "aac", "libfdk_aac", "ac3", "alac", "dca", "flac", "libmp3lame", "libopus", "truehd", "libvorbis", "srt"]
+[2026-02-25 17:53:53.986 +01:00] [INF] [15] MediaBrowser.MediaEncoding.Encoder.MediaEncoder: Available filters: ["bwdif_cuda", "bwdif_opencl", "deinterlace_qsv", "hwupload_cuda", "overlay_opencl", "overlay_qsv", "overlay_cuda", "scale_cuda", "scale_opencl", "scale_qsv", "tonemapx", "tonemap_cuda", "tonemap_opencl", "transpose_cuda", "transpose_opencl", "vpp_qsv", "yadif_cuda", "yadif_opencl", "zscale", "alphasrc"]
+[2026-02-25 17:53:54.014 +01:00] [INF] [10] Emby.Server.Implementations.HttpServer.WebSocketManager: WS "192.168.1.131" request
+[2026-02-25 17:53:54.073 +01:00] [WRN] [15] MediaBrowser.MediaEncoding.Encoder.MediaEncoder: Filter: "overlay_vaapi" with option "Action to take when encountering EOF from secondary input" is not available
+[2026-02-25 17:53:54.089 +01:00] [WRN] [15] MediaBrowser.MediaEncoding.Encoder.MediaEncoder: Filter: "overlay_vulkan" with option "Action to take when encountering EOF from secondary input" is not available
+[2026-02-25 17:53:54.096 +01:00] [WRN] [10] Emby.Server.Implementations.HttpServer.WebSocketConnection: WS "192.168.1.131" error receiving data: "The remote party closed the WebSocket connection without completing the close handshake."
+[2026-02-25 17:53:54.135 +01:00] [INF] [10] Emby.Server.Implementations.HttpServer.WebSocketManager: WS "192.168.1.131" closed
+[2026-02-25 17:53:54.219 +01:00] [INF] [15] MediaBrowser.MediaEncoding.Encoder.MediaEncoder: Available hwaccel types: ["cuda", "dxva2", "qsv", "d3d11va", "opencl", "d3d12va"]
+[2026-02-25 17:53:54.676 +01:00] [INF] [15] MediaBrowser.MediaEncoding.Encoder.MediaEncoder: FFmpeg: "ffmpeg"
+[2026-02-25 17:53:54.677 +01:00] [INF] [15] Emby.Server.Implementations.ApplicationHost: ServerId: "6e141f7a24c44ccb94764abbf080f0de"
+[2026-02-25 17:53:54.678 +01:00] [INF] [15] Emby.Server.Implementations.ApplicationHost: Core startup complete
+[2026-02-25 17:53:54.679 +01:00] [INF] [15] Main: Startup complete 0:00:02.4596515
+[2026-02-25 17:53:54.975 +01:00] [INF] [8] Emby.Server.Implementations.HttpServer.WebSocketManager: WS "192.168.1.131" request
+[2026-02-25 17:53:55.311 +01:00] [INF] [8] XFusion.Client.XFusionClient: XFusion API: "GET" "/player_api.php?username=35J2MS1&password=MBPD8ME" in 207ms (Base: "http://wstream.cc/")
+[2026-02-25 17:53:56.850 +01:00] [INF] [10] Emby.Server.Implementations.ScheduledTasks.TaskManager: "Nettoyer le dossier des transcodages" Completed after 0 minute(s) and 0 seconds
+[2026-02-25 17:53:56.867 +01:00] [INF] [8] Emby.Server.Implementations.ScheduledTasks.TaskManager: "Nettoyer les collections et les listes de lecture" Completed after 0 minute(s) and 0 seconds
+[2026-02-25 17:53:57.530 +01:00] [INF] [19] Emby.Server.Implementations.ScheduledTasks.TaskManager: "Mettre à jour les extensions" Completed after 0 minute(s) and 0 seconds
+[2026-02-25 17:54:06.646 +01:00] [INF] [10] XFusion.Client.XFusionClient: XFusion API: "GET" "/player_api.php?username=35J2MS1&password=MBPD8ME&action=get_live_categories" in 172ms (Base: "http://wstream.cc/")
+[2026-02-25 17:54:08.020 +01:00] [INF] [8] XFusion.Client.XFusionClient: XFusion API: "GET" "/player_api.php?username=35J2MS1&password=MBPD8ME" in 142ms (Base: "http://wstream.cc/")
+[2026-02-25 17:55:03.766 +01:00] [INF] [26] XFusion.Client.XFusionClient: XFusion API: "GET" "/player_api.php?username=35J2MS1&password=MBPD8ME" in 106ms (Base: "http://wstream.cc/")
+[2026-02-25 17:55:03.768 +01:00] [INF] [26] XFusion.LiveTvService: XFusion Catch-up Timezone auto-correction: Skew of 0 seconds detected.
+[2026-02-25 17:55:04.414 +01:00] [INF] [26] XFusion.Client.XFusionClient: XFusion API: "GET" "/player_api.php?username=35J2MS1&password=MBPD8ME&action=get_live_streams" in 642ms (Base: "http://wstream.cc/")
+[2026-02-25 17:55:04.535 +01:00] [INF] [26] XFusion.Service.StreamService: GetLiveStreams: Fetched 0 streams (filtered from 27320).
+[2026-02-25 17:55:04.545 +01:00] [INF] [26] Jellyfin.LiveTv.Guide.GuideManager: Refreshing guide with 7 days of guide data
+[2026-02-25 17:55:04.548 +01:00] [INF] [26] Jellyfin.LiveTv.Guide.GuideManager: Refreshing guide with 7 days of guide data
+[2026-02-25 17:55:04.564 +01:00] [INF] [26] Emby.Server.Implementations.Library.LibraryManager: Removing item, Type: "LiveTvChannel", Name: "BEIN SPORTS 1", Path: "", Id: dfc1e743-5bd1-6248-dd58-f7117406b8c1
+[2026-02-25 17:55:05.409 +01:00] [INF] [26] Emby.Server.Implementations.Library.LibraryManager: Removing item, Type: "LiveTvChannel", Name: "BEIN SPORTS 2", Path: "", Id: 17bc6a16-909b-8636-2f7c-91155dbfb076
+[2026-02-25 17:55:05.581 +01:00] [INF] [26] Emby.Server.Implementations.Library.LibraryManager: Removing item, Type: "LiveTvChannel", Name: "BEIN SPORTS 3", Path: "", Id: 65192d83-683a-34bb-67a2-c9cfd51a8e70
+[2026-02-25 17:55:05.714 +01:00] [INF] [26] Emby.Server.Implementations.Library.LibraryManager: Removing item, Type: "LiveTvChannel", Name: "DISNEY CHANNEL", Path: "", Id: b1c44344-3bfa-2c32-4957-0f3d975d84e2
+[2026-02-25 17:55:05.986 +01:00] [INF] [26] Emby.Server.Implementations.Library.LibraryManager: Removing item, Type: "LiveTvChannel", Name: "DISNEY JUNIOR", Path: "", Id: 75879588-105d-84a2-872d-04799d94b50c
+[2026-02-25 17:55:06.051 +01:00] [INF] [26] Emby.Server.Implementations.Library.LibraryManager: Removing item, Type: "LiveTvChannel", Name: "C DISNEY CHANNEL 1", Path: "", Id: e1f42766-33ec-d863-6fe4-ec9f648fa96f
+[2026-02-25 17:55:06.262 +01:00] [INF] [26] Emby.Server.Implementations.Library.LibraryManager: Removing item, Type: "LiveTvChannel", Name: "LBC", Path: "", Id: 022ed7de-c0fd-06ce-ec89-6da764c48c5c
+[2026-02-25 17:55:06.401 +01:00] [INF] [26] Emby.Server.Implementations.Library.LibraryManager: Removing item, Type: "LiveTvChannel", Name: "LBC International 2", Path: "", Id: dd8107a7-a603-6c21-01f3-ad4dca53a864
+[2026-02-25 17:55:06.480 +01:00] [INF] [26] Emby.Server.Implementations.Library.LibraryManager: Removing item, Type: "LiveTvChannel", Name: "LBC International", Path: "", Id: f5c20580-4653-8bd9-7885-182dec7d8db2
+[2026-02-25 17:55:06.570 +01:00] [INF] [26] Emby.Server.Implementations.Library.LibraryManager: Removing item, Type: "LiveTvChannel", Name: "MTV LEBANON ◉", Path: "", Id: f28088b3-7bdb-6947-e5b0-5723fbf0928b
+[2026-02-25 17:55:06.658 +01:00] [INF] [26] Emby.Server.Implementations.Library.LibraryManager: Removing item, Type: "LiveTvChannel", Name: "AL JADEED ◉", Path: "", Id: 3103fb10-30ce-b797-fcee-a00248a9fd91
+[2026-02-25 17:55:06.718 +01:00] [INF] [26] Emby.Server.Implementations.Library.LibraryManager: Removing item, Type: "LiveTvChannel", Name: "AL MANAR ◉", Path: "", Id: 05c39ec4-4114-308a-08ec-8a08ec819553
+[2026-02-25 17:55:06.779 +01:00] [INF] [26] Emby.Server.Implementations.Library.LibraryManager: Removing item, Type: "LiveTvChannel", Name: "LBC ◉", Path: "", Id: f3ea7d49-eae9-43b3-ab29-a0843d8e6e50
+[2026-02-25 17:55:06.884 +01:00] [INF] [26] Emby.Server.Implementations.ScheduledTasks.TaskManager: "Refresh Guide" Completed after 0 minute(s) and 6 seconds
+[2026-02-25 17:56:02.405 +01:00] [INF] [19] XFusion.Client.XFusionClient: XFusion API: "GET" "/player_api.php?username=35J2MS1&password=MBPD8ME" in 170ms (Base: "http://wstream.cc/")
+[2026-02-25 17:56:07.875 +01:00] [INF] [20] XFusion.Client.XFusionClient: XFusion API: "GET" "/player_api.php?username=35J2MS1&password=MBPD8ME&action=get_live_categories" in 166ms (Base: "http://wstream.cc/")
+[2026-02-25 17:56:58.265 +01:00] [INF] [10] XFusion.Client.XFusionClient: XFusion API: "GET" "/player_api.php?username=35J2MS1&password=MBPD8ME&action=get_live_streams&category_id=363" in 237ms (Base: "http://wstream.cc/")
+[2026-02-25 17:58:39.898 +01:00] [INF] [17] XFusion.Client.XFusionClient: XFusion API: "GET" "/player_api.php?username=35J2MS1&password=MBPD8ME&action=get_live_streams&category_id=1488" in 163ms (Base: "http://wstream.cc/")
+[2026-02-25 17:58:48.369 +01:00] [INF] [17] XFusion.Client.XFusionClient: XFusion API: "GET" "/player_api.php?username=35J2MS1&password=MBPD8ME&action=get_live_streams&category_id=369" in 182ms (Base: "http://wstream.cc/")
+[2026-02-25 17:59:04.849 +01:00] [INF] [17] XFusion.Client.XFusionClient: XFusion API: "GET" "/player_api.php?username=35J2MS1&password=MBPD8ME&action=get_live_streams&category_id=368" in 157ms (Base: "http://wstream.cc/")
+[2026-02-25 18:00:40.127 +01:00] [INF] [17] XFusion.Client.XFusionClient: XFusion API: "GET" "/player_api.php?username=35J2MS1&password=MBPD8ME&action=get_live_streams&category_id=58" in 193ms (Base: "http://wstream.cc/")
+[2026-02-25 18:01:03.847 +01:00] [INF] [17] XFusion.Client.XFusionClient: XFusion API: "GET" "/player_api.php?username=35J2MS1&password=MBPD8ME&action=get_live_streams&category_id=62" in 103ms (Base: "http://wstream.cc/")
+[2026-02-25 18:01:23.298 +01:00] [INF] [22] XFusion.Client.XFusionClient: XFusion API: "GET" "/player_api.php?username=35J2MS1&password=MBPD8ME&action=get_live_streams&category_id=191" in 145ms (Base: "http://wstream.cc/")
+[2026-02-25 18:01:49.270 +01:00] [INF] [22] XFusion.Client.XFusionClient: XFusion API: "GET" "/player_api.php?username=35J2MS1&password=MBPD8ME&action=get_live_streams&category_id=487" in 116ms (Base: "http://wstream.cc/")
+[2026-02-25 18:02:06.351 +01:00] [INF] [17] Emby.Server.Implementations.ScheduledTasks.TaskManager: "TasksRefreshChannels" Completed after 0 minute(s) and 0 seconds
+[2026-02-25 18:02:08.488 +01:00] [INF] [22] XFusion.Client.XFusionClient: XFusion API: "GET" "/player_api.php?username=35J2MS1&password=MBPD8ME" in 143ms (Base: "http://wstream.cc/")
+[2026-02-25 18:02:09.446 +01:00] [INF] [22] XFusion.Client.XFusionClient: XFusion API: "GET" "/player_api.php?username=35J2MS1&password=MBPD8ME" in 135ms (Base: "http://wstream.cc/")
+[2026-02-25 18:02:09.447 +01:00] [INF] [22] XFusion.LiveTvService: XFusion Catch-up Timezone auto-correction: Skew of 0 seconds detected.
+[2026-02-25 18:02:10.083 +01:00] [INF] [22] XFusion.Client.XFusionClient: XFusion API: "GET" "/player_api.php?username=35J2MS1&password=MBPD8ME&action=get_live_streams" in 634ms (Base: "http://wstream.cc/")
+[2026-02-25 18:02:10.117 +01:00] [INF] [22] XFusion.Service.StreamService: GetLiveStreams: Fetched 49 streams (filtered from 27320).
+[2026-02-25 18:02:10.570 +01:00] [INF] [22] Jellyfin.LiveTv.Guide.GuideManager: Refreshing guide with 7 days of guide data
+[2026-02-25 18:02:10.608 +01:00] [INF] [22] XFusion.Client.XFusionClient: XFusion API: "GET" "/player_api.php?username=35J2MS1&password=MBPD8ME&action=get_vod_categories" in 124ms (Base: "http://wstream.cc/")
+[2026-02-25 18:02:10.848 +01:00] [INF] [30] XFusion.Client.XFusionClient: XFusion API: "GET" "/player_api.php?username=35J2MS1&password=MBPD8ME&action=get_simple_data_table&stream_id=56580" in 270ms (Base: "http://wstream.cc/")
+[2026-02-25 18:02:10.863 +01:00] [INF] [30] XFusion.LiveTvService: EpgDatabase: Stored 153 programs for stream 56580 to SQLite.
+[2026-02-25 18:02:11.275 +01:00] [INF] [29] XFusion.Client.XFusionClient: XFusion API: "GET" "/player_api.php?username=35J2MS1&password=MBPD8ME&action=get_simple_data_table&stream_id=56579" in 269ms (Base: "http://wstream.cc/")
+[2026-02-25 18:02:11.278 +01:00] [INF] [29] XFusion.LiveTvService: EpgDatabase: Stored 121 programs for stream 56579 to SQLite.
+[2026-02-25 18:02:11.649 +01:00] [INF] [10] XFusion.Client.XFusionClient: XFusion API: "GET" "/player_api.php?username=35J2MS1&password=MBPD8ME&action=get_simple_data_table&stream_id=56578" in 321ms (Base: "http://wstream.cc/")
+[2026-02-25 18:02:11.653 +01:00] [INF] [10] XFusion.LiveTvService: EpgDatabase: Stored 108 programs for stream 56578 to SQLite.
+[2026-02-25 18:02:11.845 +01:00] [INF] [29] XFusion.Client.XFusionClient: XFusion API: "GET" "/player_api.php?username=35J2MS1&password=MBPD8ME&action=get_simple_data_table&stream_id=62502" in 156ms (Base: "http://wstream.cc/")
+[2026-02-25 18:02:11.847 +01:00] [INF] [29] XFusion.LiveTvService: EpgDatabase: Stored 48 programs for stream 62502 to SQLite.
+[2026-02-25 18:02:12.082 +01:00] [INF] [15] XFusion.Client.XFusionClient: XFusion API: "GET" "/player_api.php?username=35J2MS1&password=MBPD8ME&action=get_simple_data_table&stream_id=62501" in 187ms (Base: "http://wstream.cc/")
+[2026-02-25 18:02:12.084 +01:00] [INF] [15] XFusion.LiveTvService: EpgDatabase: Stored 43 programs for stream 62501 to SQLite.
+[2026-02-25 18:02:12.249 +01:00] [INF] [10] XFusion.Client.XFusionClient: XFusion API: "GET" "/player_api.php?username=35J2MS1&password=MBPD8ME&action=get_simple_data_table&stream_id=62500" in 138ms (Base: "http://wstream.cc/")
+[2026-02-25 18:02:12.250 +01:00] [INF] [10] XFusion.LiveTvService: EpgDatabase: Stored 39 programs for stream 62500 to SQLite.
+[2026-02-25 18:02:12.467 +01:00] [INF] [10] XFusion.Client.XFusionClient: XFusion API: "GET" "/player_api.php?username=35J2MS1&password=MBPD8ME&action=get_simple_data_table&stream_id=62499" in 180ms (Base: "http://wstream.cc/")
+[2026-02-25 18:02:12.469 +01:00] [INF] [10] XFusion.LiveTvService: EpgDatabase: Stored 40 programs for stream 62499 to SQLite.
+[2026-02-25 18:02:12.651 +01:00] [INF] [15] XFusion.Client.XFusionClient: XFusion API: "GET" "/player_api.php?username=35J2MS1&password=MBPD8ME&action=get_simple_data_table&stream_id=62498" in 156ms (Base: "http://wstream.cc/")
+[2026-02-25 18:02:12.652 +01:00] [INF] [15] XFusion.LiveTvService: EpgDatabase: Stored 41 programs for stream 62498 to SQLite.
+[2026-02-25 18:02:12.850 +01:00] [INF] [15] XFusion.Client.XFusionClient: XFusion API: "GET" "/player_api.php?username=35J2MS1&password=MBPD8ME&action=get_simple_data_table&stream_id=62497" in 153ms (Base: "http://wstream.cc/")
+[2026-02-25 18:02:12.853 +01:00] [INF] [15] XFusion.LiveTvService: EpgDatabase: Stored 40 programs for stream 62497 to SQLite.
+[2026-02-25 18:02:13.056 +01:00] [INF] [15] XFusion.Client.XFusionClient: XFusion API: "GET" "/player_api.php?username=35J2MS1&password=MBPD8ME&action=get_simple_data_table&stream_id=211992" in 180ms (Base: "http://wstream.cc/")
+[2026-02-25 18:02:13.058 +01:00] [INF] [15] XFusion.LiveTvService: EpgDatabase: Stored 37 programs for stream 211992 to SQLite.
+[2026-02-25 18:02:13.316 +01:00] [INF] [10] XFusion.Client.XFusionClient: XFusion API: "GET" "/player_api.php?username=35J2MS1&password=MBPD8ME&action=get_simple_data_table&stream_id=56644" in 234ms (Base: "http://wstream.cc/")
+[2026-02-25 18:02:13.318 +01:00] [INF] [10] XFusion.LiveTvService: EpgDatabase: Stored 108 programs for stream 56644 to SQLite.
+[2026-02-25 18:02:13.613 +01:00] [INF] [10] XFusion.Client.XFusionClient: XFusion API: "GET" "/player_api.php?username=35J2MS1&password=MBPD8ME&action=get_simple_data_table&stream_id=311207" in 240ms (Base: "http://wstream.cc/")
+[2026-02-25 18:02:13.617 +01:00] [INF] [10] XFusion.LiveTvService: EpgDatabase: Stored 208 programs for stream 311207 to SQLite.
+[2026-02-25 18:02:13.865 +01:00] [INF] [10] XFusion.Client.XFusionClient: XFusion API: "GET" "/player_api.php?username=35J2MS1&password=MBPD8ME&action=get_simple_data_table&stream_id=311116" in 200ms (Base: "http://wstream.cc/")

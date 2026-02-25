@@ -13,7 +13,7 @@
         "changelog": "- FIX : Correction de l'erreur SQLite Error 14 (création automatique du dossier de données).",
         "targetAbi": "10.11.0.0",
         "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/4.7.16.1/NotifySync_v4.7.16.1.zip",
-        "checksum": "535229D0DB4ED473D1F0EDA016B116AB8",
+        "checksum": "2548858e388714073351918451842847",
         "timestamp": "2026-02-25T18:25:00Z"
       },
       {

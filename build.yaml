@@ -1,7 +1,9 @@
 project: NotifySync
-version: 4.7.17.5
+version: 4.7.17.6
 targetAbi: 10.11.0.0
 build:
+  - FIX : Ignorer les bibliothèques fantômes (orphelines) en utilisant la propriété IsVirtualItem.
+  - FIX : Amélioration du message de limite de taux (429) sur le bouton de rafraîchissement (30 secondes).
   - HOTFIX : Correction de l'autorisation 403 (résolution Username → GUID pour Jellyfin 10.11).
   - HOTFIX : Correction de la sérialisation JSON (GetData et BulkUserData) compatible source-generated.
   - HOTFIX : Correction du "Infinite Polling" côté client limitant les appels d'API.

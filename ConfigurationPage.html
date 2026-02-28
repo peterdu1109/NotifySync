@@ -1,10 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <title>NotifySync Configuration</title>
 </head>
+
 <body>
-    <div data-role="page" class="page type-interior pluginConfigurationPage" data-require="emby-button,emby-input,emby-checkbox">
+    <div data-role="page" class="page type-interior pluginConfigurationPage"
+        data-require="emby-button,emby-input,emby-checkbox">
         <div data-role="content">
             <div class="content-primary">
                 <form id="notifySyncConfigForm">
@@ -17,13 +20,15 @@
                         <div class="inputContainer">
                             <label class="inputLabel" for="maxItems">Quota par Catégorie</label>
                             <input is="emby-input" type="number" id="maxItems" name="maxItems" min="3" max="20" />
-                            <div class="fieldDescription">Définit le nombre d'éléments à garder pour CHAQUE type (ex: 5 Films + 5 Animes + 5 Musiques).</div>
+                            <div class="fieldDescription">Définit le nombre d'éléments à garder pour CHAQUE type (ex: 5
+                                Films + 5 Animes + 5 Musiques).</div>
                         </div>
 
                         <div class="inputContainer">
                             <h3 class="sectionTitle">Bibliothèques Surveillées</h3>
                             <div class="fieldDescription">Cochez les bibliothèques à afficher dans la cloche.</div>
-                            <div id="libraryCheckboxes" style="margin-top:10px; padding: 10px; background: rgba(0,0,0,0.2); min-height:50px;">
+                            <div id="libraryCheckboxes"
+                                style="margin-top:10px; padding: 10px; background: rgba(0,0,0,0.2); min-height:50px;">
                                 Chargement...
                             </div>
                         </div>
@@ -42,30 +47,37 @@
                                     <label class="inputLabel">Nom de la catégorie cible</label>
                                     <input is="emby-input" id="mappingCategoryInput" placeholder="ex: Animes" />
                                 </div>
-                                <button type="button" is="emby-button" class="raised button-accent" onclick="NotifySyncConf.addMapping()" style="margin-bottom:5px;">
+                                <button type="button" is="emby-button" class="raised button-accent"
+                                    onclick="NotifySyncConf.addMapping()" style="margin-bottom:5px;">
                                     Ajouter
                                 </button>
                             </div>
-                            <div id="mappingList" style="background: rgba(0,0,0,0.1); border-radius: 4px; overflow:hidden;"></div>
+                            <div id="mappingList"
+                                style="background: rgba(0,0,0,0.1); border-radius: 4px; overflow:hidden;"></div>
                         </div>
-                        
+
                         <div class="inputContainer">
                             <h3 class="sectionTitle">Sélection Manuelle (IDs ou Noms)</h3>
                             <div class="fieldDescription">
-                                Si les cases ci-dessus ne fonctionnent pas, entrez ici l'ID <b>OU LE NOM EXACT</b> du dossier.<br/>
+                                Si les cases ci-dessus ne fonctionnent pas, entrez ici l'ID <b>OU LE NOM EXACT</b> du
+                                dossier.<br />
                                 Exemples : <code>acf898...</code> ou simplement <code>Animes</code>.
                             </div>
-                            <textarea is="emby-textarea" id="manualLibraryIds" name="manualLibraryIds" rows="2"></textarea>
+                            <textarea is="emby-textarea" id="manualLibraryIds" name="manualLibraryIds"
+                                rows="2"></textarea>
                         </div>
 
                         <div style="margin-top:30px;">
-                            <button is="emby-button" type="submit" class="raised button-submit block" style="margin-bottom:20px;">
+                            <button is="emby-button" type="submit" class="raised button-submit block"
+                                style="margin-bottom:20px;">
                                 Sauvegarder la configuration
                             </button>
-                            
+
                             <h3 class="sectionTitle">Maintenance</h3>
-                            <p class="fieldDescription">Cliquez ici après avoir changé les bibliothèques pour forcer le scan.</p>
-                            <button is="emby-button" type="button" class="raised button-cancel block" onclick="NotifySyncConf.refreshHistory()">
+                            <p class="fieldDescription">Cliquez ici après avoir changé les bibliothèques pour forcer le
+                                scan.</p>
+                            <button is="emby-button" type="button" class="raised button-cancel block"
+                                onclick="NotifySyncConf.refreshHistory()">
                                 🔄 Régénérer l'historique et appliquer les filtres
                             </button>
                         </div>
@@ -78,62 +90,66 @@
             var NotifySyncConf = {
                 pluginId: "95655672-2342-4321-8291-321312312312",
                 config: {},
-                
-                load: function(page) {
+
+                load: function (page) {
                     Dashboard.showLoadingMsg();
-                    ApiClient.getPluginConfiguration(this.pluginId).then(function(cfg) {
+                    ApiClient.getPluginConfiguration(this.pluginId).then(function (cfg) {
                         NotifySyncConf.config = cfg || {};
                         NotifySyncConf.config.EnabledLibraries = NotifySyncConf.config.EnabledLibraries || [];
                         NotifySyncConf.config.CategoryMappings = NotifySyncConf.config.CategoryMappings || [];
                         NotifySyncConf.config.ManualLibraryIds = NotifySyncConf.config.ManualLibraryIds || [];
-                        
+
                         page.querySelector('#maxItems').value = NotifySyncConf.config.MaxItems || 5;
                         page.querySelector('#manualLibraryIds').value = NotifySyncConf.config.ManualLibraryIds.join(', ');
 
-                        NotifySyncConf.renderLibs(page).then(function() {
+                        NotifySyncConf.renderLibs(page).then(function () {
                             NotifySyncConf.renderMap(page);
                             Dashboard.hideLoadingMsg();
                         });
                     });
                 },
 
-                refreshHistory: function() {
+                refreshHistory: function () {
                     Dashboard.showLoadingMsg();
                     ApiClient.ajax({
                         type: "POST",
                         url: "/NotifySync/Refresh"
-                    }).then(function() {
+                    }).then(function () {
                         Dashboard.hideLoadingMsg();
-                        Dashboard.alert({message: "Historique régénéré ! Vérifiez la cloche.", title: "Succès"});
-                    }).catch(function() {
+                        Dashboard.alert({ message: "Historique régénéré ! Vérifiez la cloche.", title: "Succès" });
+                    }).catch(function (err) {
                         Dashboard.hideLoadingMsg();
-                        Dashboard.alert({message: "Erreur régénération.", title: "Erreur"});
+                        if (err && err.status === 429) {
+                            Dashboard.alert({ message: "Veuillez patienter 30 secondes entre chaque rafraîchissement.", title: "Patience" });
+                        } else {
+                            Dashboard.alert({ message: "Erreur régénération.", title: "Erreur" });
+                        }
                     });
                 },
 
-                renderLibs: function(page) {
+                renderLibs: function (page) {
                     var container = page.querySelector('#libraryCheckboxes');
                     var select = page.querySelector('#mappingLibrarySelect');
                     container.innerHTML = 'Récupération...';
-                    
-                    return ApiClient.getUserViews({}, ApiClient.getCurrentUserId()).then(function(result) {
+
+                    return ApiClient.getUserViews({}, ApiClient.getCurrentUserId()).then(function (result) {
                         var items = result.Items || [];
                         container.innerHTML = '';
                         select.innerHTML = '<option value="">-- Choisir une bibliothèque --</option>';
-                        
-                        if(items.length === 0) {
+
+                        if (items.length === 0) {
                             container.innerHTML = 'Aucune bibliothèque trouvée via API.';
                             return;
                         }
 
-                        items.sort(function(a, b) { return a.Name.localeCompare(b.Name); });
+                        items.sort(function (a, b) { return a.Name.localeCompare(b.Name); });
 
                         for (var i = 0; i < items.length; i++) {
                             var item = items[i];
-                            if(item.CollectionType === 'boxsets' || item.CollectionType === 'playlists') continue;
-                            
+                            if (item.CollectionType === 'boxsets' || item.CollectionType === 'playlists') continue;
+
                             var isChecked = NotifySyncConf.config.EnabledLibraries.indexOf(item.Id) !== -1;
-                            
+
                             var div = document.createElement('div');
                             div.style.marginBottom = "5px";
                             var label = document.createElement('label');
@@ -148,12 +164,12 @@
                             var span = document.createElement('span');
                             span.style.marginLeft = "8px";
                             span.innerText = item.Name;
-                            
+
                             label.appendChild(checkbox);
                             label.appendChild(span);
                             div.appendChild(label);
                             container.appendChild(div);
-                            
+
                             var option = document.createElement('option');
                             option.value = item.Id;
                             option.innerText = item.Name;
@@ -162,7 +178,7 @@
                     });
                 },
 
-                renderMap: function(page) {
+                renderMap: function (page) {
                     var l = page.querySelector('#mappingList'); l.innerHTML = '';
                     if (this.config.CategoryMappings.length === 0) {
                         l.innerHTML = '<div style="padding:10px; color:#888; font-style:italic;">Aucune catégorie personnalisée définie.</div>';
@@ -171,11 +187,11 @@
 
                     for (var i = 0; i < this.config.CategoryMappings.length; i++) {
                         var m = this.config.CategoryMappings[i];
-                        var libName = m.LibraryId; 
+                        var libName = m.LibraryId;
                         var select = page.querySelector('#mappingLibrarySelect');
-                        if(select) {
-                            for(var k=0; k<select.options.length; k++) {
-                                if(select.options[k].value === m.LibraryId) { libName = select.options[k].text; break; }
+                        if (select) {
+                            for (var k = 0; k < select.options.length; k++) {
+                                if (select.options[k].value === m.LibraryId) { libName = select.options[k].text; break; }
                             }
                         }
 
@@ -185,66 +201,67 @@
                         div.style.display = "flex";
                         div.style.justifyContent = "space-between";
                         div.style.alignItems = "center";
-                        
+
                         div.innerHTML = '<span>Bibliothèque <b>' + libName + '</b> &rarr; <b style="color:#00a4dc;">' + m.CategoryName + '</b></span>';
-                        
+
                         var btn = document.createElement('button');
                         btn.type = 'button';
                         btn.innerText = 'Supprimer';
                         btn.style.color = 'red';
                         btn.setAttribute('data-index', i);
-                        btn.onclick = function(e) { 
-                            NotifySyncConf.delMap(parseInt(e.target.getAttribute('data-index'))); 
+                        btn.onclick = function (e) {
+                            NotifySyncConf.delMap(parseInt(e.target.getAttribute('data-index')));
                         };
                         div.appendChild(btn);
                         l.appendChild(div);
                     }
                 },
 
-                addMapping: function() {
+                addMapping: function () {
                     var page = document.querySelector('.pluginConfigurationPage');
                     var lib = page.querySelector('#mappingLibrarySelect').value;
                     var cat = page.querySelector('#mappingCategoryInput').value;
-                    
-                    if(lib && cat) {
-                        this.config.CategoryMappings.push({LibraryId: lib, CategoryName: cat});
+
+                    if (lib && cat) {
+                        this.config.CategoryMappings.push({ LibraryId: lib, CategoryName: cat });
                         this.renderMap(page);
                         page.querySelector('#mappingCategoryInput').value = '';
                     }
                 },
 
-                delMap: function(index) {
+                delMap: function (index) {
                     this.config.CategoryMappings.splice(index, 1);
                     this.renderMap(document.querySelector('.pluginConfigurationPage'));
                 },
 
-                save: function() {
+                save: function () {
                     Dashboard.showLoadingMsg();
                     var page = document.querySelector('.pluginConfigurationPage');
                     this.config.MaxItems = parseInt(page.querySelector('#maxItems').value);
-                    
+
                     var checkboxes = page.querySelectorAll('input[name="enabledLibs"]:checked');
                     var enabledList = [];
-                    for(var i=0; i<checkboxes.length; i++) {
+                    for (var i = 0; i < checkboxes.length; i++) {
                         enabledList.push(checkboxes[i].value);
                     }
                     this.config.EnabledLibraries = enabledList;
-                    
-                    var manualStr = page.querySelector('#manualLibraryIds').value;
-                    this.config.ManualLibraryIds = manualStr ? manualStr.split(',').map(function(s){return s.trim();}).filter(function(s){return s;}) : [];
 
-                    ApiClient.updatePluginConfiguration(this.pluginId, this.config).then(function(r) {
+                    var manualStr = page.querySelector('#manualLibraryIds').value;
+                    this.config.ManualLibraryIds = manualStr ? manualStr.split(',').map(function (s) { return s.trim(); }).filter(function (s) { return s; }) : [];
+
+                    ApiClient.updatePluginConfiguration(this.pluginId, this.config).then(function (r) {
                         Dashboard.hideLoadingMsg();
                         Dashboard.processPluginConfigurationUpdateResult(r);
                     });
                 }
             };
 
-            document.querySelector('#notifySyncConfigForm').addEventListener('submit', function(e) { e.preventDefault(); NotifySyncConf.save(); });
-            document.addEventListener('pageshow', function(e) { 
-                if(e.target.classList.contains('pluginConfigurationPage')) NotifySyncConf.load(e.target); 
+            document.querySelector('#notifySyncConfigForm').addEventListener('submit', function (e) { e.preventDefault(); NotifySyncConf.save(); });
+            document.addEventListener('pageshow', function (e) {
+                if (e.target.classList.contains('pluginConfigurationPage')) NotifySyncConf.load(e.target);
             });
         </script>
     </div>
 </body>
+
 </html>

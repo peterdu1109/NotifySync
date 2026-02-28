@@ -16,11 +16,11 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyDescriptionAttribute(("NotifySync transforme l\'interface de Jellyfin en ajoutant une icône de notificati" +
     "on (cloche) native. Il permet à vos utilisateurs de voir instantanément les dern" +
     "iers ajouts (Films, Séries, Musique) sans quitter leur page actuelle."))]
-[assembly: System.Reflection.AssemblyFileVersionAttribute("4.7.17.5")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("4.7.17.5+da0cd900359edec06bd187c24a694d9a39fb57a0")]
+[assembly: System.Reflection.AssemblyFileVersionAttribute("4.7.17.6")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("4.7.17.6+da270567726574c4936a9e4273624527b6141aa0")]
 [assembly: System.Reflection.AssemblyProductAttribute("NotifySync")]
 [assembly: System.Reflection.AssemblyTitleAttribute("NotifySync")]
-[assembly: System.Reflection.AssemblyVersionAttribute("4.7.17.5")]
+[assembly: System.Reflection.AssemblyVersionAttribute("4.7.17.6")]
 
 // Généré par la classe MSBuild WriteCodeFragment.
 

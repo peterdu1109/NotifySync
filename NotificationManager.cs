@@ -468,6 +468,13 @@ namespace NotifySync
             if ((config.EnabledLibraries == null || config.EnabledLibraries.Count == 0) &&
                 (config.ManualLibraryIds == null || config.ManualLibraryIds.Count == 0))
             {
+                // To filter out ghost items, we verify if the item has an absolute path that is actually present.
+                // Ghost items from XFusion or removed libraries often keep their dummy paths but may lack standard locations.
+                if (item.IsVirtualItem)
+                {
+                    return false;
+                }
+
                 return true;
             }
 

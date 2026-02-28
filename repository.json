@@ -9,11 +9,19 @@
     "supportUrl": "https://github.com/",
     "versions": [
       {
+        "version": "4.7.17.6",
+        "changelog": "- FIX : Ignorer les bibliothèques fantômes (orphelines) en utilisant la propriété IsVirtualItem.\\n- FIX : Amélioration du message d'erreur de la limite de rafraîchissement (30s cooldown).\\n- HOTFIX : Finalisation de l'audit de fond en comble (Phase 5).",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/4.7.17.6/NotifySync_v4.7.17.6.zip",
+        "checksum": "36D06D2069A9160DC1886F66E2BBFA36",
+        "timestamp": "2026-02-28T11:58:00Z"
+      },
+      {
         "version": "4.7.17.5",
         "changelog": "- HOTFIX : Finalisation de l'audit de fond en comble (Phase 5).\\n- FIX : Correction d'un bug subtil dans `ProcessBuffer` qui supprimait les épisodes individuels au lieu des Séries Uniques lors des live-events d'ajouts.\\n- STABILISATION : Le nouveau système de quota `ApplyCategoryQuotas` est unifié pour le scan global et les ajouts en direct.",
         "targetAbi": "10.11.0.0",
         "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/4.7.17.5/NotifySync_v4.7.17.5.zip",
-        "checksum": "152C000BC1B9F24C49D38E5AEDCB3AE0",
+        "checksum": "154A8A8ECDE56EB909871D5145740F0E",
         "timestamp": "2026-02-28T09:35:00Z"
       },
       {

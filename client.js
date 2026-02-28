@@ -136,7 +136,7 @@
         const result = [];
         for (let i = 0; i < items.length; i++) {
             const item = items[i];
-            if (item.Type === 'Episode' && item.SeriesId) {
+            if ((item.Type === 'Episode' && item.SeriesId) || (item.Type === 'Audio' && item.SeriesId)) {
                 let group = seriesMap.get(item.SeriesId);
                 if (!group) { group = []; seriesMap.set(item.SeriesId, group); }
                 group.push(item);
@@ -353,20 +353,31 @@
             if (isGroup && hero.SeriesId) heroImg = client.getUrl(`Items/${hero.Id}/Images/Backdrop/0?quality=70&maxWidth=600&format=webp`);
 
             let heroTitle = escapeHtml(hero.Name), heroSub = '';
-            if (!isGroup && hero.Type === 'Episode') { heroTitle = escapeHtml(formatEpisodeTitle(hero)); heroSub = escapeHtml(hero.SeriesName); } else { heroSub = hero.ProductionYear; }
-            if (isGroup) { heroSub = hero.IsNew ? `${hero.NewCount || hero.GroupCount} ${T.newEps}` : `${hero.GroupCount} ${T.eps}`; }
+            if (!isGroup && hero.Type === 'Episode') {
+                heroTitle = escapeHtml(formatEpisodeTitle(hero)); heroSub = escapeHtml(hero.SeriesName);
+            } else {
+                heroSub = hero.ProductionYear;
+            }
+            if (isGroup) {
+                const isMusic = hero.Type === 'Audio';
+                const lbl = isMusic ? (hero.IsNew ? "nouvelles pistes" : "pistes") : (hero.IsNew ? T.newEps : T.eps);
+                heroSub = hero.IsNew ? `${hero.NewCount || hero.GroupCount} ${lbl}` : `${hero.GroupCount} ${lbl}`;
+            }
 
             htmlParts.push(`<div class="hero-section" onclick="document.dispatchEvent(new CustomEvent('ns-navigate', {detail: '${hero.Id}'}))"><div class="hero-bg" style="background-image:url('${heroImg}')"></div><div class="hero-overlay"></div><div class="hero-content">${hero.IsNew ? `<span class="hero-badge">${T.badgeNew}</span>` : ''}<div style="font-size:18px;font-weight:700;text-shadow:0 2px 4px #000;line-height:1.2;">${heroTitle}</div><div style="font-size:12px;opacity:0.8;margin-top:4px">${heroSub} &bull; ${timeAgo(hero.DateCreated)}</div></div></div>`);
         }
 
         filtered.filter(x => x !== hero).forEach(item => {
-            const isMusic = item.Category === 'Music';
+            const isMusic = item.Type === 'Audio';
             const isGroup = !!item.IsGroup;
             const imgUrl = client.getUrl(`Items/${item.Id}/Images/Primary?tag=${item.PrimaryImageTag || ''}&${isMusic ? 'fillHeight=100&fillWidth=100' : 'fillHeight=112&fillWidth=200'}&quality=80&format=webp`);
 
             let title = escapeHtml(item.Name), sub = item.ProductionYear;
             if (!isGroup && item.Type === 'Episode') { title = escapeHtml(formatEpisodeTitle(item)); sub = escapeHtml(item.SeriesName); }
-            if (isGroup) { sub = item.IsNew ? `${item.NewCount || item.GroupCount} ${T.newEps}` : `${item.GroupCount} ${T.eps}`; }
+            if (isGroup) {
+                const lbl = isMusic ? (item.IsNew ? "nouvelles pistes" : "pistes") : (item.IsNew ? T.newEps : T.eps);
+                sub = item.IsNew ? `${item.NewCount || item.GroupCount} ${lbl}` : `${item.GroupCount} ${lbl}`;
+            }
 
             htmlParts.push(`<div class="dropdown-item ${item.IsNew ? 'style-new' : 'style-seen'}" onclick="document.dispatchEvent(new CustomEvent('ns-navigate', {detail: '${item.Id}'}))"><div class="status-dot"></div><div class="thumb-wrapper"><img data-src="${imgUrl}" decoding="async" class="dropdown-thumb ${isMusic ? 'music' : ''}" loading="lazy" onerror="this.style.display='none'"><span class="material-icons" style="color:#444;position:absolute;z-index:-1;">${isMusic ? 'album' : 'movie'}</span></div><div class="dropdown-info"><div class="dropdown-title">${title}</div><div class="dropdown-subtitle">${sub} &bull; ${timeAgo(item.DateCreated)}</div></div></div>`);
         });

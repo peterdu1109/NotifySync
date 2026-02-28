@@ -1,6 +1,6 @@
 # 🔔 NotifySync
 
-![Dernière Version](https://img.shields.io/badge/version-4.7.17.10-blue)
+![Dernière Version](https://img.shields.io/badge/version-4.8.0.0-blue)
 ![Net Framework](https://img.shields.io/badge/.NET-9.0-purple)
 ![Jellyfin](https://img.shields.io/badge/Jellyfin-10.11.X-blueviolet)
 
@@ -39,12 +39,12 @@ NotifySync transforme l'interface de Jellyfin en ajoutant une icône de notifica
 1.  Ouvrez votre tableau de bord Jellyfin > **Extensions** > **Dépôts**.
 2.  Ajoutez un nouveau dépôt :
     * **Nom :** NotifySync Repo
-    * **URL :** `https://raw.githubusercontent.com/peterdu1109/NotifySync/refs/heads/main/repository.json`
+    * **URL :** `https://raw.githubusercontent.com/ElieMFR/NotifySync/refs/heads/main/repository.json`
 3.  Allez dans le **Catalogue**, trouvez **NotifySync** et cliquez sur **Installer**.
 4.  Redémarrez votre serveur Jellyfin.
 
 ### Méthode 2 : Installation Manuelle
-1.  Téléchargez le fichier `.zip` depuis la page [Releases](https://github.com/peterdu1109/NotifySync/releases/tag/v4.7.17.10).
+1.  Téléchargez le fichier `.zip` depuis la page [Releases](https://github.com/ElieMFR/NotifySync/releases/tag/v4.8.0.0).
 2.  Décompressez la DLL dans le dossier `plugins/NotifySync` de votre serveur.
 3.  Redémarrez Jellyfin.
 
@@ -66,7 +66,7 @@ Un script est fourni pour faire cette modification automatiquement.
 1.  Connectez-vous à votre serveur en SSH.
 2.  Téléchargez et lancez le script d'installation :
     ```bash
-    curl -sL https://raw.githubusercontent.com/peterdu1109/NotifySync/main/scripts/install.sh | sudo bash
+    curl -sL https://raw.githubusercontent.com/ElieMFR/NotifySync/main/scripts/install.sh | sudo bash
     ```
     *Le script détecte automatiquement votre installation Jellyfin (Native ou Docker).*
 

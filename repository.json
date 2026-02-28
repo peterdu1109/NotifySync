@@ -9,6 +9,14 @@
     "supportUrl": "https://github.com/",
     "versions": [
       {
+        "version": "4.8.0.0",
+        "changelog": "- REFONTE MAJEURE: Le système de quota et catégorie a été réécrit.\\n- FIX : Ajout complet du support de la musique (Groupement par Album ID au lieu de pistes unitaires).\\n- FIX : Le scan initial (manual sync) utilise 3 requêtes spécialisées pour éviter le blocage de Series limit par les anciens médias (Quota Starvation).\\n- UI : Compatibilité totale pour les noms de bibliothèques personnalisées (ex: 'Mes musiques').",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/ElieMFR/NotifySync/releases/download/4.8.0.0/NotifySync_v4.8.0.0.zip",
+        "checksum": "1A612869C5CA1126DC0FEF955C34C532",
+        "timestamp": "2026-02-28T14:47:00Z"
+      },
+      {
         "version": "4.7.17.10",
         "changelog": "- FIX : Filtrage intelligent des items de streaming (XFusion VOD/Séries) — exclusion automatique des IPTV.\\n- FIX : Statut Vu/Non vu précis par épisode (suppression propagation série → épisodes).\\n- FIX : Le clic sur une série dans la cloche ne marque plus tous les épisodes comme vus.\\n- FIX : Affichage du nombre réel d'épisodes non vus (au lieu du total).\\n- FIX : Désactivation du cache navigateur sur Client.js.\\n- STABILITÉ : Filtrage configurable des bibliothèques par CategoryMapping.",
         "targetAbi": "10.11.0.0",

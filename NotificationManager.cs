@@ -317,33 +317,10 @@ namespace NotifySync
         {
             _logger.LogInformation("Lancement du scan manuel de l'historique NotifySync...");
 
-            var query = new InternalItemsQuery
-            {
-                IncludeItemTypes = new[] { BaseItemKind.Movie, BaseItemKind.Episode },
-                Recursive = true,
-                OrderBy = new[] { (ItemSortBy.DateCreated, (Jellyfin.Database.Implementations.Enums.SortOrder)1) },
-                // Retirer la limite absolue de 1000 pour pouvoir parcourir suffisamment de contenu
-                // afin d'obtenir MaxItems * Nombre de Catégories
-                Limit = 5000,
-                DtoOptions = new MediaBrowser.Controller.Dto.DtoOptions(false)
-            };
-
-            var items = _libraryManager.GetItemList(query);
-            var results = new List<NotificationItem>();
-            int count = 0;
-            int skippedNotEnabled = 0;
-            int skippedNull = 0;
-            var typeCounts = new Dictionary<string, int>();
-
             var config = Plugin.Instance?.Configuration;
             int maxItems = config?.MaxItems ?? 10;
-            var categoryCounts = new Dictionary<string, int>();
-            // Track unique series per category to count series, not episodes
-            var categorySeriesIds = new Dictionary<string, HashSet<string>>();
 
-            _logger.LogInformation("NotifySync Scan: {Total} items returned by library query.", items.Count);
-
-            // Diagnostic: log the configured libraries and a sample item's ancestors
+            // diagnostic
             if (config != null)
             {
                 var enabledStr = config.EnabledLibraries != null ? string.Join(", ", config.EnabledLibraries) : "null";
@@ -351,13 +328,54 @@ namespace NotifySync
                 _logger.LogInformation("NotifySync Config: EnabledLibraries=[{Libs}], ManualLibraryIds=[{Manual}]", enabledStr, manualStr);
             }
 
-            if (items.Count > 0)
+            var queries = new[]
             {
-                var sample = items[0];
-                var sampleAncestors = sample.GetAncestorIds().ToArray();
-                var ancestorStr = string.Join(", ", sampleAncestors.Select(a => a.ToString()));
-                _logger.LogInformation("NotifySync Sample: Name={Name}, Path={Path}, Virtual={V}, Ancestors=[{A}]", sample.Name, sample.Path ?? "null", sample.IsVirtualItem, ancestorStr);
+                new InternalItemsQuery
+                {
+                    IncludeItemTypes = new[] { BaseItemKind.Movie },
+                    Recursive = true,
+                    OrderBy = new[] { (ItemSortBy.DateCreated, (Jellyfin.Database.Implementations.Enums.SortOrder)1) },
+                    Limit = maxItems * 100, // Enough depth to find unique items across multi-libraries
+                    DtoOptions = new MediaBrowser.Controller.Dto.DtoOptions(false)
+                },
+                new InternalItemsQuery
+                {
+                    IncludeItemTypes = new[] { BaseItemKind.Episode },
+                    Recursive = true,
+                    OrderBy = new[] { (ItemSortBy.DateCreated, (Jellyfin.Database.Implementations.Enums.SortOrder)1) },
+                    Limit = maxItems * 400, // High depth for episodes mapping to same category globally (e.g. Animés + Séries)
+                    DtoOptions = new MediaBrowser.Controller.Dto.DtoOptions(false)
+                },
+                new InternalItemsQuery
+                {
+                    IncludeItemTypes = new[] { BaseItemKind.Audio },
+                    Recursive = true,
+                    OrderBy = new[] { (ItemSortBy.DateCreated, (Jellyfin.Database.Implementations.Enums.SortOrder)1) },
+                    Limit = maxItems * 400, // Dozens of tracks per album
+                    DtoOptions = new MediaBrowser.Controller.Dto.DtoOptions(false)
+                }
+            };
+
+            var items = new List<BaseItem>();
+            foreach (var q in queries)
+            {
+                items.AddRange(_libraryManager.GetItemList(q));
             }
+
+            // Re-sort everything combined globally by DateCreated Descending
+            items = items.OrderByDescending(i => i.DateCreated).ToList();
+
+            var results = new List<NotificationItem>();
+            int count = 0;
+            int skippedNotEnabled = 0;
+            int skippedNull = 0;
+            var typeCounts = new Dictionary<string, int>();
+
+            var categoryCounts = new Dictionary<string, int>();
+            // Track unique series per category to count series, not episodes
+            var categorySeriesIds = new Dictionary<string, HashSet<string>>();
+
+            _logger.LogInformation("NotifySync Scan: {Total} items returned by combined library queries.", items.Count);
 
             foreach (var item in items)
             {
@@ -370,9 +388,9 @@ namespace NotifySync
                 var notif = CreateNotificationFromItem(item);
                 if (notif != null)
                 {
-                    // For episodes: count unique series, not individual episodes
+                    // For episodes and audio albums: count unique series/albums, not individual tracks
                     // For movies/other: count individual items
-                    bool isEpisode = !string.IsNullOrEmpty(notif.SeriesId);
+                    bool isEpisodeOrAlbum = !string.IsNullOrEmpty(notif.SeriesId);
                     string categoryKey = notif.Category;
 
                     if (!categorySeriesIds.TryGetValue(categoryKey, out var seriesSet))
@@ -386,7 +404,7 @@ namespace NotifySync
                         currentCount = 0;
                     }
 
-                    if (isEpisode)
+                    if (isEpisodeOrAlbum)
                     {
                         // For episodes: allow if we haven't reached maxItems unique series yet
                         bool isNewSeries = !seriesSet.Contains(notif.SeriesId!);
@@ -432,7 +450,7 @@ namespace NotifySync
 
             // Log diagnostics
             _logger.LogInformation("NotifySync Scan Diagnostics: Types found: {Types}", string.Join(", ", typeCounts.Select(kv => $"{kv.Key}={kv.Value}")));
-            _logger.LogInformation("NotifySync Scan Diagnostics: Categories: {Categories}", string.Join(", ", categoryCounts.Select(kv => $"{kv.Key}={kv.Value}")));
+            _logger.LogInformation("NotifySync Scan Diagnostics: Categories Reach: {Categories}", string.Join(", ", categoryCounts.Select(kv => $"{kv.Key}={kv.Value}")));
             _logger.LogInformation("NotifySync Scan Diagnostics: Skipped (not in enabled library): {Skipped}, Skipped (null/error): {Null}", skippedNotEnabled, skippedNull);
 
             var newNotifs = results.OrderByDescending(n => n.DateCreated).ToList();
@@ -588,7 +606,7 @@ namespace NotifySync
                     }
                 }
 
-                return new NotificationItem
+                var notif = new NotificationItem
                 {
                     Id = item.Id.ToString(),
                     Name = item.Name,
@@ -604,6 +622,14 @@ namespace NotifySync
                     IndexNumber = item.IndexNumber,
                     ParentIndexNumber = item.ParentIndexNumber
                 };
+
+                if (item.GetBaseItemKind() == BaseItemKind.Audio && item is MediaBrowser.Controller.Entities.Audio.Audio audioItem)
+                {
+                    notif.SeriesName = audioItem.Album;
+                    notif.SeriesId = audioItem.ParentId.ToString();
+                }
+
+                return notif;
             }
             catch
             {

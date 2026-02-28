@@ -1,5 +1,5 @@
 project: NotifySync
-version: 4.7.17.10
+version: 4.8.0.0
 targetAbi: 10.11.0.0
 build:
   - FIX : Filtrage intelligent des items de streaming (XFusion VOD/Séries) — exclusion automatique des contenus IPTV non-locaux.

@@ -1,7 +1,10 @@
 project: NotifySync
-version: 4.8.0.2
+version: 4.8.0.3
 targetAbi: 10.11.0.0
 build:
+  - CRITICAL : Prévention de Corruption de Fichier (Windows vs Linux) en utilisant un buffer temporaire pour users_seen.json (v4.8.0.3).
+  - PERFORMANCE : Élimination d'un sévère goulot d'étranglement CPU (Lock Escalation) lié à la vérification cache concurrente (v4.8.0.3).
+  - PERFORMANCE : Allègement drastique des itérations de Visibilité via traitement Multi-threading Parallel.ForEach (v4.8.0.3).
   - FIXED : La catégorie 'Séries' apparaît désormais correctement (Correction du 'Quota Starvation' où les épisodes IPTV/VOD masquaient les séries locales) (v4.8.0.2).
   - PERFORMANCE : Les requêtes de scan sont désormais ciblées sur les dossiers sélectionnés via AncestorIds (v4.8.0.2).
   - FIX : Les Extras (Génériques, Openings de la Saison 0) ne polluent plus la liste des nouveaux épisodes (v4.8.0.1).

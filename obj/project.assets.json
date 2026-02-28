@@ -1991,13 +1991,13 @@
     "C:\\Users\\eliem\\.nuget\\packages\\": {}
   },
   "project": {
-    "version": "4.8.0.2",
+    "version": "4.8.0.3",
     "restore": {
-      "projectUniqueName": "c:\\Users\\eliem\\Documents\\GitHub\\NotifySync\\NotifySync.csproj",
+      "projectUniqueName": "C:\\Users\\eliem\\Documents\\GitHub\\NotifySync\\NotifySync.csproj",
       "projectName": "NotifySync",
-      "projectPath": "c:\\Users\\eliem\\Documents\\GitHub\\NotifySync\\NotifySync.csproj",
+      "projectPath": "C:\\Users\\eliem\\Documents\\GitHub\\NotifySync\\NotifySync.csproj",
       "packagesPath": "C:\\Users\\eliem\\.nuget\\packages\\",
-      "outputPath": "c:\\Users\\eliem\\Documents\\GitHub\\NotifySync\\obj\\",
+      "outputPath": "C:\\Users\\eliem\\Documents\\GitHub\\NotifySync\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "C:\\Users\\eliem\\AppData\\Roaming\\NuGet\\NuGet.Config"

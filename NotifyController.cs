@@ -173,45 +173,50 @@ namespace NotifySync
                     return NotFound();
                 }
 
-                var filtered = new List<NotificationItem>();
+                var filtered = new ConcurrentBag<NotificationItem>();
                 int filteredNotVisible = 0;
                 int itemNotFound = 0;
-                foreach (var n in allNotifs)
+
+                Parallel.ForEach(allNotifs, new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount }, n =>
                 {
                     var item = _libraryManager.GetItemById(n.Id);
                     if (item == null)
                     {
                         // Item not in native Jellyfin DB (e.g. IPTV/external provider).
                         // Keep it — it was validated during the scan phase.
-                        itemNotFound++;
+                        Interlocked.Increment(ref itemNotFound);
                         filtered.Add(n);
-                        continue;
+                        return;
                     }
 
                     if (!item.IsVisible(user))
                     {
-                        filteredNotVisible++;
-                        continue;
+                        Interlocked.Increment(ref filteredNotVisible);
+                        return;
                     }
 
                     filtered.Add(n);
-                }
+                });
+
+                var filteredList = filtered.OrderByDescending(n => n.DateCreated).ToList();
 
                 _logger.LogInformation(
                     "GetData Diagnostics: Total={Total}, NotInLibrary(kept)={NotFound}, FilteredNotVisible={NotVisible}, Result: {Cats}",
                     allNotifs.Count,
                     itemNotFound,
                     filteredNotVisible,
-                    string.Join(", ", filtered.GroupBy(n => n.Category).Select(g => $"{g.Key}={g.Count()}")));
+                    string.Join(", ", filteredList.GroupBy(n => n.Category).Select(g => $"{g.Key}={g.Count()}")));
 
-                byte[] serialized = JsonSerializer.SerializeToUtf8Bytes(filtered, PluginJsonContext.Default.ListNotificationItem);
+                byte[] serialized = JsonSerializer.SerializeToUtf8Bytes(filteredList, PluginJsonContext.Default.ListNotificationItem);
 
                 // --- FIX MEMORY LEAK ---
-                // Remove all previous cached views for this exact user before adding the new hash.
-                var userKeysToRemove = UserViewCache.Keys.Where(k => k.StartsWith(userId + "_", StringComparison.Ordinal)).ToList();
-                foreach (var key in userKeysToRemove)
+                // Iterating over KeyValuePair to avoid locking the entire ConcurrentDictionary structure with .Keys
+                foreach (var kvp in UserViewCache)
                 {
-                    UserViewCache.TryRemove(key, out _);
+                    if (kvp.Key.StartsWith(userId + "_", StringComparison.Ordinal))
+                    {
+                        UserViewCache.TryRemove(kvp.Key, out _);
+                    }
                 }
 
                 UserViewCache.TryAdd(cacheKey, serialized);
@@ -274,10 +279,12 @@ namespace NotifySync
             SaveUserLastSeen(userId, timestamp);
 
             // Invalidate cache for this user because LastSeen changed
-            var keysToRemove = UserViewCache.Keys.Where(k => k.StartsWith(userId, StringComparison.Ordinal)).ToList();
-            foreach (var key in keysToRemove)
+            foreach (var kvp in UserViewCache)
             {
-                UserViewCache.TryRemove(key, out _);
+                if (kvp.Key.StartsWith(userId, StringComparison.Ordinal))
+                {
+                    UserViewCache.TryRemove(kvp.Key, out _);
+                }
             }
 
             return Ok();
@@ -487,7 +494,9 @@ namespace NotifySync
                     }
 
                     data[userId] = timestamp;
-                    System.IO.File.WriteAllText(path, JsonSerializer.Serialize(data, PluginJsonContext.Default.DictionaryStringInt64));
+                    string tmpPath = path + ".tmp";
+                    System.IO.File.WriteAllText(tmpPath, JsonSerializer.Serialize(data, PluginJsonContext.Default.DictionaryStringInt64));
+                    System.IO.File.Move(tmpPath, path, true);
                 }
                 catch (Exception ex)
                 {

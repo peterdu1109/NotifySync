@@ -9,6 +9,14 @@
     "supportUrl": "https://github.com/",
     "versions": [
       {
+        "version": "4.8.0.3",
+        "changelog": "- CRITICAL: Prévention de Corruption de Fichier (Windows vs Linux). L'écriture du fichier users_seen.json utilise désormais un buffer temporaire pour protéger le système de fichiers hôte contre les coupures serveurs imprévisibles.\\n- PERFORMANCE: Élimination d'un sévère goulot d'étranglement CPU (Lock Escalation) lié à la vérification cache concurrente.\\n- PERFORMANCE: Allègement drastique des itérations de Visibilité via traitement Multi-threading Parallel.ForEach.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/4.8.0.3/NotifySync_v4.8.0.3.zip",
+        "checksum": "B85838D8CF4ABB60CB2AC1B6010904FE",
+        "timestamp": "2026-02-28T23:30:00Z"
+      },
+      {
         "version": "4.8.0.2",
         "changelog": "- FIXED: La catégorie 'Séries' apparaît désormais correctement (Correction du 'Quota Starvation' où les épisodes IPTV/VOD masquaient les séries locales).\\n- PERFORMANCE: Les requêtes de scan sont désormais ciblées sur les dossiers sélectionnés.",
         "targetAbi": "10.11.0.0",

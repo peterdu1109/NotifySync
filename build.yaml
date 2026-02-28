@@ -1,11 +1,11 @@
 project: NotifySync
-version: 4.7.17.6
+version: 4.7.17.10
 targetAbi: 10.11.0.0
 build:
-  - FIX : Ignorer les bibliothèques fantômes (orphelines) en utilisant la propriété IsVirtualItem.
-  - FIX : Amélioration du message de limite de taux (429) sur le bouton de rafraîchissement (30 secondes).
-  - HOTFIX : Correction de l'autorisation 403 (résolution Username → GUID pour Jellyfin 10.11).
-  - HOTFIX : Correction de la sérialisation JSON (GetData et BulkUserData) compatible source-generated.
-  - HOTFIX : Correction du "Infinite Polling" côté client limitant les appels d'API.
-  - OPTIMISATION : Suppression du verrouillage synchrone de la mémoire lors d'écritures I/O lourdes sur SQLite.
+  - FIX : Filtrage intelligent des items de streaming (XFusion VOD/Séries) — exclusion automatique des contenus IPTV non-locaux.
+  - FIX : Correction du statut "Vu/Non vu" par épisode (suppression de la propagation série → épisodes).
+  - FIX : Le clic sur une série dans la cloche ne marque plus tous les épisodes comme vus.
+  - FIX : Affichage du nombre réel d'épisodes non vus par l'utilisateur (au lieu du total).
+  - FIX : Désactivation du cache navigateur sur Client.js pour prise en compte immédiate des mises à jour.
+  - STABILITÉ : Filtrage configurable des bibliothèques par CategoryMapping (avec/sans bibliothèque cochée).
   - STABILITÉ : Build finale avec 0 avertissement stricts sur .NET 9.0.

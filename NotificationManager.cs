@@ -343,6 +343,22 @@ namespace NotifySync
 
             _logger.LogInformation("NotifySync Scan: {Total} items returned by library query.", items.Count);
 
+            // Diagnostic: log the configured libraries and a sample item's ancestors
+            if (config != null)
+            {
+                var enabledStr = config.EnabledLibraries != null ? string.Join(", ", config.EnabledLibraries) : "null";
+                var manualStr = config.ManualLibraryIds != null ? string.Join(", ", config.ManualLibraryIds) : "null";
+                _logger.LogInformation("NotifySync Config: EnabledLibraries=[{Libs}], ManualLibraryIds=[{Manual}]", enabledStr, manualStr);
+            }
+
+            if (items.Count > 0)
+            {
+                var sample = items[0];
+                var sampleAncestors = sample.GetAncestorIds().ToArray();
+                var ancestorStr = string.Join(", ", sampleAncestors.Select(a => a.ToString()));
+                _logger.LogInformation("NotifySync Sample: Name={Name}, Path={Path}, Virtual={V}, Ancestors=[{A}]", sample.Name, sample.Path ?? "null", sample.IsVirtualItem, ancestorStr);
+            }
+
             foreach (var item in items)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -458,23 +474,49 @@ namespace NotifySync
 
         private bool IsItemInEnabledLibrary(BaseItem item)
         {
+            // Universally filter out virtual/ghost items (uninstalled plugins, missing metadata episodes)
+            if (item.IsVirtualItem)
+            {
+                return false;
+            }
+
             var config = Plugin.Instance?.Configuration;
             if (config == null)
             {
                 return false;
             }
 
-            // If no libraries are configured at all, allow everything by default (backward compatibility or initial state)
+            // If no libraries are explicitly checked AND no manual IDs
+            // Apply streaming URL filter only here (when nothing is explicitly configured)
             if ((config.EnabledLibraries == null || config.EnabledLibraries.Count == 0) &&
                 (config.ManualLibraryIds == null || config.ManualLibraryIds.Count == 0))
             {
-                // To filter out ghost items, we verify if the item has an absolute path that is actually present.
-                // Ghost items from XFusion or removed libraries often keep their dummy paths but may lack standard locations.
-                if (item.IsVirtualItem)
+                // Block streaming/channel items when no explicit library is selected
+                if (!string.IsNullOrEmpty(item.Path))
                 {
+                    if (item.Path.StartsWith("http", StringComparison.OrdinalIgnoreCase) ||
+                        item.Path.Contains("channels", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return false;
+                    }
+                }
+
+                // If category mappings exist, use their LibraryIds as implicit enabled libraries
+                if (config.CategoryMappings != null && config.CategoryMappings.Count > 0)
+                {
+                    var mapOwners = item.GetAncestorIds().ToArray();
+                    foreach (var map in config.CategoryMappings)
+                    {
+                        if (Guid.TryParse(map.LibraryId, out var mapGuid) && mapOwners.Contains(mapGuid))
+                        {
+                            return true;
+                        }
+                    }
+
                     return false;
                 }
 
+                // No config at all (backward compat): allow all local library items
                 return true;
             }
 

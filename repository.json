@@ -9,12 +9,20 @@
     "supportUrl": "https://github.com/",
     "versions": [
       {
-        "version": "4.7.17.6",
-        "changelog": "- FIX : Ignorer les bibliothèques fantômes (orphelines) en utilisant la propriété IsVirtualItem.\\n- FIX : Amélioration du message d'erreur de la limite de rafraîchissement (30s cooldown).\\n- HOTFIX : Finalisation de l'audit de fond en comble (Phase 5).",
+        "version": "4.7.17.10",
+        "changelog": "- FIX : Filtrage intelligent des items de streaming (XFusion VOD/Séries) — exclusion automatique des IPTV.\\n- FIX : Statut Vu/Non vu précis par épisode (suppression propagation série → épisodes).\\n- FIX : Le clic sur une série dans la cloche ne marque plus tous les épisodes comme vus.\\n- FIX : Affichage du nombre réel d'épisodes non vus (au lieu du total).\\n- FIX : Désactivation du cache navigateur sur Client.js.\\n- STABILITÉ : Filtrage configurable des bibliothèques par CategoryMapping.",
         "targetAbi": "10.11.0.0",
-        "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/4.7.17.6/NotifySync_v4.7.17.6.zip",
-        "checksum": "36D06D2069A9160DC1886F66E2BBFA36",
-        "timestamp": "2026-02-28T11:58:00Z"
+        "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/4.7.17.10/NotifySync_v4.7.17.10.zip",
+        "checksum": "CF1A194163DBF4DAB9DFB1CD403B8E3D",
+        "timestamp": "2026-02-28T13:45:00Z"
+      },
+      {
+        "version": "4.7.17.7",
+        "changelog": "- FIX : Blocage absolu des bibliothèques fantômes (orphelines) en déplaçant le filtrage IsVirtualItem au niveau global.\\n- FIX : Amélioration du message d'erreur de la limite de rafraîchissement (30s cooldown).\\n- HOTFIX : Finalisation de l'audit de fond en comble (Phase 5).",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/4.7.17.7/NotifySync_v4.7.17.7.zip",
+        "checksum": "64B80293DF0C3FE7B5CA318DF29C0873",
+        "timestamp": "2026-02-28T12:08:00Z"
       },
       {
         "version": "4.7.17.5",

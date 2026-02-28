@@ -147,8 +147,9 @@
             if (eps.length === 0) return;
             const latest = eps[0];
             const hasNew = eps.some(e => e.IsNew);
+            const newCount = eps.filter(e => e.IsNew).length;
             if (eps.length > 1) {
-                result.push({ ...latest, IsGroup: true, GroupCount: eps.length, Name: latest.SeriesName || latest.Name, Id: latest.SeriesId || latest.Id, IsNew: hasNew });
+                result.push({ ...latest, IsGroup: true, GroupCount: eps.length, NewCount: newCount, Name: latest.SeriesName || latest.Name, Id: latest.SeriesId || latest.Id, IsNew: hasNew });
             } else { result.push(latest); }
         });
         return result.sort((a, b) => new Date(b.DateCreated) - new Date(a.DateCreated));
@@ -173,8 +174,8 @@
 
     const applyPlayStates = (statusMap) => {
         currentData.forEach(item => {
-            let isServerPlayed = statusMap ? !!(statusMap[item.Id] || (item.SeriesId && statusMap[item.SeriesId])) : item.Played;
-            item.Played = isServerPlayed || localPlayed.includes(item.Id) || (item.SeriesId && localPlayed.includes(item.SeriesId));
+            let isServerPlayed = statusMap ? !!statusMap[item.Id] : item.Played;
+            item.Played = isServerPlayed || localPlayed.includes(item.Id);
         });
     };
 
@@ -201,7 +202,6 @@
             const idsToCheck = new Set();
             currentData.forEach(i => {
                 idsToCheck.add(i.Id);
-                if (i.SeriesId) idsToCheck.add(i.SeriesId);
             });
             const res = await fetch(`/NotifySync/BulkUserData?userId=${userId}`, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(Array.from(idsToCheck)) });
             if (res.ok) {
@@ -354,7 +354,7 @@
 
             let heroTitle = escapeHtml(hero.Name), heroSub = '';
             if (!isGroup && hero.Type === 'Episode') { heroTitle = escapeHtml(formatEpisodeTitle(hero)); heroSub = escapeHtml(hero.SeriesName); } else { heroSub = hero.ProductionYear; }
-            if (isGroup) { heroSub = `${hero.GroupCount} ${hero.IsNew ? T.newEps : T.eps}`; }
+            if (isGroup) { heroSub = hero.IsNew ? `${hero.NewCount || hero.GroupCount} ${T.newEps}` : `${hero.GroupCount} ${T.eps}`; }
 
             htmlParts.push(`<div class="hero-section" onclick="document.dispatchEvent(new CustomEvent('ns-navigate', {detail: '${hero.Id}'}))"><div class="hero-bg" style="background-image:url('${heroImg}')"></div><div class="hero-overlay"></div><div class="hero-content">${hero.IsNew ? `<span class="hero-badge">${T.badgeNew}</span>` : ''}<div style="font-size:18px;font-weight:700;text-shadow:0 2px 4px #000;line-height:1.2;">${heroTitle}</div><div style="font-size:12px;opacity:0.8;margin-top:4px">${heroSub} &bull; ${timeAgo(hero.DateCreated)}</div></div></div>`);
         }
@@ -366,7 +366,7 @@
 
             let title = escapeHtml(item.Name), sub = item.ProductionYear;
             if (!isGroup && item.Type === 'Episode') { title = escapeHtml(formatEpisodeTitle(item)); sub = escapeHtml(item.SeriesName); }
-            if (isGroup) { sub = `${item.GroupCount} ${item.IsNew ? T.newEps : T.eps}`; }
+            if (isGroup) { sub = item.IsNew ? `${item.NewCount || item.GroupCount} ${T.newEps}` : `${item.GroupCount} ${T.eps}`; }
 
             htmlParts.push(`<div class="dropdown-item ${item.IsNew ? 'style-new' : 'style-seen'}" onclick="document.dispatchEvent(new CustomEvent('ns-navigate', {detail: '${item.Id}'}))"><div class="status-dot"></div><div class="thumb-wrapper"><img data-src="${imgUrl}" decoding="async" class="dropdown-thumb ${isMusic ? 'music' : ''}" loading="lazy" onerror="this.style.display='none'"><span class="material-icons" style="color:#444;position:absolute;z-index:-1;">${isMusic ? 'album' : 'movie'}</span></div><div class="dropdown-info"><div class="dropdown-title">${title}</div><div class="dropdown-subtitle">${sub} &bull; ${timeAgo(item.DateCreated)}</div></div></div>`);
         });
@@ -399,10 +399,6 @@
             document.addEventListener('ns-refresh', () => { triggerHardRefresh(); });
             document.addEventListener('ns-navigate', (e) => {
                 const id = e.detail;
-                markLocalPlayed(id);
-                currentData.forEach(i => { if (i.SeriesId === id) markLocalPlayed(i.Id); });
-                applyPlayStates();
-                recalculateNewStatus();
                 closeDropdown();
                 window.location.hash = '#!/details?id=' + id;
             });

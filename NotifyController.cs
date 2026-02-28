@@ -173,23 +173,50 @@ namespace NotifySync
                     return NotFound();
                 }
 
-                var filtered = allNotifs.Where(n =>
+                var filtered = new List<NotificationItem>();
+                int filteredNotVisible = 0;
+                int itemNotFound = 0;
+                foreach (var n in allNotifs)
                 {
                     var item = _libraryManager.GetItemById(n.Id);
-                    return item != null && item.IsVisible(user);
-                }).ToList();
+                    if (item == null)
+                    {
+                        // Item not in native Jellyfin DB (e.g. IPTV/external provider).
+                        // Keep it — it was validated during the scan phase.
+                        itemNotFound++;
+                        filtered.Add(n);
+                        continue;
+                    }
 
-                long lastSeen = GetUserLastSeen(userId);
-                var result = new
+                    if (!item.IsVisible(user))
+                    {
+                        filteredNotVisible++;
+                        continue;
+                    }
+
+                    filtered.Add(n);
+                }
+
+                _logger.LogInformation(
+                    "GetData Diagnostics: Total={Total}, NotInLibrary(kept)={NotFound}, FilteredNotVisible={NotVisible}, Result: {Cats}",
+                    allNotifs.Count,
+                    itemNotFound,
+                    filteredNotVisible,
+                    string.Join(", ", filtered.GroupBy(n => n.Category).Select(g => $"{g.Key}={g.Count()}")));
+
+                byte[] serialized = JsonSerializer.SerializeToUtf8Bytes(filtered, PluginJsonContext.Default.ListNotificationItem);
+
+                // --- FIX MEMORY LEAK ---
+                // Remove all previous cached views for this exact user before adding the new hash.
+                var userKeysToRemove = UserViewCache.Keys.Where(k => k.StartsWith(userId + "_", StringComparison.Ordinal)).ToList();
+                foreach (var key in userKeysToRemove)
                 {
-                    Hash = hash,
-                    LastSeen = lastSeen,
-                    Notifications = filtered
-                };
+                    UserViewCache.TryRemove(key, out _);
+                }
 
-                byte[] serialized = JsonSerializer.SerializeToUtf8Bytes(result, PluginJsonContext.Default.Object);
                 UserViewCache.TryAdd(cacheKey, serialized);
 
+                Response.Headers["ETag"] = hash;
                 return new FileContentResult(serialized, "application/json");
             }
             catch (Exception ex)
@@ -313,7 +340,8 @@ namespace NotifySync
                     }
                 }
 
-                return new JsonResult(results, PluginJsonContext.Default.DictionaryStringBoolean);
+                byte[] serialized = JsonSerializer.SerializeToUtf8Bytes(results, PluginJsonContext.Default.DictionaryStringBoolean);
+                return new FileContentResult(serialized, "application/json");
             }
             catch (Exception ex)
             {
@@ -339,6 +367,23 @@ namespace NotifySync
                 return false;
             }
 
+            // If the claim is a username (not a GUID), resolve it to a user GUID
+            if (!Guid.TryParse(currentUserId, out var currentGuid))
+            {
+                // The claim is a username string (e.g. "jellyfin"), look up the user by name
+                var userByName = _userManager.GetUserByName(currentUserId);
+                if (userByName != null)
+                {
+                    currentGuid = userByName.Id;
+                    currentUserId = currentGuid.ToString("N");
+                }
+                else
+                {
+                    _logger.LogWarning("NotifySync: Could not resolve username '{Username}' to a user.", currentUserId);
+                    return false;
+                }
+            }
+
             // Normalize both IDs for comparison (handle hyphenated vs non-hyphenated formats)
             var normalizedCurrent = currentUserId.Replace("-", string.Empty, StringComparison.OrdinalIgnoreCase).ToLowerInvariant();
             var normalizedRequested = userId.Replace("-", string.Empty, StringComparison.OrdinalIgnoreCase).ToLowerInvariant();
@@ -348,13 +393,12 @@ namespace NotifySync
                 return true;
             }
 
-            if (Guid.TryParse(currentUserId, out var guid))
+            // Check if the current user is an admin (allow admin access to any user's data)
+            var isAdmin = User.IsInRole("Administrator")
+                || string.Equals(User.FindFirst("Jellyfin-IsApiKey")?.Value, "true", StringComparison.OrdinalIgnoreCase);
+            if (isAdmin)
             {
-                var jUser = (dynamic?)_userManager.GetUserById(guid);
-                if (jUser != null && jUser.Policy.IsAdministrator)
-                {
-                    return true;
-                }
+                return true;
             }
 
             _logger.LogWarning("NotifySync: Authorization denied. Current: {Current}, Requested: {Requested}", currentUserId, userId);

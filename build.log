@@ -1,0 +1,13 @@
+  Identification des projets ├á restaurer...
+  Tous les projets sont ├á jour pour la restauration.
+C:\Users\eliem\Documents\GitHub\NotifySync\NotifyController.cs(200,40): error SA1116: The parameters should begin on the line after the declaration, whenever the parameter span across multiple lines (https://github.com/DotNetAnalyzers/StyleCopAnalyzers/blob/master/documentation/SA1116.md) [C:\Users\eliem\Documents\GitHub\NotifySync\NotifySync.csproj]
+C:\Users\eliem\Documents\GitHub\NotifySync\NotifyController.cs(201,38): error SA1117: The parameters should all be placed on the same line or each parameter should be placed on its own line. (https://github.com/DotNetAnalyzers/StyleCopAnalyzers/blob/master/documentation/SA1117.md) [C:\Users\eliem\Documents\GitHub\NotifySync\NotifySync.csproj]
+
+├ëCHEC de la build.
+
+C:\Users\eliem\Documents\GitHub\NotifySync\NotifyController.cs(200,40): error SA1116: The parameters should begin on the line after the declaration, whenever the parameter span across multiple lines (https://github.com/DotNetAnalyzers/StyleCopAnalyzers/blob/master/documentation/SA1116.md) [C:\Users\eliem\Documents\GitHub\NotifySync\NotifySync.csproj]
+C:\Users\eliem\Documents\GitHub\NotifySync\NotifyController.cs(201,38): error SA1117: The parameters should all be placed on the same line or each parameter should be placed on its own line. (https://github.com/DotNetAnalyzers/StyleCopAnalyzers/blob/master/documentation/SA1117.md) [C:\Users\eliem\Documents\GitHub\NotifySync\NotifySync.csproj]
+    0 Avertissement(s)
+    2 Erreur(s)
+
+Temps ├®coul├® 00:00:00.69

@@ -1,4 +1,4 @@
-/* NOTIFYSYNC V4.7.16 */
+/* NOTIFYSYNC V4.7.17.5 */
 (function () {
     let currentData = [];
     let groupedData = [];
@@ -7,6 +7,16 @@
     let retryDelay = 2000;
     let activeFilter = 'All';
     let observerInstance = null;
+    let pollTimeout = null;
+    let localPlayed = JSON.parse(localStorage.getItem('ns-played') || '[]');
+
+    const markLocalPlayed = (id) => {
+        if (id && !localPlayed.includes(id)) {
+            localPlayed.push(id);
+            if (localPlayed.length > 1000) localPlayed.shift(); // keep reasonable size
+            localStorage.setItem('ns-played', JSON.stringify(localPlayed));
+        }
+    };
 
     const userLang = navigator.language || 'en';
     const T = userLang.startsWith('fr')
@@ -136,10 +146,9 @@
             eps.sort((a, b) => new Date(b.DateCreated) - new Date(a.DateCreated));
             if (eps.length === 0) return;
             const latest = eps[0];
-            const batchWindow = 12 * 60 * 60 * 1000;
-            const recentBatch = eps.filter(e => e.IsNew && (new Date(latest.DateCreated).getTime() - new Date(e.DateCreated).getTime() < batchWindow));
-            if (recentBatch.length > 1) {
-                result.push({ ...latest, IsGroup: true, GroupCount: recentBatch.length, Name: latest.SeriesName, Id: latest.SeriesId, IsNew: true });
+            const hasNew = eps.some(e => e.IsNew);
+            if (eps.length > 1) {
+                result.push({ ...latest, IsGroup: true, GroupCount: eps.length, Name: latest.SeriesName || latest.Name, Id: latest.SeriesId || latest.Id, IsNew: hasNew });
             } else { result.push(latest); }
         });
         return result.sort((a, b) => new Date(b.DateCreated) - new Date(a.DateCreated));
@@ -162,15 +171,26 @@
         } catch (e) { console.warn("NotifySync: LastSeen fetch failed, using cache."); }
     };
 
+    const applyPlayStates = (statusMap) => {
+        currentData.forEach(item => {
+            let isServerPlayed = statusMap ? !!(statusMap[item.Id] || (item.SeriesId && statusMap[item.SeriesId])) : item.Played;
+            item.Played = isServerPlayed || localPlayed.includes(item.Id) || (item.SeriesId && localPlayed.includes(item.SeriesId));
+        });
+    };
+
     const updateLastSeen = async () => {
         const userId = getUserId();
         if (!userId) return;
 
         await fetch(`/NotifySync/LastSeen/${userId}?date=${encodeURIComponent(new Date().toISOString())}`, { method: 'POST', headers: getAuthHeaders() });
         lastSeenDate = new Date();
-        currentData.forEach(i => i.IsNew = false);
-        groupedData = processGrouping(currentData);
-        updateBadge();
+
+        currentData.forEach(i => {
+            if (!i.Played) markLocalPlayed(i.Id);
+        });
+
+        applyPlayStates();
+        recalculateNewStatus();
         closeDropdown();
     };
 
@@ -178,19 +198,22 @@
         const userId = getUserId();
         if (!currentData.length || !userId) return;
         try {
-            const res = await fetch(`/NotifySync/BulkUserData?userId=${userId}`, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(currentData.map(i => i.Id)) });
+            const idsToCheck = new Set();
+            currentData.forEach(i => {
+                idsToCheck.add(i.Id);
+                if (i.SeriesId) idsToCheck.add(i.SeriesId);
+            });
+            const res = await fetch(`/NotifySync/BulkUserData?userId=${userId}`, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(Array.from(idsToCheck)) });
             if (res.ok) {
                 const statusMap = await res.json();
-                currentData.forEach(item => {
-                    if (statusMap.hasOwnProperty(item.Id)) item.Played = statusMap[item.Id];
-                });
+                applyPlayStates(statusMap);
             }
         } catch (e) { console.error("Bulk check failed", e); }
     };
 
     const recalculateNewStatus = () => {
         currentData.forEach(item => {
-            item.IsNew = !item.Played && (new Date(item.DateCreated) > lastSeenDate);
+            item.IsNew = !item.Played;
         });
         groupedData = processGrouping(currentData);
         updateBadge();
@@ -203,7 +226,8 @@
         if (!userId) {
             console.warn("NotifySync: No userId auth found yet. Retrying in " + retryDelay + "ms");
             // No user ID yet (e.g. not logged in fully), retry with backoff
-            setTimeout(fetchData, retryDelay);
+            if (pollTimeout) clearTimeout(pollTimeout);
+            pollTimeout = setTimeout(fetchData, retryDelay);
             retryDelay = Math.min(retryDelay * 1.5, 60000); // 2s, 3s, 4.5s... max 60s
             return;
         }
@@ -251,7 +275,8 @@
 
         } catch (e) {
             console.error("NotifySync: Error in fetchData", e);
-            setTimeout(fetchData, retryDelay);
+            if (pollTimeout) clearTimeout(pollTimeout);
+            pollTimeout = setTimeout(fetchData, retryDelay);
             retryDelay = Math.min(retryDelay * 2, 60000);
         } finally { isFetching = false; }
     };
@@ -267,9 +292,10 @@
             const cached = localStorage.getItem('ns-data');
             if (cached) {
                 currentData = JSON.parse(cached);
+                applyPlayStates();
                 // Recalculate IsNew with restored lastSeenDate
                 currentData.forEach(item => {
-                    item.IsNew = !item.Played && (new Date(item.DateCreated) > lastSeenDate);
+                    item.IsNew = !item.Played;
                 });
                 groupedData = processGrouping(currentData);
                 updateBadge();
@@ -327,8 +353,8 @@
             if (isGroup && hero.SeriesId) heroImg = client.getUrl(`Items/${hero.Id}/Images/Backdrop/0?quality=70&maxWidth=600&format=webp`);
 
             let heroTitle = escapeHtml(hero.Name), heroSub = '';
-            if (hero.Type === 'Episode') { heroTitle = escapeHtml(formatEpisodeTitle(hero)); heroSub = escapeHtml(hero.SeriesName); } else { heroSub = hero.ProductionYear; }
-            if (isGroup) { heroSub = `${escapeHtml(hero.SeriesName)} • ${hero.GroupCount} ${T.newEps}`; }
+            if (!isGroup && hero.Type === 'Episode') { heroTitle = escapeHtml(formatEpisodeTitle(hero)); heroSub = escapeHtml(hero.SeriesName); } else { heroSub = hero.ProductionYear; }
+            if (isGroup) { heroSub = `${hero.GroupCount} ${hero.IsNew ? T.newEps : T.eps}`; }
 
             htmlParts.push(`<div class="hero-section" onclick="document.dispatchEvent(new CustomEvent('ns-navigate', {detail: '${hero.Id}'}))"><div class="hero-bg" style="background-image:url('${heroImg}')"></div><div class="hero-overlay"></div><div class="hero-content">${hero.IsNew ? `<span class="hero-badge">${T.badgeNew}</span>` : ''}<div style="font-size:18px;font-weight:700;text-shadow:0 2px 4px #000;line-height:1.2;">${heroTitle}</div><div style="font-size:12px;opacity:0.8;margin-top:4px">${heroSub} &bull; ${timeAgo(hero.DateCreated)}</div></div></div>`);
         }
@@ -339,8 +365,8 @@
             const imgUrl = client.getUrl(`Items/${item.Id}/Images/Primary?tag=${item.PrimaryImageTag || ''}&${isMusic ? 'fillHeight=100&fillWidth=100' : 'fillHeight=112&fillWidth=200'}&quality=80&format=webp`);
 
             let title = escapeHtml(item.Name), sub = item.ProductionYear;
-            if (item.Type === 'Episode') { title = escapeHtml(formatEpisodeTitle(item)); sub = escapeHtml(item.SeriesName); }
-            if (isGroup) { sub = `${escapeHtml(item.SeriesName)} • ${item.GroupCount} ${T.newEps}`; }
+            if (!isGroup && item.Type === 'Episode') { title = escapeHtml(formatEpisodeTitle(item)); sub = escapeHtml(item.SeriesName); }
+            if (isGroup) { sub = `${item.GroupCount} ${item.IsNew ? T.newEps : T.eps}`; }
 
             htmlParts.push(`<div class="dropdown-item ${item.IsNew ? 'style-new' : 'style-seen'}" onclick="document.dispatchEvent(new CustomEvent('ns-navigate', {detail: '${item.Id}'}))"><div class="status-dot"></div><div class="thumb-wrapper"><img data-src="${imgUrl}" decoding="async" class="dropdown-thumb ${isMusic ? 'music' : ''}" loading="lazy" onerror="this.style.display='none'"><span class="material-icons" style="color:#444;position:absolute;z-index:-1;">${isMusic ? 'album' : 'movie'}</span></div><div class="dropdown-info"><div class="dropdown-title">${title}</div><div class="dropdown-subtitle">${sub} &bull; ${timeAgo(item.DateCreated)}</div></div></div>`);
         });
@@ -371,7 +397,15 @@
             document.addEventListener('ns-filter', (e) => { activeFilter = e.detail; updateList(drop); });
             document.addEventListener('ns-markall', () => { updateLastSeen(); closeDropdown(); });
             document.addEventListener('ns-refresh', () => { triggerHardRefresh(); });
-            document.addEventListener('ns-navigate', (e) => { closeDropdown(); window.location.hash = '#!/details?id=' + e.detail; });
+            document.addEventListener('ns-navigate', (e) => {
+                const id = e.detail;
+                markLocalPlayed(id);
+                currentData.forEach(i => { if (i.SeriesId === id) markLocalPlayed(i.Id); });
+                applyPlayStates();
+                recalculateNewStatus();
+                closeDropdown();
+                window.location.hash = '#!/details?id=' + id;
+            });
 
             drop.innerHTML = `<div class="dropdown-header"><span class="header-title">${T.header}</span><div class="header-tools"><span class="material-icons tool-icon refresh-icon" onclick="document.dispatchEvent(new Event('ns-refresh'))">refresh</span></div></div><div class="filter-bar"></div><div class="list-container"></div>`;
         }

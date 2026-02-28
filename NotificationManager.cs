@@ -128,34 +128,51 @@ namespace NotifySync
 
         private void LoadAndMigrate()
         {
+            var diskNotifs = _db.GetAllNotifications().ToList();
+
+            if (diskNotifs.Count == 0 && File.Exists(_jsonPath))
+            {
+                _logger.LogInformation("Migration des notifications JSON vers SQLite détectée...");
+                try
+                {
+                    using (var fs = new FileStream(_jsonPath, FileMode.Open, FileAccess.Read, FileShare.Read))
+                    {
+                        var oldNotifs = JsonSerializer.Deserialize(fs, PluginJsonContext.Default.ListNotificationItem) ?? new List<NotificationItem>();
+                        if (oldNotifs.Count > 0)
+                        {
+                            _db.SaveNotifications(oldNotifs);
+                            diskNotifs = oldNotifs;
+                            _logger.LogInformation("{Count} notifications migrées avec succès.", oldNotifs.Count);
+                        }
+                    }
+
+                    File.Move(_jsonPath, _jsonPath + ".bak");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Erreur lors de la migration JSON vers SQLite.");
+                }
+            }
+
+            // Enforce Quota even on startup to trim any bloat from before
+            var config = Plugin.Instance?.Configuration;
+            int maxItems = config?.MaxItems ?? 10;
+            var quotaResult = ApplyCategoryQuotas(diskNotifs, maxItems);
+            var finalNotifications = quotaResult.Kept;
+            var itemsToDelete = quotaResult.RemovedIds;
+
+            var newNotifs = finalNotifications.OrderByDescending(n => n.DateCreated).ToList();
+
+            if (itemsToDelete.Count > 0)
+            {
+                _db.DeleteNotifications(itemsToDelete);
+                _db.Vacuum(); // Optimize Db after startup trim
+            }
+
             try
             {
                 _dataLock.EnterWriteLock();
-                _notifications = _db.GetAllNotifications().ToList();
-
-                if (_notifications.Count == 0 && File.Exists(_jsonPath))
-                {
-                    _logger.LogInformation("Migration des notifications JSON vers SQLite détectée...");
-                    try
-                    {
-                        using (var fs = new FileStream(_jsonPath, FileMode.Open, FileAccess.Read, FileShare.Read))
-                        {
-                            var oldNotifs = JsonSerializer.Deserialize(fs, PluginJsonContext.Default.ListNotificationItem) ?? new List<NotificationItem>();
-                            if (oldNotifs.Count > 0)
-                            {
-                                _db.SaveNotifications(oldNotifs);
-                                _notifications = oldNotifs;
-                                _logger.LogInformation("{Count} notifications migrées avec succès.", oldNotifs.Count);
-                            }
-                        }
-
-                        File.Move(_jsonPath, _jsonPath + ".bak");
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex, "Erreur lors de la migration JSON vers SQLite.");
-                    }
-                }
+                _notifications = newNotifs;
             }
             finally
             {
@@ -184,13 +201,14 @@ namespace NotifySync
                 return;
             }
 
+            bool dbNeedsUpdate = false;
             try
             {
                 _dataLock.EnterWriteLock();
                 int removed = _notifications.RemoveAll(n => n.Id == e.Item.Id.ToString());
                 if (removed > 0)
                 {
-                    _db.SaveNotifications(_notifications);
+                    dbNeedsUpdate = true;
                     Interlocked.Exchange(ref _versionCounter, DateTime.UtcNow.Ticks);
                 }
             }
@@ -200,6 +218,11 @@ namespace NotifySync
                 {
                     _dataLock.ExitWriteLock();
                 }
+            }
+
+            if (dbNeedsUpdate)
+            {
+                _db.DeleteNotifications(new[] { e.Item.Id.ToString() });
             }
         }
 
@@ -234,21 +257,34 @@ namespace NotifySync
 
                 if (newItems.Count > 0)
                 {
+                    var config = Plugin.Instance?.Configuration;
+                    int maxItems = config?.MaxItems ?? 10;
+                    var itemsToDelete = new List<string>();
+                    var itemsToSave = new List<NotificationItem>(newItems);
+
                     try
                     {
                         _dataLock.EnterWriteLock();
-                        foreach (var ni in newItems)
+                        foreach (var ni in itemsToSave)
                         {
                             _notifications.RemoveAll(n => n.Id == ni.Id);
                             _notifications.Insert(0, ni);
                         }
 
+                        // Apply Quota per category
+                        var quotaResult = ApplyCategoryQuotas(_notifications, maxItems);
+                        var finalNotifications = quotaResult.Kept;
+                        itemsToDelete.AddRange(quotaResult.RemovedIds);
+
+                        _notifications = finalNotifications.OrderByDescending(n => n.DateCreated).ToList();
+
                         if (_notifications.Count > GlobalRetentionLimit)
                         {
+                            var overLimit = _notifications.Skip(GlobalRetentionLimit).Select(n => n.Id).ToList();
+                            itemsToDelete.AddRange(overLimit!);
                             _notifications = _notifications.Take(GlobalRetentionLimit).ToList();
                         }
 
-                        _db.SaveNotifications(_notifications);
                         Interlocked.Exchange(ref _versionCounter, DateTime.UtcNow.Ticks);
                     }
                     finally
@@ -257,6 +293,13 @@ namespace NotifySync
                         {
                             _dataLock.ExitWriteLock();
                         }
+                    }
+
+                    // IO outside lock
+                    _db.SaveNotifications(itemsToSave);
+                    if (itemsToDelete.Count > 0)
+                    {
+                        _db.DeleteNotifications(itemsToDelete);
                     }
                 }
             }
@@ -279,32 +322,128 @@ namespace NotifySync
                 IncludeItemTypes = new[] { BaseItemKind.Movie, BaseItemKind.Episode },
                 Recursive = true,
                 OrderBy = new[] { (ItemSortBy.DateCreated, (Jellyfin.Database.Implementations.Enums.SortOrder)1) },
-                Limit = 1000,
+                // Retirer la limite absolue de 1000 pour pouvoir parcourir suffisamment de contenu
+                // afin d'obtenir MaxItems * Nombre de Catégories
+                Limit = 5000,
                 DtoOptions = new MediaBrowser.Controller.Dto.DtoOptions(false)
             };
 
             var items = _libraryManager.GetItemList(query);
             var results = new List<NotificationItem>();
             int count = 0;
+            int skippedNotEnabled = 0;
+            int skippedNull = 0;
+            var typeCounts = new Dictionary<string, int>();
+
+            var config = Plugin.Instance?.Configuration;
+            int maxItems = config?.MaxItems ?? 10;
+            var categoryCounts = new Dictionary<string, int>();
+            // Track unique series per category to count series, not episodes
+            var categorySeriesIds = new Dictionary<string, HashSet<string>>();
+
+            _logger.LogInformation("NotifySync Scan: {Total} items returned by library query.", items.Count);
 
             foreach (var item in items)
             {
                 cancellationToken.ThrowIfCancellationRequested();
+
+                // Track type distribution
+                var typeName = item.GetType().Name;
+                typeCounts[typeName] = typeCounts.GetValueOrDefault(typeName) + 1;
+
                 var notif = CreateNotificationFromItem(item);
                 if (notif != null)
                 {
-                    results.Add(notif);
+                    // For episodes: count unique series, not individual episodes
+                    // For movies/other: count individual items
+                    bool isEpisode = !string.IsNullOrEmpty(notif.SeriesId);
+                    string categoryKey = notif.Category;
+
+                    if (!categorySeriesIds.TryGetValue(categoryKey, out var seriesSet))
+                    {
+                        seriesSet = new HashSet<string>();
+                        categorySeriesIds[categoryKey] = seriesSet;
+                    }
+
+                    if (!categoryCounts.TryGetValue(categoryKey, out int currentCount))
+                    {
+                        currentCount = 0;
+                    }
+
+                    if (isEpisode)
+                    {
+                        // For episodes: allow if we haven't reached maxItems unique series yet
+                        bool isNewSeries = !seriesSet.Contains(notif.SeriesId!);
+                        if (isNewSeries && currentCount >= maxItems)
+                        {
+                            // Already have enough unique series, skip this new series
+                        }
+                        else
+                        {
+                            results.Add(notif);
+                            if (isNewSeries)
+                            {
+                                seriesSet.Add(notif.SeriesId!);
+                                categoryCounts[categoryKey] = currentCount + 1;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        // For movies: count individually as before
+                        if (currentCount < maxItems)
+                        {
+                            results.Add(notif);
+                            categoryCounts[categoryKey] = currentCount + 1;
+                        }
+                    }
+                }
+                else
+                {
+                    if (!IsItemInEnabledLibrary(item))
+                    {
+                        skippedNotEnabled++;
+                    }
+                    else
+                    {
+                        skippedNull++;
+                    }
                 }
 
                 count++;
                 progress?.Report((double)count / items.Count * 100);
             }
 
+            // Log diagnostics
+            _logger.LogInformation("NotifySync Scan Diagnostics: Types found: {Types}", string.Join(", ", typeCounts.Select(kv => $"{kv.Key}={kv.Value}")));
+            _logger.LogInformation("NotifySync Scan Diagnostics: Categories: {Categories}", string.Join(", ", categoryCounts.Select(kv => $"{kv.Key}={kv.Value}")));
+            _logger.LogInformation("NotifySync Scan Diagnostics: Skipped (not in enabled library): {Skipped}, Skipped (null/error): {Null}", skippedNotEnabled, skippedNull);
+
+            var newNotifs = results.OrderByDescending(n => n.DateCreated).ToList();
+            var oldDbIds = new List<string>();
+
+            try
+            {
+                _dataLock.EnterReadLock();
+                oldDbIds = _notifications.Select(n => n.Id).ToList();
+            }
+            finally
+            {
+                if (_dataLock.IsReadLockHeld)
+                {
+                    _dataLock.ExitReadLock();
+                }
+            }
+
+            // Discard old, insert new into DB directly
+            _db.DeleteNotifications(oldDbIds!);
+            _db.SaveNotifications(newNotifs);
+            _db.Vacuum(); // Reclaim space after mass delete/insert
+
             try
             {
                 _dataLock.EnterWriteLock();
-                _notifications = results;
-                _db.SaveNotifications(_notifications);
+                _notifications = newNotifs;
                 Interlocked.Exchange(ref _versionCounter, DateTime.UtcNow.Ticks);
                 _logger.LogInformation("Scan terminé. {Count} items indexés.", _notifications.Count);
             }
@@ -317,8 +456,71 @@ namespace NotifySync
             }
         }
 
+        private bool IsItemInEnabledLibrary(BaseItem item)
+        {
+            var config = Plugin.Instance?.Configuration;
+            if (config == null)
+            {
+                return false;
+            }
+
+            // If no libraries are configured at all, allow everything by default (backward compatibility or initial state)
+            if ((config.EnabledLibraries == null || config.EnabledLibraries.Count == 0) &&
+                (config.ManualLibraryIds == null || config.ManualLibraryIds.Count == 0))
+            {
+                return true;
+            }
+
+            var owners = item.GetAncestorIds().ToArray();
+
+            // Check EnabledLibraries Checkboxes
+            if (config.EnabledLibraries != null)
+            {
+                foreach (var libId in config.EnabledLibraries)
+                {
+                    if (Guid.TryParse(libId, out var libGuid) && owners.Contains(libGuid))
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            // Check ManualLibraryIds (can be ID or plain Name)
+            if (config.ManualLibraryIds != null && config.ManualLibraryIds.Count > 0)
+            {
+                foreach (var manualId in config.ManualLibraryIds)
+                {
+                    if (Guid.TryParse(manualId, out var manualGuid) && owners.Contains(manualGuid))
+                    {
+                        return true;
+                    }
+
+                    // Allow exact name matching for folders by checking the ancestors names through the library manager
+                    // Since owners contains IDs, let's just query the manager
+                    if (_libraryManager != null)
+                    {
+                        foreach (var ownerId in owners)
+                        {
+                            var ownerItem = _libraryManager.GetItemById(ownerId);
+                            if (ownerItem != null && ownerItem.Name != null && ownerItem.Name.Equals(manualId, StringComparison.OrdinalIgnoreCase))
+                            {
+                                return true;
+                            }
+                        }
+                    }
+                }
+            }
+
+            return false;
+        }
+
         private NotificationItem? CreateNotificationFromItem(BaseItem item)
         {
+            if (!IsItemInEnabledLibrary(item))
+            {
+                return null;
+            }
+
             try
             {
                 string category = "Autres";
@@ -358,6 +560,63 @@ namespace NotifySync
             {
                 return null;
             }
+        }
+
+        private (List<NotificationItem> Kept, List<string> RemovedIds) ApplyCategoryQuotas(List<NotificationItem> sourceList, int maxItems)
+        {
+            var categorized = sourceList.GroupBy(n => n.Category).ToList();
+            var finalNotifications = new List<NotificationItem>();
+            var itemsToDelete = new List<string>();
+
+            foreach (var group in categorized)
+            {
+                var sorted = group.OrderByDescending(n => n.DateCreated).ToList();
+                var categorySeriesIds = new HashSet<string>();
+                int currentCount = 0;
+
+                foreach (var item in sorted)
+                {
+                    bool isEpisode = !string.IsNullOrEmpty(item.SeriesId);
+                    bool keep = false;
+
+                    if (isEpisode)
+                    {
+                        bool isNewSeries = !categorySeriesIds.Contains(item.SeriesId!);
+                        if (isNewSeries && currentCount >= maxItems)
+                        {
+                            // Already have max unique series, do not keep
+                        }
+                        else
+                        {
+                            keep = true;
+                            if (isNewSeries)
+                            {
+                                categorySeriesIds.Add(item.SeriesId!);
+                                currentCount++;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        if (currentCount < maxItems)
+                        {
+                            keep = true;
+                            currentCount++;
+                        }
+                    }
+
+                    if (keep)
+                    {
+                        finalNotifications.Add(item);
+                    }
+                    else
+                    {
+                        itemsToDelete.Add(item.Id);
+                    }
+                }
+            }
+
+            return (finalNotifications, itemsToDelete);
         }
     }
 }

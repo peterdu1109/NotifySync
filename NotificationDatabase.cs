@@ -94,9 +94,10 @@ namespace NotifySync
         }
 
         /// <summary>
-        /// Saves a collection of notifications to the database.
+        /// Saves a collection of notifications to the database by replacing existing ones.
+        /// Existing records that are not in this list are NOT deleted by this method.
         /// </summary>
-        /// <param name="items">The items to save.</param>
+        /// <param name="items">The items to save or update.</param>
         public void SaveNotifications(IEnumerable<NotificationItem> items)
         {
             try
@@ -107,18 +108,11 @@ namespace NotifySync
                 using var transaction = connection.BeginTransaction();
                 try
                 {
-                    using (var delCmd = connection.CreateCommand())
-                    {
-                        delCmd.Transaction = transaction;
-                        delCmd.CommandText = "DELETE FROM Notifications";
-                        delCmd.ExecuteNonQuery();
-                    }
-
                     using (var insertCmd = connection.CreateCommand())
                     {
                         insertCmd.Transaction = transaction;
                         insertCmd.CommandText = @"
-                            INSERT INTO Notifications (
+                            INSERT OR REPLACE INTO Notifications (
                                 Id, Name, Category, SeriesName, SeriesId, DateCreated, 
                                 Type, RunTimeTicks, ProductionYear, BackdropImageTags, 
                                 PrimaryImageTag, IndexNumber, ParentIndexNumber
@@ -144,16 +138,16 @@ namespace NotifySync
 
                         foreach (var item in items)
                         {
-                            pId.Value = item.Id;
-                            pName.Value = item.Name;
-                            pCat.Value = item.Category;
+                            pId.Value = item.Id ?? string.Empty;
+                            pName.Value = item.Name ?? string.Empty;
+                            pCat.Value = item.Category ?? string.Empty;
                             pSName.Value = (object?)item.SeriesName ?? DBNull.Value;
                             pSId.Value = (object?)item.SeriesId ?? DBNull.Value;
                             pDate.Value = item.DateCreated.ToString("O");
-                            pType.Value = item.Type;
+                            pType.Value = item.Type ?? string.Empty;
                             pRun.Value = (object?)item.RunTimeTicks ?? DBNull.Value;
                             pYear.Value = (object?)item.ProductionYear ?? DBNull.Value;
-                            pBack.Value = JsonSerializer.Serialize(item.BackdropImageTags, PluginJsonContext.Default.ListString);
+                            pBack.Value = JsonSerializer.Serialize(item.BackdropImageTags ?? new List<string>(), PluginJsonContext.Default.ListString);
                             pPrim.Value = (object?)item.PrimaryImageTag ?? DBNull.Value;
                             pIdx.Value = (object?)item.IndexNumber ?? DBNull.Value;
                             pPIdx.Value = (object?)item.ParentIndexNumber ?? DBNull.Value;
@@ -172,7 +166,72 @@ namespace NotifySync
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Erreur lors de la sauvegarde des notifications en SQLite.");
+                _logger.LogError(ex, "Erreur lors de la sauvegarde/mise à jour des notifications en SQLite.");
+            }
+        }
+
+        /// <summary>
+        /// Deletes multiple notifications from the database by their IDs.
+        /// </summary>
+        /// <param name="ids">List of notification IDs to delete.</param>
+        public void DeleteNotifications(IEnumerable<string> ids)
+        {
+            try
+            {
+                using var connection = new SqliteConnection(_connectionString);
+                connection.Open();
+
+                using var transaction = connection.BeginTransaction();
+                try
+                {
+                    using (var delCmd = connection.CreateCommand())
+                    {
+                        delCmd.Transaction = transaction;
+                        delCmd.CommandText = "DELETE FROM Notifications WHERE Id = @Id";
+                        var pId = delCmd.Parameters.Add("@Id", SqliteType.Text);
+
+                        foreach (var id in ids)
+                        {
+                            if (string.IsNullOrEmpty(id))
+                            {
+                                continue;
+                            }
+
+                            pId.Value = id;
+                            delCmd.ExecuteNonQuery();
+                        }
+                    }
+
+                    transaction.Commit();
+                }
+                catch
+                {
+                    transaction.Rollback();
+                    throw;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Erreur lors de la suppression de notifications ciblées en SQLite.");
+            }
+        }
+
+        /// <summary>
+        /// Optimizes the SQLite database.
+        /// </summary>
+        public void Vacuum()
+        {
+            try
+            {
+                using var connection = new SqliteConnection(_connectionString);
+                connection.Open();
+                using var cmd = connection.CreateCommand();
+                cmd.CommandText = "VACUUM;";
+                cmd.ExecuteNonQuery();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Erreur lors du VACUUM de la base SQLite.");
             }
         }
 

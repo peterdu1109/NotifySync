@@ -9,6 +9,54 @@
     "supportUrl": "https://github.com/",
     "versions": [
       {
+        "version": "4.7.17.5",
+        "changelog": "- HOTFIX : Finalisation de l'audit de fond en comble (Phase 5).\\n- FIX : Correction d'un bug subtil dans `ProcessBuffer` qui supprimait les épisodes individuels au lieu des Séries Uniques lors des live-events d'ajouts.\\n- STABILISATION : Le nouveau système de quota `ApplyCategoryQuotas` est unifié pour le scan global et les ajouts en direct.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/4.7.17.5/NotifySync_v4.7.17.5.zip",
+        "checksum": "152C000BC1B9F24C49D38E5AEDCB3AE0",
+        "timestamp": "2026-02-28T09:35:00Z"
+      },
+      {
+        "version": "4.7.17.4",
+        "changelog": "- HOTFIX : Correction de l'autorisation 403 (résolution Username → GUID pour Jellyfin 10.11).\\n- HOTFIX : Correction de la sérialisation JSON (GetData et BulkUserData) compatible source-generated.\\n- HOTFIX : Correction du \"Infinite Polling\" côté client.\\n- OPTIMISATION : Suppression du verrouillage synchrone de la mémoire lors d'écritures I/O lourdes sur SQLite.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/4.7.17.4/NotifySync_v4.7.17.4.zip",
+        "checksum": "56209A1637CDA636AD86EC5DD4FC31C94",
+        "timestamp": "2026-02-28T00:32:00Z"
+      },
+      {
+        "version": "4.7.17.3",
+        "changelog": "- HOTFIX : Correction du \"Infinite Polling\" côté client limitant les appels d'API.\n- OPTIMISATION : Suppression du verrouillage synchrone de la mémoire lors d'écritures I/O lourdes sur SQLite.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/4.7.17.3/NotifySync_v4.7.17.3.zip",
+        "checksum": "F1E4B8BF611EA41D8D21D0F82E104AB2",
+        "timestamp": "2026-02-27T23:55:00Z"
+      },
+      {
+        "version": "4.7.17.2",
+        "changelog": "- HOTFIX : Correction du problème d'affichage des GUID dans la page des configurations (Race Condition).\n- HOTFIX : Correction d'une fuite de mémoire (Memory Leak) du cache API UserViewCache.\n- OPTIMISATION : Restructuration majeure des requêtes SQLite (INSERT OR REPLACE et DELETE précis).\n- PERFORMANCES : La base de données n'est plus intégralement supprimée/recréée en boucle lors des ajouts.\n- FILTRES : Fonctionnement strict des cases 'Bibliothèques Surveillées' (EnabledLibraries).\n- QUOTA : Respect de la limite 'MaxItems' paramétrable par catégorie (Défaut 10).\n- STABILITÉ : Build finale avec 0 avertissement stricts sur .NET 9.0.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/4.7.17.2/NotifySync_v4.7.17.2.zip",
+        "checksum": "B1F69FBD7A255021610D16772745F624",
+        "timestamp": "2026-02-27T23:08:00Z"
+      },
+      {
+        "version": "4.7.17.1",
+        "changelog": "- HOTFIX : Correction d'une fuite de mémoire (Memory Leak) du cache API UserViewCache.\n- OPTIMISATION : Restructuration majeure des requêtes SQLite (INSERT OR REPLACE et DELETE précis).\n- PERFORMANCES : La base de données n'est plus intégralement supprimée/recréée en boucle lors des ajouts.\n- FILTRES : Fonctionnement strict des cases 'Bibliothèques Surveillées' (EnabledLibraries).\n- QUOTA : Respect de la limite 'MaxItems' paramétrable par catégorie (Défaut 10).\n- STABILITÉ : Build finale avec 0 avertissement stricts sur .NET 9.0.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/4.7.17.1/NotifySync_v4.7.17.1.zip",
+        "checksum": "56825941725468E0C0E68183F274A82D",
+        "timestamp": "2026-02-27T23:03:00Z"
+      },
+      {
+        "version": "4.7.17.0",
+        "changelog": "- OPTIMISATION : Restructuration majeure des requêtes SQLite (INSERT OR REPLACE et DELETE précis).\n- PERFORMANCES : La base de données n'est plus intégralement supprimée/recréée en boucle lors des ajouts.\n- FILTRES : Fonctionnement strict des cases 'Bibliothèques Surveillées' (EnabledLibraries).\n- QUOTA : Respect de la limite 'MaxItems' paramétrable par catégorie (Défaut 10).\n- STABILITÉ : Build finale avec 0 avertissement stricts sur .NET 9.0.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/4.7.17.0/NotifySync_v4.7.17.0.zip",
+        "checksum": "0F93589F3061662655AD037755DFFA54",
+        "timestamp": "2026-02-27T22:58:00Z"
+      },
+      {
         "version": "4.7.16.9",
         "changelog": "- FIX : Normalisation des GUID pour corriger l'erreur 403 Forbidden.\n- AMELIORATION : Comparaison d'identité utilisateur plus robuste.",
         "targetAbi": "10.11.0.0",

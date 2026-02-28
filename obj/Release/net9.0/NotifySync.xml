@@ -61,9 +61,21 @@
         </member>
         <member name="M:NotifySync.NotificationDatabase.SaveNotifications(System.Collections.Generic.IEnumerable{NotifySync.NotificationItem})">
             <summary>
-            Saves a collection of notifications to the database.
+            Saves a collection of notifications to the database by replacing existing ones.
+            Existing records that are not in this list are NOT deleted by this method.
             </summary>
-            <param name="items">The items to save.</param>
+            <param name="items">The items to save or update.</param>
+        </member>
+        <member name="M:NotifySync.NotificationDatabase.DeleteNotifications(System.Collections.Generic.IEnumerable{System.String})">
+            <summary>
+            Deletes multiple notifications from the database by their IDs.
+            </summary>
+            <param name="ids">List of notification IDs to delete.</param>
+        </member>
+        <member name="M:NotifySync.NotificationDatabase.Vacuum">
+            <summary>
+            Optimizes the SQLite database.
+            </summary>
         </member>
         <member name="M:NotifySync.NotificationDatabase.GetAllNotifications">
             <summary>

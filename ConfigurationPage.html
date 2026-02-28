@@ -90,9 +90,10 @@
                         page.querySelector('#maxItems').value = NotifySyncConf.config.MaxItems || 5;
                         page.querySelector('#manualLibraryIds').value = NotifySyncConf.config.ManualLibraryIds.join(', ');
 
-                        NotifySyncConf.renderLibs(page);
-                        NotifySyncConf.renderMap(page);
-                        Dashboard.hideLoadingMsg();
+                        NotifySyncConf.renderLibs(page).then(function() {
+                            NotifySyncConf.renderMap(page);
+                            Dashboard.hideLoadingMsg();
+                        });
                     });
                 },
 
@@ -115,7 +116,7 @@
                     var select = page.querySelector('#mappingLibrarySelect');
                     container.innerHTML = 'Récupération...';
                     
-                    ApiClient.getUserViews({}, ApiClient.getCurrentUserId()).then(function(result) {
+                    return ApiClient.getUserViews({}, ApiClient.getCurrentUserId()).then(function(result) {
                         var items = result.Items || [];
                         container.innerHTML = '';
                         select.innerHTML = '<option value="">-- Choisir une bibliothèque --</option>';

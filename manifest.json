@@ -1,8 +1,8 @@
 {
-  "Guid": "95655672-2342-4321-8291-321312312312",
-  "Name": "NotifySync",
-  "Description": "Notifications style Netflix. v4.7.16.9 : GUID Normalization Fix.",
-  "version": "4.7.16.9",
+  "id": "95655672-2342-4321-8291-321312312312",
+  "name": "NotifySync",
+  "version": "4.7.17.5",
+  "description": "Hotfixes v4.7.17.5: ProcessBuffer grouping, UI episodes mapping & localStorage played state",
   "Owner": "Peterdu1109 & ElieM",
   "Category": "UI",
   "TargetAbi": "10.11.0.0"

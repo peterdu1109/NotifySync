@@ -1,8 +1,9 @@
 project: NotifySync
-version: 4.7.16
-changelog:
-  - HARMONISATION : Alignement sur le standard de qualité Jellyfin.Xtream.
-  - TRANSPARENCE : Migration du scan de l'historique vers une Tâche Planifiée (Tableau de bord Jellyfin).
-  - Rigueur : Activation des analyseurs StyleCop et multithreading.
-  - MÉTADONNÉES : Mise à jour des informations projet (Auteurs: Peterdu1109, ElieM).
-  - STABILITÉ : Build finale avec 0 avertissement stricts.
+version: 4.7.17.5
+targetAbi: 10.11.0.0
+build:
+  - HOTFIX : Correction de l'autorisation 403 (résolution Username → GUID pour Jellyfin 10.11).
+  - HOTFIX : Correction de la sérialisation JSON (GetData et BulkUserData) compatible source-generated.
+  - HOTFIX : Correction du "Infinite Polling" côté client limitant les appels d'API.
+  - OPTIMISATION : Suppression du verrouillage synchrone de la mémoire lors d'écritures I/O lourdes sur SQLite.
+  - STABILITÉ : Build finale avec 0 avertissement stricts sur .NET 9.0.

@@ -1,7 +1,10 @@
 project: NotifySync
-version: 4.8.0.0
+version: 4.8.0.2
 targetAbi: 10.11.0.0
 build:
+  - FIXED : La catégorie 'Séries' apparaît désormais correctement (Correction du 'Quota Starvation' où les épisodes IPTV/VOD masquaient les séries locales) (v4.8.0.2).
+  - PERFORMANCE : Les requêtes de scan sont désormais ciblées sur les dossiers sélectionnés via AncestorIds (v4.8.0.2).
+  - FIX : Les Extras (Génériques, Openings de la Saison 0) ne polluent plus la liste des nouveaux épisodes (v4.8.0.1).
   - FIX : Filtrage intelligent des items de streaming (XFusion VOD/Séries) — exclusion automatique des contenus IPTV non-locaux.
   - FIX : Correction du statut "Vu/Non vu" par épisode (suppression de la propagation série → épisodes).
   - FIX : Le clic sur une série dans la cloche ne marque plus tous les épisodes comme vus.

@@ -1,0 +1,11 @@
+  Identification des projets à restaurer...
+  Tous les projets sont à jour pour la restauration.
+c:\Users\eliem\Documents\GitHub\NotifySync\NotificationManager.cs(431,32): error CS8602: Déréférencement d'une éventuelle référence null. [c:\Users\eliem\Documents\GitHub\NotifySync\NotifySync.csproj]
+
+ÉCHEC de la build.
+
+c:\Users\eliem\Documents\GitHub\NotifySync\NotificationManager.cs(431,32): error CS8602: Déréférencement d'une éventuelle référence null. [c:\Users\eliem\Documents\GitHub\NotifySync\NotifySync.csproj]
+    0 Avertissement(s)
+    1 Erreur(s)
+
+Temps écoulé 00:00:00.84

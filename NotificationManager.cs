@@ -328,38 +328,114 @@ namespace NotifySync
                 _logger.LogInformation("NotifySync Config: EnabledLibraries=[{Libs}], ManualLibraryIds=[{Manual}]", enabledStr, manualStr);
             }
 
-            var queries = new[]
+            var validLibraryIds = new HashSet<Guid>();
+            bool hasExplicit = false;
+
+            if (config != null)
             {
-                new InternalItemsQuery
+                if (config.EnabledLibraries != null)
                 {
-                    IncludeItemTypes = new[] { BaseItemKind.Movie },
-                    Recursive = true,
-                    OrderBy = new[] { (ItemSortBy.DateCreated, (Jellyfin.Database.Implementations.Enums.SortOrder)1) },
-                    Limit = maxItems * 100, // Enough depth to find unique items across multi-libraries
-                    DtoOptions = new MediaBrowser.Controller.Dto.DtoOptions(false)
-                },
-                new InternalItemsQuery
-                {
-                    IncludeItemTypes = new[] { BaseItemKind.Episode },
-                    Recursive = true,
-                    OrderBy = new[] { (ItemSortBy.DateCreated, (Jellyfin.Database.Implementations.Enums.SortOrder)1) },
-                    Limit = maxItems * 400, // High depth for episodes mapping to same category globally (e.g. Animés + Séries)
-                    DtoOptions = new MediaBrowser.Controller.Dto.DtoOptions(false)
-                },
-                new InternalItemsQuery
-                {
-                    IncludeItemTypes = new[] { BaseItemKind.Audio },
-                    Recursive = true,
-                    OrderBy = new[] { (ItemSortBy.DateCreated, (Jellyfin.Database.Implementations.Enums.SortOrder)1) },
-                    Limit = maxItems * 400, // Dozens of tracks per album
-                    DtoOptions = new MediaBrowser.Controller.Dto.DtoOptions(false)
+                    foreach (var id in config.EnabledLibraries)
+                    {
+                        if (Guid.TryParse(id, out var g))
+                        {
+                            validLibraryIds.Add(g);
+                            hasExplicit = true;
+                        }
+                    }
                 }
+
+                if (config.ManualLibraryIds != null)
+                {
+                    foreach (var manualId in config.ManualLibraryIds)
+                    {
+                        if (Guid.TryParse(manualId, out var g))
+                        {
+                            validLibraryIds.Add(g);
+                            hasExplicit = true;
+                        }
+                        else if (!string.IsNullOrWhiteSpace(manualId) && _libraryManager != null)
+                        {
+                            // Try to look up by name among the library items
+                            var rootChildren = _libraryManager.GetItemList(new InternalItemsQuery
+                            {
+                                Parent = _libraryManager.RootFolder,
+                                IsFolder = true
+                            });
+
+                            foreach (var lib in rootChildren)
+                            {
+                                if (string.Equals(lib.Name, manualId.Trim(), StringComparison.OrdinalIgnoreCase))
+                                {
+                                    validLibraryIds.Add(lib.Id);
+                                    hasExplicit = true;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if (!hasExplicit && config.CategoryMappings != null)
+                {
+                    foreach (var map in config.CategoryMappings)
+                    {
+                        if (Guid.TryParse(map.LibraryId, out var g))
+                        {
+                            validLibraryIds.Add(g);
+                        }
+                    }
+                }
+            }
+
+            var ancestorIdsArray = validLibraryIds.Count > 0 ? validLibraryIds.Select(g => g).ToArray() : null;
+
+            var qMovie = new InternalItemsQuery
+            {
+                IncludeItemTypes = new[] { BaseItemKind.Movie },
+                Recursive = true,
+                OrderBy = new[] { (ItemSortBy.DateCreated, (Jellyfin.Database.Implementations.Enums.SortOrder)1) },
+                Limit = maxItems * 100, // Enough depth to find unique items across multi-libraries
+                DtoOptions = new MediaBrowser.Controller.Dto.DtoOptions(false)
             };
+
+            var qEpisode = new InternalItemsQuery
+            {
+                IncludeItemTypes = new[] { BaseItemKind.Episode },
+                Recursive = true,
+                OrderBy = new[] { (ItemSortBy.DateCreated, (Jellyfin.Database.Implementations.Enums.SortOrder)1) },
+                Limit = maxItems * 400, // High depth for episodes mapping to same category globally (e.g. Animés + Séries)
+                DtoOptions = new MediaBrowser.Controller.Dto.DtoOptions(false)
+            };
+
+            var qAudio = new InternalItemsQuery
+            {
+                IncludeItemTypes = new[] { BaseItemKind.Audio },
+                Recursive = true,
+                OrderBy = new[] { (ItemSortBy.DateCreated, (Jellyfin.Database.Implementations.Enums.SortOrder)1) },
+                Limit = maxItems * 400, // Dozens of tracks per album
+                DtoOptions = new MediaBrowser.Controller.Dto.DtoOptions(false)
+            };
+
+            if (ancestorIdsArray != null && ancestorIdsArray.Length > 0)
+            {
+                qMovie.AncestorIds = ancestorIdsArray;
+                qEpisode.AncestorIds = ancestorIdsArray;
+                qAudio.AncestorIds = ancestorIdsArray;
+            }
+
+            var queries = new[] { qMovie, qEpisode, qAudio };
 
             var items = new List<BaseItem>();
             foreach (var q in queries)
             {
-                items.AddRange(_libraryManager.GetItemList(q));
+                if (_libraryManager != null)
+                {
+                    var resultList = _libraryManager.GetItemList(q);
+                    if (resultList != null)
+                    {
+                        items.AddRange(resultList);
+                    }
+                }
             }
 
             // Re-sort everything combined globally by DateCreated Descending
@@ -586,6 +662,26 @@ namespace NotifySync
             if (!IsItemInEnabledLibrary(item))
             {
                 return null;
+            }
+
+            // Ignorer les Extras (Openings, Endings, ThemeVideos, etc.)
+            if (item.ExtraType.HasValue)
+            {
+                return null;
+            }
+
+            // Heuristique pour ignorer les Openings d'Animés mal classés (souvent en Saison 0)
+            if (item is Episode ep && ep.ParentIndexNumber == 0)
+            {
+                string itemName = ep.Name ?? string.Empty;
+                if (itemName.Contains("opening", StringComparison.OrdinalIgnoreCase) || itemName.Contains("ending", StringComparison.OrdinalIgnoreCase) ||
+                    itemName.Contains(" ncop", StringComparison.OrdinalIgnoreCase) || itemName.Contains(" nced", StringComparison.OrdinalIgnoreCase) ||
+                    itemName.StartsWith("op ", StringComparison.OrdinalIgnoreCase) || itemName.StartsWith("ed ", StringComparison.OrdinalIgnoreCase) ||
+                    itemName.Equals("op", StringComparison.OrdinalIgnoreCase) || itemName.Equals("ed", StringComparison.OrdinalIgnoreCase) ||
+                    itemName.Contains("theme", StringComparison.OrdinalIgnoreCase))
+                {
+                    return null;
+                }
             }
 
             try

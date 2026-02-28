@@ -17,132 +17,12 @@
         "timestamp": "2026-02-28T13:45:00Z"
       },
       {
-        "version": "4.7.17.7",
-        "changelog": "- FIX : Blocage absolu des bibliothèques fantômes (orphelines) en déplaçant le filtrage IsVirtualItem au niveau global.\\n- FIX : Amélioration du message d'erreur de la limite de rafraîchissement (30s cooldown).\\n- HOTFIX : Finalisation de l'audit de fond en comble (Phase 5).",
-        "targetAbi": "10.11.0.0",
-        "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/4.7.17.7/NotifySync_v4.7.17.7.zip",
-        "checksum": "64B80293DF0C3FE7B5CA318DF29C0873",
-        "timestamp": "2026-02-28T12:08:00Z"
-      },
-      {
         "version": "4.7.17.5",
         "changelog": "- HOTFIX : Finalisation de l'audit de fond en comble (Phase 5).\\n- FIX : Correction d'un bug subtil dans `ProcessBuffer` qui supprimait les épisodes individuels au lieu des Séries Uniques lors des live-events d'ajouts.\\n- STABILISATION : Le nouveau système de quota `ApplyCategoryQuotas` est unifié pour le scan global et les ajouts en direct.",
         "targetAbi": "10.11.0.0",
         "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/4.7.17.5/NotifySync_v4.7.17.5.zip",
         "checksum": "154A8A8ECDE56EB909871D5145740F0E",
         "timestamp": "2026-02-28T09:35:00Z"
-      },
-      {
-        "version": "4.7.17.4",
-        "changelog": "- HOTFIX : Correction de l'autorisation 403 (résolution Username → GUID pour Jellyfin 10.11).\\n- HOTFIX : Correction de la sérialisation JSON (GetData et BulkUserData) compatible source-generated.\\n- HOTFIX : Correction du \"Infinite Polling\" côté client.\\n- OPTIMISATION : Suppression du verrouillage synchrone de la mémoire lors d'écritures I/O lourdes sur SQLite.",
-        "targetAbi": "10.11.0.0",
-        "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/4.7.17.4/NotifySync_v4.7.17.4.zip",
-        "checksum": "56209A1637CDA636AD86EC5DD4FC31C94",
-        "timestamp": "2026-02-28T00:32:00Z"
-      },
-      {
-        "version": "4.7.17.3",
-        "changelog": "- HOTFIX : Correction du \"Infinite Polling\" côté client limitant les appels d'API.\n- OPTIMISATION : Suppression du verrouillage synchrone de la mémoire lors d'écritures I/O lourdes sur SQLite.",
-        "targetAbi": "10.11.0.0",
-        "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/4.7.17.3/NotifySync_v4.7.17.3.zip",
-        "checksum": "F1E4B8BF611EA41D8D21D0F82E104AB2",
-        "timestamp": "2026-02-27T23:55:00Z"
-      },
-      {
-        "version": "4.7.17.2",
-        "changelog": "- HOTFIX : Correction du problème d'affichage des GUID dans la page des configurations (Race Condition).\n- HOTFIX : Correction d'une fuite de mémoire (Memory Leak) du cache API UserViewCache.\n- OPTIMISATION : Restructuration majeure des requêtes SQLite (INSERT OR REPLACE et DELETE précis).\n- PERFORMANCES : La base de données n'est plus intégralement supprimée/recréée en boucle lors des ajouts.\n- FILTRES : Fonctionnement strict des cases 'Bibliothèques Surveillées' (EnabledLibraries).\n- QUOTA : Respect de la limite 'MaxItems' paramétrable par catégorie (Défaut 10).\n- STABILITÉ : Build finale avec 0 avertissement stricts sur .NET 9.0.",
-        "targetAbi": "10.11.0.0",
-        "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/4.7.17.2/NotifySync_v4.7.17.2.zip",
-        "checksum": "B1F69FBD7A255021610D16772745F624",
-        "timestamp": "2026-02-27T23:08:00Z"
-      },
-      {
-        "version": "4.7.17.1",
-        "changelog": "- HOTFIX : Correction d'une fuite de mémoire (Memory Leak) du cache API UserViewCache.\n- OPTIMISATION : Restructuration majeure des requêtes SQLite (INSERT OR REPLACE et DELETE précis).\n- PERFORMANCES : La base de données n'est plus intégralement supprimée/recréée en boucle lors des ajouts.\n- FILTRES : Fonctionnement strict des cases 'Bibliothèques Surveillées' (EnabledLibraries).\n- QUOTA : Respect de la limite 'MaxItems' paramétrable par catégorie (Défaut 10).\n- STABILITÉ : Build finale avec 0 avertissement stricts sur .NET 9.0.",
-        "targetAbi": "10.11.0.0",
-        "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/4.7.17.1/NotifySync_v4.7.17.1.zip",
-        "checksum": "56825941725468E0C0E68183F274A82D",
-        "timestamp": "2026-02-27T23:03:00Z"
-      },
-      {
-        "version": "4.7.17.0",
-        "changelog": "- OPTIMISATION : Restructuration majeure des requêtes SQLite (INSERT OR REPLACE et DELETE précis).\n- PERFORMANCES : La base de données n'est plus intégralement supprimée/recréée en boucle lors des ajouts.\n- FILTRES : Fonctionnement strict des cases 'Bibliothèques Surveillées' (EnabledLibraries).\n- QUOTA : Respect de la limite 'MaxItems' paramétrable par catégorie (Défaut 10).\n- STABILITÉ : Build finale avec 0 avertissement stricts sur .NET 9.0.",
-        "targetAbi": "10.11.0.0",
-        "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/4.7.17.0/NotifySync_v4.7.17.0.zip",
-        "checksum": "0F93589F3061662655AD037755DFFA54",
-        "timestamp": "2026-02-27T22:58:00Z"
-      },
-      {
-        "version": "4.7.16.9",
-        "changelog": "- FIX : Normalisation des GUID pour corriger l'erreur 403 Forbidden.\n- AMELIORATION : Comparaison d'identité utilisateur plus robuste.",
-        "targetAbi": "10.11.0.0",
-        "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/4.7.16.9/NotifySync_v4.7.16.9.zip",
-        "checksum": "3B4AA85BACCBD11288A0BB8988742D8C",
-        "timestamp": "2026-02-25T20:55:00Z"
-      },
-      {
-        "version": "4.7.16.8",
-        "changelog": "- FIX : Correction de l'erreur 403 Forbidden (Autorisation).\n- FIX : Robustesse du parsing des dates SQLite.\n- AMELIORATION : Logs de diagnostic pour l'authentification.",
-        "targetAbi": "10.11.0.0",
-        "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/4.7.16.8/NotifySync_v4.7.16.8.zip",
-        "checksum": "2CCDF3A72F01BB26D6B42FCC6445C51F",
-        "timestamp": "2026-02-25T20:35:00Z"
-      },
-      {
-        "version": "4.7.16.7",
-        "changelog": "- STABILISATION : Audit approfondi du code et optimisation des performances.\n- FIX : Gestion robuste des IDs de bibliothèque malformés.\n- AMELIORATION : Filtrage plus efficace des événements système.",
-        "targetAbi": "10.11.0.0",
-        "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/4.7.16.7/NotifySync_v4.7.16.7.zip",
-        "checksum": "9A8F97A8DDF2445D9A69C13860FCC459",
-        "timestamp": "2026-02-25T20:30:00Z"
-      },
-      {
-        "version": "4.7.16.6",
-        "changelog": "- FIX : Correction de l'erreur sur le bouton Régénérer (Maintenance Fix).\n- AMELIORATION : Logs détaillés pour le diagnostic backend.",
-        "targetAbi": "10.11.0.0",
-        "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/4.7.16.6/NotifySync_v4.7.16.6.zip",
-        "checksum": "4F40F736D34ECBF7E13EEA77D3811868",
-        "timestamp": "2026-02-25T20:25:00Z"
-      },
-      {
-        "version": "4.7.16.5",
-        "changelog": "- FIX : Correction de l'erreur 404 sur Client.js (ajout du point de terminaison).\n- STABILISATION : Optimisation finale des routes API.",
-        "targetAbi": "10.11.0.0",
-        "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/4.7.16.5/NotifySync_v4.7.16.5.zip",
-        "checksum": "63694A410674C1E1B970FF71ECB554BB",
-        "timestamp": "2026-02-25T20:15:00Z"
-      },
-      {
-        "version": "4.7.16.4",
-        "changelog": "- FIX : Correction de l'index de lecture SQLite (DateCreated fix).\n- FIX : Passage aux Tags pour les images (corrige l'affichage des affiches).\n- NETTOYAGE : Suppression des fichiers temporaires et optimisation finale.",
-        "targetAbi": "10.11.0.0",
-        "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/4.7.16.4/NotifySync_v4.7.16.4.zip",
-        "checksum": "AD19DBF5A5D6C3EE070088C19ED82E11",
-        "timestamp": "2026-02-25T19:40:00Z"
-      },
-      {
-        "version": "4.7.16.3",
-        "changelog": "- FIX : Correction du loop de chargement (XmlSerializer fix).\n- FIX : Restauration de la cloche de notification et des API LastSeen/BulkUserData.",
-        "targetAbi": "10.11.0.0",
-        "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/4.7.16.3/NotifySync_v4.7.16.3.zip",
-        "checksum": "E841FA7BDB3F6882B9D1171E80F4E1A3",
-        "timestamp": "2026-02-25T19:35:00Z"
-      },
-      {
-        "version": "4.7.16.2",
-        "changelog": "- FIX : Harmonisation du GUID entre le code et le dépôt (résout l'erreur 'Développeur Inconnu').",
-        "targetAbi": "10.11.0.0",
-        "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/4.7.16.2/NotifySync_v4.7.16.2.zip",
-        "checksum": "80438AADDBE59E966D593AA128F973EC",
-        "timestamp": "2026-02-25T19:30:00Z"
-      },
-      {
-        "version": "4.7.16.1",
-        "changelog": "- FIX : Correction de l'erreur SQLite Error 14 (création automatique du dossier de données).",
-        "targetAbi": "10.11.0.0",
-        "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/4.7.16.1/NotifySync_v4.7.16.1.zip",
-        "checksum": "535229D0DB4ED473D1F0EDA016B16AB8",
-        "timestamp": "2026-02-25T18:25:00Z"
       },
       {
         "version": "4.7.16",
@@ -157,7 +37,7 @@
         "changelog": "- STABILITÉ : Ajout de limites de rétention (2000 éléments) pour protéger le serveur (v4.7.14)\n- STABILITÉ : Support de l'annulation (CancellationToken) pour des arrêts propres (v4.7.14)\n- STABILITÉ : Isolation des erreurs par catégorie lors du scan initial (v4.7.14)\n- PERF : Optimisation massive CPU & DB via cache mémoire (v4.7.14)\n- Version finale ultra-stable.",
         "targetAbi": "10.11.0.0",
         "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/4.7.14/NotifySync_v4.7.14.zip",
-        "checksum": "B177F74C77F365DD1AF85481",
+        "checksum": "B177F74C77F365DD1AF85481DA2F082D",
         "timestamp": "2026-02-24T19:35:00Z"
       },
       {
@@ -177,30 +57,6 @@
         "timestamp": "2025-02-18T00:55:00Z"
       },
       {
-        "version": "4.7.10",
-        "changelog": "- DEBUG : Ajout de logs console pour le débogage côté client. (v4.7.10)",
-        "targetAbi": "10.11.0.0",
-        "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/4.7.10/NotifySync_v4.7.10.zip",
-        "checksum": "7EAA03B0BD035A250A8FDF97CC5BB766",
-        "timestamp": "2025-02-18T00:45:00Z"
-      },
-      {
-        "version": "4.7.9",
-        "changelog": "- DEBUG : Ajout de logs pour la persistance des données et l'auth (tentative correction mode privé/Linux). (v4.7.9)",
-        "targetAbi": "10.11.0.0",
-        "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/4.7.9/NotifySync_v4.7.9.zip",
-        "checksum": "581A02AE838DFAD8B610E128EEC140A3",
-        "timestamp": "2025-02-18T00:30:00Z"
-      },
-      {
-        "version": "4.7.8",
-        "changelog": "- DEBUG : Ajout de logs extensifs lors du chargement de Client.js. (v4.7.8)",
-        "targetAbi": "10.11.0.0",
-        "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/4.7.8/NotifySync_v4.7.8.zip",
-        "checksum": "94AFAF5E4BAE251597C804C97A42834C",
-        "timestamp": "2025-02-18T00:15:00Z"
-      },
-      {
         "version": "4.7.7",
         "changelog": "- FIX : Délai d'attente/annulation du chargement de Client.js (passage au cache mémoire). (v4.7.7)",
         "targetAbi": "10.11.0.0",
@@ -217,28 +73,12 @@
         "timestamp": "2025-02-17T23:55:00Z"
       },
       {
-        "version": "4.7.5",
-        "changelog": "- FIX : DirectoryNotFoundException sur Linux (échec de la création du dossier de données). (v4.7.5)",
-        "targetAbi": "10.11.0.0",
-        "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/4.7.5/NotifySync_v4.7.5.zip",
-        "checksum": "5BD5C5ACB80166682605D1CE5CB9BDDA",
-        "timestamp": "2025-02-17T23:45:00Z"
-      },
-      {
         "version": "4.7.4",
         "changelog": "- FIX : Compatibilité Linux (IDs utilisateurs insensibles à la casse). (v4.7.4)\n- FIX : Ajout de logs d'erreurs pour les problèmes de permissions de fichiers. (v4.7.4)",
         "targetAbi": "10.11.0.0",
         "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/4.7.4/NotifySync_v4.7.4.zip",
         "checksum": "2F4BEEF013B8A811D1453D5CF1562107",
         "timestamp": "2025-02-17T23:35:00Z"
-      },
-      {
-        "version": "4.7.3",
-        "changelog": "- FIX : Problème d'initialisation en mode navigation privée (cloche manquante). (v4.7.3)",
-        "targetAbi": "10.11.0.0",
-        "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/4.7.3/NotifySync_v4.7.3.zip",
-        "checksum": "2068CF6B238F1028622D2C8A97281139",
-        "timestamp": "2025-02-17T23:25:00Z"
       },
       {
         "version": "4.7.2",

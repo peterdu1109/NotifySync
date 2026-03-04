@@ -17,10 +17,10 @@ using System.Reflection;
     "on (cloche) native. Il permet à vos utilisateurs de voir instantanément les dern" +
     "iers ajouts (Films, Séries, Musique) sans quitter leur page actuelle."))]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("4.8.0.4")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("4.8.0.5+8c34b202356e3ca9e1105db3f23470d9e738ae56")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("4.8.0.6+6734eae0cda0daf6bf0b19c6ff9e3154bbeb08cc")]
 [assembly: System.Reflection.AssemblyProductAttribute("NotifySync")]
 [assembly: System.Reflection.AssemblyTitleAttribute("NotifySync")]
-[assembly: System.Reflection.AssemblyVersionAttribute("4.8.0.5")]
+[assembly: System.Reflection.AssemblyVersionAttribute("4.8.0.6")]
 
 // Généré par la classe MSBuild WriteCodeFragment.
 

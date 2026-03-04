@@ -485,10 +485,11 @@ namespace NotifySync
 
             var qChannel = new InternalItemsQuery
             {
-                // Inclure les flux virtuels de type IPTV ou VOD (Ex: Plugin XFusion)
-                IncludeItemTypes = new[] { BaseItemKind.LiveTvProgram, BaseItemKind.LiveTvChannel },
+                // Uniquement requêter les éléments du Channel (VOD/IPTV) sans limiter le type,
+                // car le plugin cible (ex: XFusion) gère ses propres types virtuels.
                 Recursive = true,
                 OrderBy = new[] { (ItemSortBy.DateCreated, (Jellyfin.Database.Implementations.Enums.SortOrder)1) },
+                MediaTypes = new[] { MediaType.Video, MediaType.Audio },
                 Limit = maxItems * 400,
                 DtoOptions = new MediaBrowser.Controller.Dto.DtoOptions(false)
             };
@@ -658,7 +659,8 @@ namespace NotifySync
         private bool IsItemInEnabledLibrary(BaseItem item)
         {
             // Universally filter out virtual/ghost items (uninstalled plugins, missing metadata episodes)
-            if (item.IsVirtualItem)
+            // Exception: Les éléments provenant de Channels (XFusion VOD) sont virtuels car ce sont des flux.
+            if (item.IsVirtualItem && item.ChannelId == Guid.Empty)
             {
                 return false;
             }
@@ -746,6 +748,12 @@ namespace NotifySync
         private NotificationItem? CreateNotificationFromItem(BaseItem item)
         {
             if (!IsItemInEnabledLibrary(item))
+            {
+                return null;
+            }
+
+            // Ignorer les dossiers (ex: Les catégories racines VOD/Séries de XFusion)
+            if (item.IsFolder || item is Folder)
             {
                 return null;
             }

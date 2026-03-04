@@ -195,6 +195,13 @@ namespace NotifySync
                         return;
                     }
 
+                    var userData = _userDataManager.GetUserData(user, item);
+                    if (userData != null && userData.Played)
+                    {
+                        // Ne pas renvoyer les éléments déjà vus (s'assure qu'ils ne pop pas dans la cloche comme 'non lus')
+                        return;
+                    }
+
                     filtered.Add(n);
                 });
 
@@ -279,13 +286,7 @@ namespace NotifySync
             SaveUserLastSeen(userId, timestamp);
 
             // Invalidate cache for this user because LastSeen changed
-            foreach (var kvp in UserViewCache)
-            {
-                if (kvp.Key.StartsWith(userId, StringComparison.Ordinal))
-                {
-                    UserViewCache.TryRemove(kvp.Key, out _);
-                }
-            }
+            InvalidateUserCache(userId);
 
             return Ok();
         }
@@ -510,6 +511,21 @@ namespace NotifySync
                     }
                 }
             });
+        }
+
+        /// <summary>
+        /// Invalidates the view cache for a specific user.
+        /// </summary>
+        /// <param name="userId">The user identifier.</param>
+        internal static void InvalidateUserCache(string userId)
+        {
+            foreach (var kvp in UserViewCache)
+            {
+                if (kvp.Key.StartsWith(userId + "_", StringComparison.Ordinal) || kvp.Key.StartsWith(userId, StringComparison.Ordinal))
+                {
+                    UserViewCache.TryRemove(kvp.Key, out _);
+                }
+            }
         }
     }
 }

@@ -24,16 +24,18 @@ namespace NotifySync
         /// <param name="libraryManager">The library manager.</param>
         /// <param name="loggerFactory">The logger factory.</param>
         /// <param name="fileSystem">The file system.</param>
+        /// <param name="userDataManager">The user data manager.</param>
         public Plugin(
             IApplicationPaths applicationPaths,
             IXmlSerializer xmlSerializer,
             ILibraryManager libraryManager,
             ILoggerFactory loggerFactory,
-            MediaBrowser.Model.IO.IFileSystem fileSystem)
+            MediaBrowser.Model.IO.IFileSystem fileSystem,
+            IUserDataManager userDataManager)
             : base(applicationPaths, xmlSerializer)
         {
             Instance = this;
-            _notificationManager = new NotificationManager(libraryManager, loggerFactory.CreateLogger<NotificationManager>(), fileSystem);
+            _notificationManager = new NotificationManager(libraryManager, loggerFactory.CreateLogger<NotificationManager>(), fileSystem, userDataManager);
         }
 
         /// <summary>

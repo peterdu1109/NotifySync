@@ -167,13 +167,14 @@
             Manages notifications and their persistence in SQLite.
             </summary>
         </member>
-        <member name="M:NotifySync.NotificationManager.#ctor(MediaBrowser.Controller.Library.ILibraryManager,Microsoft.Extensions.Logging.ILogger{NotifySync.NotificationManager},MediaBrowser.Model.IO.IFileSystem)">
+        <member name="M:NotifySync.NotificationManager.#ctor(MediaBrowser.Controller.Library.ILibraryManager,Microsoft.Extensions.Logging.ILogger{NotifySync.NotificationManager},MediaBrowser.Model.IO.IFileSystem,MediaBrowser.Controller.Library.IUserDataManager)">
             <summary>
             Initializes a new instance of the <see cref="T:NotifySync.NotificationManager"/> class.
             </summary>
             <param name="libraryManager">The library manager.</param>
             <param name="logger">The logger.</param>
             <param name="fileSystem">The file system.</param>
+            <param name="userDataManager">The user data manager.</param>
         </member>
         <member name="P:NotifySync.NotificationManager.Instance">
             <summary>
@@ -257,12 +258,18 @@
             <param name="userId">The user identifier.</param>
             <returns>An ActionResult containing a dictionary of item IDs and their played status.</returns>
         </member>
+        <member name="M:NotifySync.NotifyController.InvalidateUserCache(System.String)">
+            <summary>
+            Invalidates the view cache for a specific user.
+            </summary>
+            <param name="userId">The user identifier.</param>
+        </member>
         <member name="T:NotifySync.Plugin">
             <summary>
             The main plugin class for NotifySync.
             </summary>
         </member>
-        <member name="M:NotifySync.Plugin.#ctor(MediaBrowser.Common.Configuration.IApplicationPaths,MediaBrowser.Model.Serialization.IXmlSerializer,MediaBrowser.Controller.Library.ILibraryManager,Microsoft.Extensions.Logging.ILoggerFactory,MediaBrowser.Model.IO.IFileSystem)">
+        <member name="M:NotifySync.Plugin.#ctor(MediaBrowser.Common.Configuration.IApplicationPaths,MediaBrowser.Model.Serialization.IXmlSerializer,MediaBrowser.Controller.Library.ILibraryManager,Microsoft.Extensions.Logging.ILoggerFactory,MediaBrowser.Model.IO.IFileSystem,MediaBrowser.Controller.Library.IUserDataManager)">
             <summary>
             Initializes a new instance of the <see cref="T:NotifySync.Plugin"/> class.
             </summary>
@@ -271,6 +278,7 @@
             <param name="libraryManager">The library manager.</param>
             <param name="loggerFactory">The logger factory.</param>
             <param name="fileSystem">The file system.</param>
+            <param name="userDataManager">The user data manager.</param>
         </member>
         <member name="P:NotifySync.Plugin.Instance">
             <summary>

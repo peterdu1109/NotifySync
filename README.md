@@ -1,6 +1,6 @@
 # 🔔 NotifySync
 
-![Dernière Version](https://img.shields.io/badge/version-4.8.0.3-blue)
+![Dernière Version](https://img.shields.io/badge/version-4.8.0.4-blue)
 ![Net Framework](https://img.shields.io/badge/.NET-9.0-purple)
 ![Jellyfin](https://img.shields.io/badge/Jellyfin-10.11.X-blueviolet)
 
@@ -16,7 +16,8 @@ NotifySync transforme l'interface de Jellyfin en ajoutant une icône de notifica
 ### 🎨 Expérience Utilisateur
 *   **Design Moderne** : Intégration fluide "Netflix-Style" avec badge de nouveautés et effets visuels (Glassmorphism).
 *   **Navigation Intuitive** : "Hero Section" pour les derniers ajouts et regroupement intelligent des épisodes.
-*   **Synchronisation** : Indicateurs "Vu/Non vu" en temps réel avec Jellyfin.
+*   **Synchronisation Intelligente** : Indicateurs "Vu/Non vu" en temps réel avec Jellyfin (les médias lus disparaissent automatiquement de la cloche).
+*   **Filtrage Avancé** : Exclusion automatique des génériques (OP/ED), thèmes musicaux et respect strict des bibliothèques actives.
 *   **Compatibilité** : PC/Mac et Mobiles (via app officielle). *Note : Non supporté sur TV.*
 
 ### 🚀 Performance
@@ -44,7 +45,7 @@ NotifySync transforme l'interface de Jellyfin en ajoutant une icône de notifica
 4.  Redémarrez votre serveur Jellyfin.
 
 ### Méthode 2 : Installation Manuelle
-1.  Téléchargez le fichier `.zip` depuis la page [Releases](https://github.com/peterdu1109/NotifySync/releases/tag/4.8.0.3).
+1.  Téléchargez le fichier `.zip` depuis la page [Releases](https://github.com/peterdu1109/NotifySync/releases/tag/4.8.0.4).
 2.  Décompressez la DLL dans le dossier `plugins/NotifySync` de votre serveur.
 3.  Redémarrez Jellyfin.
 

@@ -1,5 +1,5 @@
 project: NotifySync
-version: 4.8.0.3
+version: 4.8.0.4
 targetAbi: 10.11.0.0
 build:
   - CRITICAL : Prévention de Corruption de Fichier (Windows vs Linux) en utilisant un buffer temporaire pour users_seen.json (v4.8.0.3).

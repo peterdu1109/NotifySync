@@ -27,6 +27,7 @@ namespace NotifySync
     {
         private const int GlobalRetentionLimit = 2000;
         private readonly ILibraryManager _libraryManager;
+        private readonly IUserDataManager _userDataManager;
         private readonly ILogger<NotificationManager> _logger;
         private readonly string _jsonPath;
         private readonly NotificationDatabase _db;
@@ -44,10 +45,12 @@ namespace NotifySync
         /// <param name="libraryManager">The library manager.</param>
         /// <param name="logger">The logger.</param>
         /// <param name="fileSystem">The file system.</param>
-        public NotificationManager(ILibraryManager libraryManager, ILogger<NotificationManager> logger, IFileSystem fileSystem)
+        /// <param name="userDataManager">The user data manager.</param>
+        public NotificationManager(ILibraryManager libraryManager, ILogger<NotificationManager> logger, IFileSystem fileSystem, IUserDataManager userDataManager)
         {
             _libraryManager = libraryManager;
             _logger = logger;
+            _userDataManager = userDataManager;
             _jsonPath = Path.Combine(Plugin.Instance!.DataFolderPath, "notifications.json");
 
             _db = new NotificationDatabase(Plugin.Instance!.DataFolderPath, _logger);
@@ -60,6 +63,7 @@ namespace NotifySync
             _libraryManager.ItemAdded += OnItemAdded;
             _libraryManager.ItemRemoved += OnItemRemoved;
             _libraryManager.ItemUpdated += OnItemUpdated;
+            _userDataManager.UserDataSaved += OnUserDataSaved;
         }
 
         /// <summary>
@@ -123,6 +127,11 @@ namespace NotifySync
                 _libraryManager.ItemUpdated -= OnItemUpdated;
             }
 
+            if (_userDataManager != null)
+            {
+                _userDataManager.UserDataSaved -= OnUserDataSaved;
+            }
+
             GC.SuppressFinalize(this);
         }
 
@@ -183,9 +192,17 @@ namespace NotifySync
             }
         }
 
+        private void OnUserDataSaved(object? sender, UserDataSaveEventArgs e)
+        {
+            if (e.UserData != null && e.UserData.Played)
+            {
+                NotifyController.InvalidateUserCache(e.UserId.ToString("N"));
+            }
+        }
+
         private void OnItemAdded(object? sender, ItemChangeEventArgs e)
         {
-            if (e.Item == null || (e.Item.GetType().Name != "Movie" && e.Item.GetType().Name != "Episode"))
+            if (e.Item == null || (e.Item.GetType().Name != "Movie" && e.Item.GetType().Name != "Episode" && e.Item.GetType().Name != "Audio"))
             {
                 return;
             }
@@ -228,7 +245,57 @@ namespace NotifySync
 
         private void OnItemUpdated(object? sender, ItemChangeEventArgs e)
         {
-            // Update logic can be added here if needed.
+            if (e.Item == null)
+            {
+                return;
+            }
+
+            bool dbNeedsUpdate = false;
+            NotificationItem? updatedNotif = null;
+
+            try
+            {
+                _dataLock.EnterWriteLock();
+                var existingIndex = _notifications.FindIndex(n => n.Id == e.Item.Id.ToString());
+                if (existingIndex >= 0)
+                {
+                    updatedNotif = CreateNotificationFromItem(e.Item);
+                    if (updatedNotif != null)
+                    {
+                        // Preserve original date
+                        updatedNotif.DateCreated = _notifications[existingIndex].DateCreated;
+                        _notifications[existingIndex] = updatedNotif;
+                        dbNeedsUpdate = true;
+                        Interlocked.Exchange(ref _versionCounter, DateTime.UtcNow.Ticks);
+                    }
+                    else
+                    {
+                        // No longer passes filters
+                        _notifications.RemoveAt(existingIndex);
+                        dbNeedsUpdate = true;
+                        Interlocked.Exchange(ref _versionCounter, DateTime.UtcNow.Ticks);
+                    }
+                }
+            }
+            finally
+            {
+                if (_dataLock.IsWriteLockHeld)
+                {
+                    _dataLock.ExitWriteLock();
+                }
+            }
+
+            if (dbNeedsUpdate)
+            {
+                if (updatedNotif != null)
+                {
+                    _db.SaveNotifications(new[] { updatedNotif });
+                }
+                else
+                {
+                    _db.DeleteNotifications(new[] { e.Item.Id.ToString() });
+                }
+            }
         }
 
         private void ProcessBuffer(object? state)
@@ -581,21 +648,12 @@ namespace NotifySync
             }
 
             // If no libraries are explicitly checked AND no manual IDs
-            // Apply streaming URL filter only here (when nothing is explicitly configured)
+            // The user explicitly requested to only search in active libraries.
+            // If neither is configured, we must not track anything (strict confinement).
             if ((config.EnabledLibraries == null || config.EnabledLibraries.Count == 0) &&
                 (config.ManualLibraryIds == null || config.ManualLibraryIds.Count == 0))
             {
-                // Block streaming/channel items when no explicit library is selected
-                if (!string.IsNullOrEmpty(item.Path))
-                {
-                    if (item.Path.StartsWith("http", StringComparison.OrdinalIgnoreCase) ||
-                        item.Path.Contains("channels", StringComparison.OrdinalIgnoreCase))
-                    {
-                        return false;
-                    }
-                }
-
-                // If category mappings exist, use their LibraryIds as implicit enabled libraries
+                // Uniquement autoriser via CategoryMappings s'ils existent et s'ils définissent des LibraryIds valides
                 if (config.CategoryMappings != null && config.CategoryMappings.Count > 0)
                 {
                     var mapOwners = item.GetAncestorIds().ToArray();
@@ -606,12 +664,9 @@ namespace NotifySync
                             return true;
                         }
                     }
-
-                    return false;
                 }
 
-                // No config at all (backward compat): allow all local library items
-                return true;
+                return false;
             }
 
             var owners = item.GetAncestorIds().ToArray();
@@ -670,15 +725,27 @@ namespace NotifySync
                 return null;
             }
 
-            // Heuristique pour ignorer les Openings d'Animés mal classés (souvent en Saison 0)
-            if (item is Episode ep && ep.ParentIndexNumber == 0)
+            // Heuristique pour ignorer les thèmes et génériques (Openings/Endings)
+            // Éliminer les éléments VOD courts, les thèmes musicaux et génériques mal classés
+            if (item is Episode ep && (ep.ParentIndexNumber == 0 || ep.IndexNumber == 0))
             {
                 string itemName = ep.Name ?? string.Empty;
                 if (itemName.Contains("opening", StringComparison.OrdinalIgnoreCase) || itemName.Contains("ending", StringComparison.OrdinalIgnoreCase) ||
-                    itemName.Contains(" ncop", StringComparison.OrdinalIgnoreCase) || itemName.Contains(" nced", StringComparison.OrdinalIgnoreCase) ||
+                    itemName.Contains("ncop", StringComparison.OrdinalIgnoreCase) || itemName.Contains("nced", StringComparison.OrdinalIgnoreCase) ||
                     itemName.StartsWith("op ", StringComparison.OrdinalIgnoreCase) || itemName.StartsWith("ed ", StringComparison.OrdinalIgnoreCase) ||
                     itemName.Equals("op", StringComparison.OrdinalIgnoreCase) || itemName.Equals("ed", StringComparison.OrdinalIgnoreCase) ||
-                    itemName.Contains("theme", StringComparison.OrdinalIgnoreCase))
+                    itemName.Contains("theme", StringComparison.OrdinalIgnoreCase) || itemName.Contains("thème", StringComparison.OrdinalIgnoreCase) ||
+                    itemName.Contains("credit", StringComparison.OrdinalIgnoreCase))
+                {
+                    return null;
+                }
+            }
+
+            // Exclure les musiques (Audio) servant de themes pour les séries/films (souvent Theme.mp3)
+            if (item is MediaBrowser.Controller.Entities.Audio.Audio && item.Name != null)
+            {
+                string itemName = item.Name;
+                if (itemName.Equals("theme", StringComparison.OrdinalIgnoreCase) || itemName.Equals("thème", StringComparison.OrdinalIgnoreCase) || itemName.Contains("theme song", StringComparison.OrdinalIgnoreCase) || itemName.Contains("main theme", StringComparison.OrdinalIgnoreCase))
                 {
                     return null;
                 }
@@ -705,7 +772,7 @@ namespace NotifySync
                 var notif = new NotificationItem
                 {
                     Id = item.Id.ToString(),
-                    Name = item.Name,
+                    Name = item.Name ?? "Inconnu",
                     Category = category,
                     SeriesName = (item as Episode)?.SeriesName,
                     SeriesId = (item as Episode)?.SeriesId.ToString(),

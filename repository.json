@@ -10,10 +10,10 @@
     "versions": [
       {
         "version": "5.0.0.0",
-        "changelog": "- FEATURE: Auto-injection du script client au démarrage (Linux/Docker). Sur Windows, injection manuelle.\\n- FEATURE: WebSockets natifs pour des notifications en temps réel absolu.\\n- REFACTOR: Modernisation complète du Javascript de configuration en ES6 (Async/Await).\\n- FIX: Le mappage des catégories affichait 'text' au lieu du nom de la bibliothèque.",
+        "changelog": "- FEATURE: Injection simplifiée du script client (commande sed pour Linux/Docker, manuel pour Windows).\\n- FEATURE: WebSockets natifs pour des notifications en temps réel absolu.\\n- REFACTOR: Modernisation complète du Javascript de configuration en ES6 (Async/Await).\\n- FIX: Le mappage des catégories affichait 'text' au lieu du nom de la bibliothèque.",
         "targetAbi": "10.11.0.0",
         "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/5.0.0.0/NotifySync_5.0.0.0.zip",
-        "checksum": "B1149D256CD570EDCA93EB140DEC608C",
+        "checksum": "76983A309A7A173FE700F0B9490859A0",
         "timestamp": "2026-03-04T20:36:00Z"
       },
       {

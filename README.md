@@ -56,23 +56,29 @@ NotifySync transforme l'interface de Jellyfin en ajoutant une icône de notifica
 | **Linux** | `/var/lib/jellyfin/plugins/NotifySync` |
 | **Windows** | `%ProgramData%\Jellyfin\Server\plugins\NotifySync` |
 
-## Étape 2 : Activer l'Interface (Client)
+## Étape 2 : Activer la Cloche (une seule fois)
 
-### Linux / Docker : Automatique ✅
-Au démarrage, NotifySync injecte automatiquement la cloche dans `index.html`.
-→ Redémarrez Jellyfin puis faites `Ctrl+F5` dans le navigateur. C'est tout !
+Ajoutez le script client dans `index.html` de Jellyfin. Cette opération est nécessaire **une seule fois** (sauf mise à jour de Jellyfin).
 
-### Windows : Modification Manuelle
-Sur Windows, `index.html` est protégé en écriture. Ajoutez cette ligne juste **avant** `</body>` :
+### Linux (Ubuntu / Debian)
+```bash
+sudo sed -i 's|</body>|    <script src="/NotifySync/client.js"></script>\n</body>|' /usr/share/jellyfin/web/index.html
+sudo systemctl restart jellyfin
+```
+
+### Docker
+```bash
+docker exec jellyfin sed -i 's|</body>|    <script src="/NotifySync/client.js"></script>\n</body>|' /jellyfin/jellyfin-web/index.html
+docker restart jellyfin
+```
+
+### Windows
+Ouvrez `C:\Program Files\Jellyfin\Server\jellyfin-web\index.html` en tant qu'administrateur et ajoutez cette ligne juste **avant** `</body>` :
 ```html
 <script src="/NotifySync/client.js"></script>
 ```
 
-| OS | Chemin index.html |
-|:---|:---|
-| **Linux** | `/usr/share/jellyfin/web/index.html` |
-| **Docker** | `/jellyfin/jellyfin-web/index.html` |
-| **Windows** | `C:\Program Files\Jellyfin\Server\jellyfin-web\index.html` |
+> **💡 Astuce** : Après l'opération, faites `Ctrl+F5` dans votre navigateur pour vider le cache.
 
 ---
 

@@ -1,6 +1,6 @@
 # 🔔 NotifySync
 
-![Dernière Version](https://img.shields.io/badge/version-4.8.0.6-blue)
+![Dernière Version](https://img.shields.io/badge/version-4.8.0.7-blue)
 ![Net Framework](https://img.shields.io/badge/.NET-9.0-purple)
 ![Jellyfin](https://img.shields.io/badge/Jellyfin-10.11.X-blueviolet)
 
@@ -45,7 +45,7 @@ NotifySync transforme l'interface de Jellyfin en ajoutant une icône de notifica
 4.  Redémarrez votre serveur Jellyfin.
 
 ### Méthode 2 : Installation Manuelle
-1.  Téléchargez le fichier `.zip` depuis la page [Releases](https://github.com/peterdu1109/NotifySync/releases/tag/4.8.0.6).
+1.  Téléchargez le fichier `.zip` depuis la page [Releases](https://github.com/peterdu1109/NotifySync/releases/tag/4.8.0.7).
 2.  Décompressez la DLL dans le dossier `plugins/NotifySync` de votre serveur.
 3.  Redémarrez Jellyfin.
 

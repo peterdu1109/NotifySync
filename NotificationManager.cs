@@ -725,17 +725,19 @@ namespace NotifySync
                             return true;
                         }
                     }
-
-                    // Allow exact name matching for folders by checking the ancestors names through the library manager
-                    // Since owners contains IDs, let's just query the manager
-                    if (_libraryManager != null)
+                    else
                     {
-                        foreach (var ownerId in owners)
+                        // Allow exact name matching for folders by checking the ancestors names through the library manager
+                        // Since owners contains IDs, let's just query the manager
+                        if (_libraryManager != null)
                         {
-                            var ownerItem = _libraryManager.GetItemById(ownerId);
-                            if (ownerItem != null && ownerItem.Name != null && ownerItem.Name.Equals(manualId, StringComparison.OrdinalIgnoreCase))
+                            foreach (var ownerId in owners)
                             {
-                                return true;
+                                var ownerItem = _libraryManager.GetItemById(ownerId);
+                                if (ownerItem != null && ownerItem.Name != null && ownerItem.Name.Equals(manualId, StringComparison.OrdinalIgnoreCase))
+                                {
+                                    return true;
+                                }
                             }
                         }
                     }

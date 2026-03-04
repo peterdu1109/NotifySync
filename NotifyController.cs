@@ -34,6 +34,11 @@ namespace NotifySync
         private static long _lastRefreshTime;
         private static ILogger<NotifyController>? _staticLogger;
 
+        // I/O Optimization
+        private static Timer? _saveTimer;
+        private static bool _isCacheDirty;
+        private static bool _isSaving;
+
         private readonly IUserManager _userManager;
         private readonly ILibraryManager _libraryManager;
         private readonly IUserDataManager _userDataManager;
@@ -58,6 +63,11 @@ namespace NotifySync
             _userDataManager = userDataManager;
             _logger = logger;
             _staticLogger ??= logger;
+
+            if (_saveTimer == null)
+            {
+                _saveTimer = new Timer(PersistCache, null, TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(30));
+            }
         }
 
         /// <summary>
@@ -463,45 +473,48 @@ namespace NotifySync
 
         private void SaveUserLastSeen(string userId, long timestamp)
         {
-            Task.Run(() =>
+            // Just mark cache as dirty, let the background timer persist it to avoid lock congestion
+            _isCacheDirty = true;
+        }
+
+        private static void PersistCache(object? state)
+        {
+            if (!_isCacheDirty || _isSaving)
+            {
+                return;
+            }
+
+            _isSaving = true;
+            try
             {
                 bool lockTaken = false;
                 try
                 {
-                    Monitor.TryEnter(GlobalFileLock, TimeSpan.FromSeconds(30), ref lockTaken);
+                    Monitor.TryEnter(GlobalFileLock, TimeSpan.FromSeconds(5), ref lockTaken);
                     if (!lockTaken)
                     {
                         return;
                     }
 
-                    string path = Path.Combine(Plugin.Instance!.DataFolderPath, "users_seen.json");
-                    Dictionary<string, long> data;
+                    _isCacheDirty = false;
 
-                    if (System.IO.File.Exists(path))
+                    if (Plugin.Instance == null)
                     {
-                        try
-                        {
-                            var json = System.IO.File.ReadAllText(path);
-                            data = JsonSerializer.Deserialize(json, PluginJsonContext.Default.DictionaryStringInt64) ?? new Dictionary<string, long>();
-                        }
-                        catch
-                        {
-                            data = new Dictionary<string, long>();
-                        }
-                    }
-                    else
-                    {
-                        data = new Dictionary<string, long>();
+                        return;
                     }
 
-                    data[userId] = timestamp;
+                    string path = Path.Combine(Plugin.Instance.DataFolderPath, "users_seen.json");
                     string tmpPath = path + ".tmp";
-                    System.IO.File.WriteAllText(tmpPath, JsonSerializer.Serialize(data, PluginJsonContext.Default.DictionaryStringInt64));
+                    // Create a snapshot of the current state
+                    var snapshot = UserLastSeenCache.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+
+                    System.IO.File.WriteAllText(tmpPath, JsonSerializer.Serialize(snapshot, PluginJsonContext.Default.DictionaryStringInt64));
                     System.IO.File.Move(tmpPath, path, true);
                 }
                 catch (Exception ex)
                 {
-                    _staticLogger?.LogError(ex, "Error saving user seen data");
+                    _isCacheDirty = true; // Retry next time
+                    _staticLogger?.LogError(ex, "Error persiting user seen data background cache");
                 }
                 finally
                 {
@@ -510,7 +523,11 @@ namespace NotifySync
                         Monitor.Exit(GlobalFileLock);
                     }
                 }
-            });
+            }
+            finally
+            {
+                _isSaving = false;
+            }
         }
 
         /// <summary>

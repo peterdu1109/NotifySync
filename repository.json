@@ -9,6 +9,14 @@
     "supportUrl": "https://github.com/",
     "versions": [
       {
+        "version": "4.8.0.4",
+        "changelog": "- A FEATURE: Support Audio Temps Réel (Albums/Pistes).\\n- FEATURE: Synchronisation du Statut 'Vu' empêchant les épisodes visionnés d'apparaître dans la cloche.\\n- FIX: Filtrage Strict des Extras, Openings, Endings, et Thèmes Musicaux.\\n- FIX: Mode 'Bibliothèques Actives Uniquement' strictement respecté.\\n- FIX: Met à jour les métadonnées lors d'un évènement ItemUpdated.\\n- STABILITÉ: Corrections d'Avertissements Compilation Null Reference & Comparaisons de Chaines.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/4.8.0.4/NotifySync_4.8.0.4.zip",
+        "checksum": "7C4B0BC09A79FB906B50C6D8FE41CBDD",
+        "timestamp": "2026-03-04T18:55:00Z"
+      },
+      {
         "version": "4.8.0.3",
         "changelog": "- CRITICAL: Prévention de Corruption de Fichier (Windows vs Linux). L'écriture du fichier users_seen.json utilise désormais un buffer temporaire pour protéger le système de fichiers hôte contre les coupures serveurs imprévisibles.\\n- PERFORMANCE: Élimination d'un sévère goulot d'étranglement CPU (Lock Escalation) lié à la vérification cache concurrente.\\n- PERFORMANCE: Allègement drastique des itérations de Visibilité via traitement Multi-threading Parallel.ForEach.",
         "targetAbi": "10.11.0.0",

@@ -199,7 +199,7 @@
                         let libName = mapping.LibraryId;
                         if (select) {
                             const option = Array.from(select.options).find(opt => opt.value === mapping.LibraryId);
-                            if (option) libName = option.text;
+                            if (option) libName = option.textContent || option.innerText || mapping.LibraryId;
                         }
 
                         const div = document.createElement('div');
@@ -209,9 +209,9 @@
                         div.style.justifyContent = "space-between";
                         div.style.alignItems = "center";
 
-                        // Protection XSS standard
-                        const text = `Bibliothèque <b>${libName}</b> &rarr; <b style="color:#00a4dc;">${mapping.CategoryName}</b>`;
-                        div.innerHTML = `<span>${text}</span>`;
+                        const span = document.createElement('span');
+                        span.innerHTML = `Bibliothèque <b>${libName}</b> &rarr; <b style="color:#00a4dc;">${mapping.CategoryName}</b>`;
+                        div.appendChild(span);
 
                         const btn = document.createElement('button');
                         btn.type = 'button';

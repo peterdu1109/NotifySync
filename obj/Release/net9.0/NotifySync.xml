@@ -268,6 +268,8 @@
             <summary>
             Background service that injects the client.js script tag
             into Jellyfin's index.html at server startup.
+            On Windows (Program Files), this may fail due to permissions
+            — users should inject the script manually or via File Transformation.
             </summary>
         </member>
         <member name="M:NotifySync.NotifySyncEntryPoint.#ctor(MediaBrowser.Common.Configuration.IApplicationPaths,Microsoft.Extensions.Logging.ILogger{NotifySync.NotifySyncEntryPoint})">

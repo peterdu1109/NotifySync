@@ -57,11 +57,22 @@ NotifySync transforme l'interface de Jellyfin en ajoutant une icône de notifica
 | **Windows** | `%ProgramData%\Jellyfin\Server\plugins\NotifySync` |
 
 ## Étape 2 : Activer l'Interface (Client)
-🎉 **C'est automatique !** Depuis la version 5.0.0, NotifySync intègre un mécanisme d'auto-injection.
-Au démarrage de votre serveur Jellyfin, le plugin détectera automatiquement votre dossier Web et ajoutera la cloche pour tous vos utilisateurs.
 
-**Une seule action pour vous :**
-Après avoir installé le plugin et redémarré votre serveur, rafraîchissez simplement la page de votre navigateur (Touche `F5` ou videz le cache avec `Ctrl+F5`). Et voilà !
+### Linux / Docker : Automatique ✅
+Au démarrage, NotifySync injecte automatiquement la cloche dans `index.html`.
+→ Redémarrez Jellyfin puis faites `Ctrl+F5` dans le navigateur. C'est tout !
+
+### Windows : Modification Manuelle
+Sur Windows, `index.html` est protégé en écriture. Ajoutez cette ligne juste **avant** `</body>` :
+```html
+<script src="/NotifySync/client.js"></script>
+```
+
+| OS | Chemin index.html |
+|:---|:---|
+| **Linux** | `/usr/share/jellyfin/web/index.html` |
+| **Docker** | `/jellyfin/jellyfin-web/index.html` |
+| **Windows** | `C:\Program Files\Jellyfin\Server\jellyfin-web\index.html` |
 
 ---
 

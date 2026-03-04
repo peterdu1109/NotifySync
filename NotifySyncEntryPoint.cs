@@ -11,6 +11,8 @@ namespace NotifySync
     /// <summary>
     /// Background service that injects the client.js script tag
     /// into Jellyfin's index.html at server startup.
+    /// On Windows (Program Files), this may fail due to permissions
+    /// — users should inject the script manually or via File Transformation.
     /// </summary>
     public sealed class NotifySyncEntryPoint : IHostedService
     {
@@ -37,9 +39,21 @@ namespace NotifySync
             {
                 InjectScript();
             }
+            catch (UnauthorizedAccessException)
+            {
+                _logger.LogWarning(
+                    "NotifySync: Permissions insuffisantes pour modifier index.html dans \"{WebPath}\". "
+                    + "Sur Windows, ajoutez manuellement cette ligne avant </body> dans index.html : {ScriptTag}",
+                    Path.Combine(_appPaths.WebPath, "index.html"),
+                    ScriptTag);
+            }
+            catch (IOException ex)
+            {
+                _logger.LogWarning(ex, "NotifySync: Impossible d'écrire dans index.html (fichier verrouillé).");
+            }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "NotifySync: Erreur lors de l'injection automatique dans index.html.");
+                _logger.LogError(ex, "NotifySync: Erreur inattendue lors de l'injection. Type={ExType}", ex.GetType().Name);
             }
 
             return Task.CompletedTask;
@@ -51,9 +65,10 @@ namespace NotifySync
         private void InjectScript()
         {
             var webPath = _appPaths.WebPath;
+
             if (string.IsNullOrEmpty(webPath) || !Directory.Exists(webPath))
             {
-                _logger.LogWarning("NotifySync: Dossier 'jellyfin-web' introuvable. Injection ignorée.");
+                _logger.LogWarning("NotifySync: Dossier jellyfin-web introuvable. Injection ignorée.");
                 return;
             }
 
@@ -68,7 +83,7 @@ namespace NotifySync
 
             if (html.Contains(ScriptTag, StringComparison.OrdinalIgnoreCase))
             {
-                _logger.LogInformation("NotifySync: Script client déjà présent dans index.html.");
+                _logger.LogInformation("NotifySync: Script client déjà présent dans index.html. OK.");
                 return;
             }
 
@@ -81,7 +96,7 @@ namespace NotifySync
 
             html = html.Insert(bodyIndex, "    " + ScriptTag + "\n");
             File.WriteAllText(indexPath, html);
-            _logger.LogInformation("NotifySync: Injection automatique du script client réussie !");
+            _logger.LogInformation("NotifySync: Injection automatique réussie dans {IndexPath}.", indexPath);
         }
     }
 }

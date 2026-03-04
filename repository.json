@@ -13,7 +13,7 @@
         "changelog": "- FEATURE: Installation 100% automatique. Plus besoin de modifier index.html manuellement, le plugin s'auto-injecte au démarrage du serveur.\\n- FEATURE: WebSockets natifs pour des notifications en temps réel absolu.\\n- REFACTOR: Modernisation complète du Javascript de configuration en ES6 (Async/Await).",
         "targetAbi": "10.11.0.0",
         "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/5.0.0.0/NotifySync_5.0.0.0.zip",
-        "checksum": "DB24AD0D91213C1995B60D5C4155238A",
+        "checksum": "FD89E5ED69B508ED1012AEA6A8E30894",
         "timestamp": "2026-03-04T20:36:00Z"
       },
       {

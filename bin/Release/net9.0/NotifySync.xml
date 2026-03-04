@@ -264,6 +264,33 @@
             </summary>
             <param name="userId">The user identifier.</param>
         </member>
+        <member name="T:NotifySync.NotifySyncEntryPoint">
+            <summary>
+            Background service that injects the client.js script tag
+            into Jellyfin's index.html at server startup.
+            </summary>
+        </member>
+        <member name="M:NotifySync.NotifySyncEntryPoint.#ctor(MediaBrowser.Common.Configuration.IApplicationPaths,Microsoft.Extensions.Logging.ILogger{NotifySync.NotifySyncEntryPoint})">
+            <summary>
+            Initializes a new instance of the <see cref="T:NotifySync.NotifySyncEntryPoint"/> class.
+            </summary>
+            <param name="appPaths">The application paths.</param>
+            <param name="logger">The logger.</param>
+        </member>
+        <member name="M:NotifySync.NotifySyncEntryPoint.StartAsync(System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:NotifySync.NotifySyncEntryPoint.StopAsync(System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="T:NotifySync.NotifySyncServiceRegistrator">
+            <summary>
+            Registers NotifySync services into the Jellyfin DI container.
+            </summary>
+        </member>
+        <member name="M:NotifySync.NotifySyncServiceRegistrator.RegisterServices(Microsoft.Extensions.DependencyInjection.IServiceCollection,MediaBrowser.Controller.IServerApplicationHost)">
+            <inheritdoc />
+        </member>
         <member name="T:NotifySync.Plugin">
             <summary>
             The main plugin class for NotifySync.

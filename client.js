@@ -453,13 +453,42 @@
         installBell();
     };
 
-    // --- NEW: Listen for navigation/login events to retry auth check ---
+    // --- NEW: WebSockets Real-Time Sync ---
+    let wsDebounceTimeout = null;
+    const onWebSocketMessage = (e, msg) => {
+        if (!msg || !msg.MessageType) return;
+
+        // Listen to relevant real-time server events
+        if (msg.MessageType === "LibraryChanged" || msg.MessageType === "UserDataChanged") {
+            console.log("NotifySync: Intercepted WebSocket event ->", msg.MessageType);
+
+            // Debounce to prevent flooding if 50 items are added at once
+            if (wsDebounceTimeout) clearTimeout(wsDebounceTimeout);
+            wsDebounceTimeout = setTimeout(() => {
+                retryDelay = 2000;
+                fetchData();
+            }, 3000); // Wait 3 seconds after the last event before fetching
+        }
+    };
+
+    const setupWebSockets = () => {
+        // Jellyfin global Events dispatcher
+        if (window.Events && window.ApiClient) {
+            window.Events.on(window.ApiClient, "websocketmessage", onWebSocketMessage);
+            console.log("NotifySync: WebSockets successfully hooked.");
+        } else {
+            console.warn("NotifySync: window.Events or ApiClient not ready for WebSockets. Retrying...");
+            setTimeout(setupWebSockets, 5000);
+        }
+    };
+
     document.addEventListener('viewshow', () => {
         console.log("NotifySync: View changed, checking auth...");
         retryDelay = 2000; // Reset backoff
         fetchData();
     });
 
-    setInterval(() => { if (document.visibilityState === 'visible') fetchData(); }, 60000);
+    // Start WebSocket listener instead of setInterval
+    setupWebSockets();
     startMainObserver();
 })();

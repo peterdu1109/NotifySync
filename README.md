@@ -1,6 +1,6 @@
 # 🔔 NotifySync
 
-![Dernière Version](https://img.shields.io/badge/version-4.8.0.7-blue)
+![Dernière Version](https://img.shields.io/badge/version-5.0.0.0-blue)
 ![Net Framework](https://img.shields.io/badge/.NET-9.0-purple)
 ![Jellyfin](https://img.shields.io/badge/Jellyfin-10.11.X-blueviolet)
 
@@ -21,6 +21,7 @@ NotifySync transforme l'interface de Jellyfin en ajoutant une icône de notifica
 *   **Compatibilité** : PC/Mac et Mobiles (via app officielle). *Note : Non supporté sur TV.*
 
 ### 🚀 Performance
+*   **Temps Réel Absolu** : Mise à jour instantanée via WebSockets natifs Jellyfin (plus de polling 60s).
 *   **Zéro-Latence** : Système de cache RAM intelligent pour un affichage instantané.
 *   **Optimisé .NET 9** : Architecture haute performance et faible consommation.
 *   **Efficacité** : Gestion optimisée du réseau (ETags) et des ressources serveur.
@@ -45,7 +46,7 @@ NotifySync transforme l'interface de Jellyfin en ajoutant une icône de notifica
 4.  Redémarrez votre serveur Jellyfin.
 
 ### Méthode 2 : Installation Manuelle
-1.  Téléchargez le fichier `.zip` depuis la page [Releases](https://github.com/peterdu1109/NotifySync/releases/tag/4.8.0.7).
+1.  Téléchargez le fichier `.zip` depuis la page [Releases](https://github.com/peterdu1109/NotifySync/releases/tag/5.0.0.0).
 2.  Décompressez la DLL dans le dossier `plugins/NotifySync` de votre serveur.
 3.  Redémarrez Jellyfin.
 
@@ -56,37 +57,11 @@ NotifySync transforme l'interface de Jellyfin en ajoutant une icône de notifica
 | **Windows** | `%ProgramData%\Jellyfin\Server\plugins\NotifySync` |
 
 ## Étape 2 : Activer l'Interface (Client)
-⚠️ **Cette étape est obligatoire** car Jellyfin 10.11+ sécurise l'interface web.
+🎉 **C'est automatique !** Depuis la version 5.0.0, NotifySync intègre un mécanisme d'auto-injection.
+Au démarrage de votre serveur Jellyfin, le plugin détectera automatiquement votre dossier Web et ajoutera la cloche pour tous vos utilisateurs.
 
-Vous devez ajouter **une seule ligne** à votre fichier `index.html` pour charger la cloche.
-
-### Option A : Installation Automatique (Linux/Docker) - Recommandé
-
-Un script est fourni pour faire cette modification automatiquement.
-
-1.  Connectez-vous à votre serveur en SSH.
-2.  Téléchargez et lancez le script d'installation :
-    ```bash
-    curl -sL https://raw.githubusercontent.com/peterdu1109/NotifySync/main/scripts/install.sh | sudo bash
-    ```
-    *Le script détecte automatiquement votre installation Jellyfin (Native ou Docker).*
-
-### Option B : Modification Manuelle
-
-Si vous préférez le faire à la main :
-
-1.  Accédez au dossier d'installation de l'interface web Jellyfin :
-    * **Linux :** `/usr/share/jellyfin/web/index.html`
-    * **Docker :** `/jellyfin/jellyfin-web/index.html` (à monter en volume ou via CLI)
-    * **Windows :** `C:\Program Files\Jellyfin\Server\jellyfin-web\index.html`
-
-2.  Ouvrez `index.html` avec un éditeur de texte.
-
-3.  Ajoutez cette ligne tout en bas du fichier, juste **avant** la balise `</body>` :
-
-```html
-<script src="/NotifySync/Client.js" defer></script>
-```
+**Une seule action pour vous :**
+Après avoir installé le plugin et redémarré votre serveur, rafraîchissez simplement la page de votre navigateur (Touche `F5` ou videz le cache avec `Ctrl+F5`). Et voilà !
 
 ---
 
@@ -104,7 +79,7 @@ Allez dans **Tableau de bord > Extensions > NotifySync**.
 
 | Problème | Solution |
 |----------|----------|
-| **La cloche n'apparaît pas** | Videz le cache du navigateur (Ctrl+Shift+R). Vérifiez que le plugin est activé dans Extensions. |
+| **La cloche n'apparaît pas** | Videz le cache du navigateur (Ctrl+Shift+R). Vérifiez que le plugin est activé dans Extensions. Redémarrez Jellyfin pour déclencher l'auto-injection. |
 | **Le badge (chiffre) ne s'affiche pas** | Cliquez sur "Régénérer l'historique" dans la config du plugin. Videz le localStorage du navigateur. |
 | **Musique non synchronisée avec l'accueil** | Allez dans Config > "Régénérer l'historique" pour rescanner les pistes Audio. |
 | **Certains contenus n'apparaissent pas** | Vérifiez que la bibliothèque est cochée dans "Bibliothèques Surveillées". |

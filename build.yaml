@@ -1,7 +1,10 @@
 project: NotifySync
-version: 4.8.0.7
+version: 5.0.0.0
 targetAbi: 10.11.0.0
 build:
+  - FEATURE : Installation automatique (Auto-Injection). Plus besoin de modifier `index.html` manuellement (v5.0.0.0).
+  - FEATURE : Intégration des WebSockets pour un rafraîchissement temps réel absolu (client.js) (v5.0.0.0).
+  - REFACTOR : Modernisation de l'interface de configuration en ES6 (ConfigurationPage.html) (v5.0.0.0).
   - CRITICAL : Prévention de Corruption de Fichier (Windows vs Linux) en utilisant un buffer temporaire pour users_seen.json (v4.8.0.3).
   - PERFORMANCE : Élimination d'un sévère goulot d'étranglement CPU (Lock Escalation) lié à la vérification cache concurrente (v4.8.0.3).
   - PERFORMANCE : Allègement drastique des itérations de Visibilité via traitement Multi-threading Parallel.ForEach (v4.8.0.3).

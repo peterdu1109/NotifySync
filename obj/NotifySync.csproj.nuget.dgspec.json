@@ -1,0 +1,108 @@
+{
+  "format": 1,
+  "restore": {
+    "C:\\Users\\eliem\\Documents\\GitHub\\NotifySync\\NotifySync.csproj": {}
+  },
+  "projects": {
+    "C:\\Users\\eliem\\Documents\\GitHub\\NotifySync\\NotifySync.csproj": {
+      "version": "4.8.0.5",
+      "restore": {
+        "projectUniqueName": "C:\\Users\\eliem\\Documents\\GitHub\\NotifySync\\NotifySync.csproj",
+        "projectName": "NotifySync",
+        "projectPath": "C:\\Users\\eliem\\Documents\\GitHub\\NotifySync\\NotifySync.csproj",
+        "packagesPath": "C:\\Users\\eliem\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\eliem\\Documents\\GitHub\\NotifySync\\obj\\",
+        "projectStyle": "PackageReference",
+        "configFilePaths": [
+          "C:\\Users\\eliem\\AppData\\Roaming\\NuGet\\NuGet.Config"
+        ],
+        "originalTargetFrameworks": [
+          "net9.0"
+        ],
+        "sources": {
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "net9.0": {
+            "targetAlias": "net9.0",
+            "projectReferences": {}
+          }
+        },
+        "warningProperties": {
+          "allWarningsAsErrors": true,
+          "warnAsError": [
+            "NU1605"
+          ]
+        },
+        "restoreAuditProperties": {
+          "enableAudit": "true",
+          "auditLevel": "low",
+          "auditMode": "direct"
+        },
+        "SdkAnalysisLevel": "9.0.300"
+      },
+      "frameworks": {
+        "net9.0": {
+          "targetAlias": "net9.0",
+          "dependencies": {
+            "Jellyfin.Controller": {
+              "suppressParent": "All",
+              "target": "Package",
+              "version": "[10.11.0, )"
+            },
+            "Jellyfin.Data": {
+              "suppressParent": "All",
+              "target": "Package",
+              "version": "[10.11.0, )"
+            },
+            "Jellyfin.Model": {
+              "suppressParent": "All",
+              "target": "Package",
+              "version": "[10.11.0, )"
+            },
+            "Microsoft.Data.Sqlite": {
+              "suppressParent": "All",
+              "target": "Package",
+              "version": "[9.0.2, )"
+            },
+            "SerilogAnalyzer": {
+              "suppressParent": "All",
+              "target": "Package",
+              "version": "[0.15.0, )"
+            },
+            "SmartAnalyzers.MultithreadingAnalyzer": {
+              "suppressParent": "All",
+              "target": "Package",
+              "version": "[1.1.31, )"
+            },
+            "StyleCop.Analyzers": {
+              "suppressParent": "All",
+              "target": "Package",
+              "version": "[1.1.118, )"
+            }
+          },
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48",
+            "net481"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "frameworkReferences": {
+            "Microsoft.AspNetCore.App": {
+              "privateAssets": "none"
+            },
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.311/PortableRuntimeIdentifierGraph.json"
+        }
+      }
+    }
+  }
+}

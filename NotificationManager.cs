@@ -483,14 +483,36 @@ namespace NotifySync
                 DtoOptions = new MediaBrowser.Controller.Dto.DtoOptions(false)
             };
 
+            var qChannel = new InternalItemsQuery
+            {
+                // Inclure les flux virtuels de type IPTV ou VOD (Ex: Plugin XFusion)
+                IncludeItemTypes = new[] { BaseItemKind.LiveTvProgram, BaseItemKind.LiveTvChannel },
+                Recursive = true,
+                OrderBy = new[] { (ItemSortBy.DateCreated, (Jellyfin.Database.Implementations.Enums.SortOrder)1) },
+                Limit = maxItems * 400,
+                DtoOptions = new MediaBrowser.Controller.Dto.DtoOptions(false)
+            };
+
             if (ancestorIdsArray != null && ancestorIdsArray.Length > 0)
             {
                 qMovie.AncestorIds = ancestorIdsArray;
                 qEpisode.AncestorIds = ancestorIdsArray;
                 qAudio.AncestorIds = ancestorIdsArray;
+                // Attention: Les éléments de Channel (XFusion) ignorent souvent AncestorIds.
+                // Leur filtrage se fera via ChannelId dans IsItemInEnabledLibrary plus bas.
+                // On peut occasionnellement forcer ChannelIds si l'API le supporte.
+                qChannel.ChannelIds = ancestorIdsArray;
             }
 
-            var queries = new[] { qMovie, qEpisode, qAudio };
+            var queriesList = new List<InternalItemsQuery> { qMovie, qEpisode, qAudio };
+
+            // Ne chercher dans les chaînes (VOD/Séries) que si l'utilisateur a configuré des bibliothèques actives.
+            if (validLibraryIds.Count > 0 || config?.CategoryMappings?.Count > 0)
+            {
+                queriesList.Add(qChannel);
+            }
+
+            var queries = queriesList.ToArray();
 
             var items = new List<BaseItem>();
             foreach (var q in queries)
@@ -688,9 +710,18 @@ namespace NotifySync
             {
                 foreach (var manualId in config.ManualLibraryIds)
                 {
-                    if (Guid.TryParse(manualId, out var manualGuid) && owners.Contains(manualGuid))
+                    if (Guid.TryParse(manualId, out var manualGuid))
                     {
-                        return true;
+                        if (owners.Contains(manualGuid))
+                        {
+                            return true;
+                        }
+
+                        // Support for Channels (like XFusion VOD/Series)
+                        if (item.ChannelId != Guid.Empty && item.ChannelId == manualGuid)
+                        {
+                            return true;
+                        }
                     }
 
                     // Allow exact name matching for folders by checking the ancestors names through the library manager
@@ -761,10 +792,19 @@ namespace NotifySync
                 {
                     foreach (var map in config.CategoryMappings)
                     {
-                        if (Guid.TryParse(map.LibraryId, out var libGuid) && owners.Contains(libGuid))
+                        if (Guid.TryParse(map.LibraryId, out var libGuid))
                         {
-                            category = map.CategoryName;
-                            break;
+                            if (owners.Contains(libGuid))
+                            {
+                                category = map.CategoryName;
+                                break;
+                            }
+
+                            if (item.ChannelId != Guid.Empty && item.ChannelId == libGuid)
+                            {
+                                category = map.CategoryName;
+                                break;
+                            }
                         }
                     }
                 }

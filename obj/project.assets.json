@@ -535,6 +535,19 @@
           }
         }
       },
+      "Newtonsoft.Json/13.0.3": {
+        "type": "package",
+        "compile": {
+          "lib/net6.0/Newtonsoft.Json.dll": {
+            "related": ".xml"
+          }
+        },
+        "runtime": {
+          "lib/net6.0/Newtonsoft.Json.dll": {
+            "related": ".xml"
+          }
+        }
+      },
       "Polly/8.6.4": {
         "type": "package",
         "dependencies": {
@@ -1491,6 +1504,36 @@
         "nebml.nuspec"
       ]
     },
+    "Newtonsoft.Json/13.0.3": {
+      "sha512": "HrC5BXdl00IP9zeV+0Z848QWPAoCr9P3bDEZguI+gkLcBKAOxix/tLEAAHC+UvDNPv4a2d18lOReHMOagPa+zQ==",
+      "type": "package",
+      "path": "newtonsoft.json/13.0.3",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "LICENSE.md",
+        "README.md",
+        "lib/net20/Newtonsoft.Json.dll",
+        "lib/net20/Newtonsoft.Json.xml",
+        "lib/net35/Newtonsoft.Json.dll",
+        "lib/net35/Newtonsoft.Json.xml",
+        "lib/net40/Newtonsoft.Json.dll",
+        "lib/net40/Newtonsoft.Json.xml",
+        "lib/net45/Newtonsoft.Json.dll",
+        "lib/net45/Newtonsoft.Json.xml",
+        "lib/net6.0/Newtonsoft.Json.dll",
+        "lib/net6.0/Newtonsoft.Json.xml",
+        "lib/netstandard1.0/Newtonsoft.Json.dll",
+        "lib/netstandard1.0/Newtonsoft.Json.xml",
+        "lib/netstandard1.3/Newtonsoft.Json.dll",
+        "lib/netstandard1.3/Newtonsoft.Json.xml",
+        "lib/netstandard2.0/Newtonsoft.Json.dll",
+        "lib/netstandard2.0/Newtonsoft.Json.xml",
+        "newtonsoft.json.13.0.3.nupkg.sha512",
+        "newtonsoft.json.nuspec",
+        "packageIcon.png"
+      ]
+    },
     "Polly/8.6.4": {
       "sha512": "uuBsDoBw0oYrMe3uTWRjkT2sIkKh+ZZnnDrLb4Z+QANfeA4+7FJacx6E8CY5GAxXRoSgFrvUADEAQ7DPF6fGiw==",
       "type": "package",
@@ -1982,6 +2025,7 @@
       "Jellyfin.Data >= 10.11.0",
       "Jellyfin.Model >= 10.11.0",
       "Microsoft.Data.Sqlite >= 9.0.2",
+      "Newtonsoft.Json >= 13.0.3",
       "SerilogAnalyzer >= 0.15.0",
       "SmartAnalyzers.MultithreadingAnalyzer >= 1.1.31",
       "StyleCop.Analyzers >= 1.1.118"
@@ -1991,7 +2035,7 @@
     "C:\\Users\\eliem\\.nuget\\packages\\": {}
   },
   "project": {
-    "version": "5.0.0",
+    "version": "5.1.0",
     "restore": {
       "projectUniqueName": "C:\\Users\\eliem\\Documents\\GitHub\\NotifySync\\NotifySync.csproj",
       "projectName": "NotifySync",
@@ -2050,6 +2094,11 @@
             "suppressParent": "All",
             "target": "Package",
             "version": "[9.0.2, )"
+          },
+          "Newtonsoft.Json": {
+            "suppressParent": "All",
+            "target": "Package",
+            "version": "[13.0.3, )"
           },
           "SerilogAnalyzer": {
             "suppressParent": "All",

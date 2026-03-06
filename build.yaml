@@ -1,8 +1,8 @@
 project: NotifySync
-version: 5.0.0.0
+version: 5.1.0.0
 targetAbi: 10.11.0.0
 build:
-  - FEATURE : Injection du script client simplifiée (commande `sed` pour Linux/Docker, édition manuelle pour Windows) (v5.0.0.0).
+  - FEATURE : Support File Transformation pour injection automatique du script client (tous les OS) (v5.1.0.0).
   - FEATURE : Intégration des WebSockets pour un rafraîchissement temps réel absolu (client.js) (v5.0.0.0).
   - REFACTOR : Modernisation de l'interface de configuration en ES6 (ConfigurationPage.html) (v5.0.0.0).
   - CRITICAL : Prévention de Corruption de Fichier (Windows vs Linux) en utilisant un buffer temporaire pour users_seen.json (v4.8.0.3).

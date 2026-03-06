@@ -5,7 +5,7 @@
   },
   "projects": {
     "C:\\Users\\eliem\\Documents\\GitHub\\NotifySync\\NotifySync.csproj": {
-      "version": "5.0.0",
+      "version": "5.1.0",
       "restore": {
         "projectUniqueName": "C:\\Users\\eliem\\Documents\\GitHub\\NotifySync\\NotifySync.csproj",
         "projectName": "NotifySync",
@@ -64,6 +64,11 @@
               "suppressParent": "All",
               "target": "Package",
               "version": "[9.0.2, )"
+            },
+            "Newtonsoft.Json": {
+              "suppressParent": "All",
+              "target": "Package",
+              "version": "[13.0.3, )"
             },
             "SerilogAnalyzer": {
               "suppressParent": "All",

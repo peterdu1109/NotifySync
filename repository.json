@@ -9,11 +9,19 @@
     "supportUrl": "https://github.com/",
     "versions": [
       {
+        "version": "5.1.0.0",
+        "changelog": "- FEATURE: Support File Transformation pour injection automatique du script client (tous les OS, sans modification de fichier).\\n- FIX: Le mappage des cat\u00e9gories affichait 'text' au lieu du nom de la biblioth\u00e8que.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/5.1.0.0/NotifySync_5.1.0.0.zip",
+        "checksum": "4BD49E3CEBE69D3D4368B0F67D043EF3",
+        "timestamp": "2026-03-04T23:30:00Z"
+      },
+      {
         "version": "5.0.0.0",
         "changelog": "- FEATURE: Injection simplifiée du script client (commande sed pour Linux/Docker, manuel pour Windows).\\n- FEATURE: WebSockets natifs pour des notifications en temps réel absolu.\\n- REFACTOR: Modernisation complète du Javascript de configuration en ES6 (Async/Await).\\n- FIX: Le mappage des catégories affichait 'text' au lieu du nom de la bibliothèque.",
         "targetAbi": "10.11.0.0",
         "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/5.0.0.0/NotifySync_5.0.0.0.zip",
-        "checksum": "76983A309A7A173FE700F0B9490859A0",
+        "checksum": "B1149D256CD570EDCA93EB140DEC608C",
         "timestamp": "2026-03-04T20:36:00Z"
       },
       {

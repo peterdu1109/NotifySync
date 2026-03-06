@@ -6,12 +6,13 @@
   "compilationOptions": {},
   "targets": {
     ".NETCoreApp,Version=v9.0": {
-      "NotifySync/5.0.0.0": {
+      "NotifySync/5.1.0.0": {
         "dependencies": {
           "Jellyfin.Controller": "10.11.0",
           "Jellyfin.Data": "10.11.0",
           "Jellyfin.Model": "10.11.0",
           "Microsoft.Data.Sqlite": "9.0.2",
+          "Newtonsoft.Json": "13.0.3",
           "SerilogAnalyzer": "0.15.0",
           "SmartAnalyzers.MultithreadingAnalyzer": "1.1.31",
           "StyleCop.Analyzers": "1.1.118"
@@ -349,6 +350,14 @@
           }
         }
       },
+      "Newtonsoft.Json/13.0.3": {
+        "runtime": {
+          "lib/net6.0/Newtonsoft.Json.dll": {
+            "assemblyVersion": "13.0.0.0",
+            "fileVersion": "13.0.3.27908"
+          }
+        }
+      },
       "Polly/8.6.4": {
         "dependencies": {
           "Polly.Core": "8.6.4"
@@ -533,7 +542,7 @@
     }
   },
   "libraries": {
-    "NotifySync/5.0.0.0": {
+    "NotifySync/5.1.0.0": {
       "type": "project",
       "serviceable": false,
       "sha512": ""
@@ -761,6 +770,13 @@
       "sha512": "sha512-svtqDc+hue9kbnqNN2KkK4om/hDrc7K127cNb5FIYfgKgzo+JNDPXNLp8NioCchHhBO3lxWd4Cp/iiZZ3aoUqg==",
       "path": "nebml/1.1.0.5",
       "hashPath": "nebml.1.1.0.5.nupkg.sha512"
+    },
+    "Newtonsoft.Json/13.0.3": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-HrC5BXdl00IP9zeV+0Z848QWPAoCr9P3bDEZguI+gkLcBKAOxix/tLEAAHC+UvDNPv4a2d18lOReHMOagPa+zQ==",
+      "path": "newtonsoft.json/13.0.3",
+      "hashPath": "newtonsoft.json.13.0.3.nupkg.sha512"
     },
     "Polly/8.6.4": {
       "type": "package",

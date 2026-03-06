@@ -8,9 +8,9 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     
     <!-- Versioning & Metadata -->
-    <AssemblyVersion>5.0.0.0</AssemblyVersion>
-    <FileVersion>5.0.0.0</FileVersion>
-    <Version>5.0.0.0</Version>
+    <AssemblyVersion>5.1.0.0</AssemblyVersion>
+    <FileVersion>5.1.0.0</FileVersion>
+    <Version>5.1.0.0</Version>
     <Authors>Peterdu1109, ElieM</Authors>
     <Company>NotifySync</Company>
     <Product>NotifySync</Product>
@@ -27,6 +27,7 @@
     <PackageReference Include="Jellyfin.Controller" Version="10.11.0" PrivateAssets="All" />
     <PackageReference Include="Jellyfin.Model" Version="10.11.0" PrivateAssets="All" />
     <PackageReference Include="Jellyfin.Data" Version="10.11.0" PrivateAssets="All" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" PrivateAssets="All" />
     <PackageReference Include="Microsoft.Data.Sqlite" Version="9.0.2" PrivateAssets="All" />
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>

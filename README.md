@@ -1,6 +1,6 @@
 # 🔔 NotifySync
 
-![Dernière Version](https://img.shields.io/badge/version-5.0.0.0-blue)
+![Dernière Version](https://img.shields.io/badge/version-5.1.0.0-blue)
 ![Net Framework](https://img.shields.io/badge/.NET-9.0-purple)
 ![Jellyfin](https://img.shields.io/badge/Jellyfin-10.11.X-blueviolet)
 
@@ -46,7 +46,7 @@ NotifySync transforme l'interface de Jellyfin en ajoutant une icône de notifica
 4.  Redémarrez votre serveur Jellyfin.
 
 ### Méthode 2 : Installation Manuelle
-1.  Téléchargez le fichier `.zip` depuis la page [Releases](https://github.com/peterdu1109/NotifySync/releases/tag/5.0.0.0).
+1.  Téléchargez le fichier `.zip` depuis la page [Releases](https://github.com/peterdu1109/NotifySync/releases/tag/5.1.0.0).
 2.  Décompressez la DLL dans le dossier `plugins/NotifySync` de votre serveur.
 3.  Redémarrez Jellyfin.
 
@@ -56,29 +56,35 @@ NotifySync transforme l'interface de Jellyfin en ajoutant une icône de notifica
 | **Linux** | `/var/lib/jellyfin/plugins/NotifySync` |
 | **Windows** | `%ProgramData%\Jellyfin\Server\plugins\NotifySync` |
 
-## Étape 2 : Activer la Cloche (une seule fois)
+## Étape 2 : Activer la Cloche
 
-Ajoutez le script client dans `index.html` de Jellyfin. Cette opération est nécessaire **une seule fois** (sauf mise à jour de Jellyfin).
+### Méthode recommandée : File Transformation (automatique, tous OS) ✅
+Installez le plugin **File Transformation** — NotifySync détectera sa présence et injectera automatiquement la cloche :
+1.  **Tableau de bord** > **Extensions** > **Dépôts** → ajoutez : `https://www.iamparadox.dev/jellyfin/plugins/manifest.json`
+2.  Installez **File Transformation** depuis le Catalogue
+3.  Redémarrez Jellyfin → `Ctrl+F5`
 
-### Linux (Ubuntu / Debian)
+> 💡 Aucune modification de fichier nécessaire ! Fonctionne sur Linux, Docker et Windows.
+
+### Alternative : Injection manuelle (une seule fois)
+Si vous ne souhaitez pas installer File Transformation, ajoutez manuellement le script :
+
+**Linux** :
 ```bash
 sudo sed -i 's|</body>|    <script src="/NotifySync/client.js"></script>\n</body>|' /usr/share/jellyfin/web/index.html
 sudo systemctl restart jellyfin
 ```
 
-### Docker
+**Docker** :
 ```bash
 docker exec jellyfin sed -i 's|</body>|    <script src="/NotifySync/client.js"></script>\n</body>|' /jellyfin/jellyfin-web/index.html
 docker restart jellyfin
 ```
 
-### Windows
-Ouvrez `C:\Program Files\Jellyfin\Server\jellyfin-web\index.html` en tant qu'administrateur et ajoutez cette ligne juste **avant** `</body>` :
+**Windows** : Ouvrez `C:\Program Files\Jellyfin\Server\jellyfin-web\index.html` en admin, ajoutez avant `</body>` :
 ```html
 <script src="/NotifySync/client.js"></script>
 ```
-
-> **💡 Astuce** : Après l'opération, faites `Ctrl+F5` dans votre navigateur pour vider le cache.
 
 ---
 
@@ -96,7 +102,7 @@ Allez dans **Tableau de bord > Extensions > NotifySync**.
 
 | Problème | Solution |
 |----------|----------|
-| **La cloche n'apparaît pas** | Videz le cache du navigateur (Ctrl+Shift+R). Vérifiez que le plugin est activé dans Extensions. Redémarrez Jellyfin pour déclencher l'auto-injection. |
+| **La cloche n'apparaît pas** | Vérifiez que **File Transformation** est installé, ou que le script a été ajouté manuellement dans `index.html`. Videz le cache navigateur (`Ctrl+Shift+R`). |
 | **Le badge (chiffre) ne s'affiche pas** | Cliquez sur "Régénérer l'historique" dans la config du plugin. Videz le localStorage du navigateur. |
 | **Musique non synchronisée avec l'accueil** | Allez dans Config > "Régénérer l'historique" pour rescanner les pistes Audio. |
 | **Certains contenus n'apparaissent pas** | Vérifiez que la bibliothèque est cochée dans "Bibliothèques Surveillées". |

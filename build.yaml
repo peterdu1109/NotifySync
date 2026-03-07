@@ -1,7 +1,11 @@
 project: NotifySync
-version: 5.1.0.2
+version: 5.2.0.0
 targetAbi: 10.11.0.0
 build:
+  - FEATURE : Le scan de l'historique (NotifySync) se lance désormais automatiquement au démarrage de Jellyfin (v5.2.0.0).
+  - CRITICAL : Limitation stricte de l'historique en base de données à 100 éléments par catégorie pour une stabilité absolue (v5.2.0.0).
+  - FIX : Le statut "Vu" (cloches et petites pastilles vertes) se synchronise désormais réellement avec Jellyfin lors du clic sur "Tout marquer comme lu" (v5.2.0.0).
+  - FIX : Cocher une Saison ou une Série comme "Vue" cache maintenant immédiatement et correctement tous ses épisodes dans la cloche (v5.2.0.0).
   - CRITICAL : Résolution du bug de perte de la base de données au redémarrage (HistoryScanTask) et conflit de versions. (v5.1.0.2).
   - FIX : Refonte du Client.js (hook 'authenticated') pour affichage instantané des notifications au login sans F5 (v5.1.0.2).
   - UI : Amélioration de l'intégration visuelle de la cloche (espacement et alignement parfaits avec les icônes natives) (v5.1.0.2).

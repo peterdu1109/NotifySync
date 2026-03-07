@@ -245,12 +245,6 @@
             </summary>
             <returns>The javascript file.</returns>
         </member>
-        <member name="M:NotifySync.NotifyController.GetDebugState">
-            <summary>
-            Gets the debug state of the notification manager.
-            </summary>
-            <returns>A JSON object containing the debug state.</returns>
-        </member>
         <member name="M:NotifySync.NotifyController.GetData(System.String)">
             <summary>
             Gets notification data for a specific user.

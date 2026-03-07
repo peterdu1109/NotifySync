@@ -9,6 +9,14 @@
     "supportUrl": "https://github.com/",
     "versions": [
       {
+        "version": "5.2.0.0",
+        "changelog": "- FEATURE: Scan automatique de l'historique au démarrage de Jellyfin.\\n- CRITICAL: Limitation de l'historique en DB à 100 (stabilité absolue).\\n- FIX: Statut Vu synchronisé avec Jellyfin via 'Tout marquer comme lu'.\\n- FIX: Validation des épisodes cachés si la Série/Saison est cochée 'Vue'.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/5.2.0.0/NotifySync_5.2.0.0.zip",
+        "checksum": "7101D80446179037AB1A0766370CE1BA",
+        "timestamp": "2026-03-07T21:30:00Z"
+      },
+      {
         "version": "5.1.0.2",
         "changelog": "- CRITICAL: Résolution du bug de perte de la base de données au redémarrage (HistoryScanTask) et conflit de dossiers Jellyfin.\\n- FIX: Refonte du Client.js (hook 'authenticated') pour un affichage instantané des notifications au login sans devoir appuyer sur F5.\\n- UI: Alignement et espacement parfaits de la cloche avec les icônes natives du header Jellyfin.",
         "targetAbi": "10.11.0.0",

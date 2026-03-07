@@ -1,6 +1,6 @@
 # 🔔 NotifySync
 
-![Dernière Version](https://img.shields.io/badge/version-5.1.0.2-blue)
+![Dernière Version](https://img.shields.io/badge/version-5.2.0.0-blue)
 ![Net Framework](https://img.shields.io/badge/.NET-9.0-purple)
 ![Jellyfin](https://img.shields.io/badge/Jellyfin-10.11.X-blueviolet)
 
@@ -16,7 +16,7 @@ NotifySync transforme l'interface de Jellyfin en ajoutant une icône de notifica
 ### 🎨 Expérience Utilisateur
 *   **Design Moderne** : Intégration fluide "Netflix-Style" avec badge de nouveautés et effets visuels (Glassmorphism).
 *   **Navigation Intuitive** : "Hero Section" pour les derniers ajouts et regroupement intelligent des épisodes.
-*   **Synchronisation Intelligente** : Indicateurs "Vu/Non vu" en temps réel avec Jellyfin (les médias lus disparaissent automatiquement de la cloche).
+*   **Synchronisation Intelligente** : Indicateurs "Vu/Non vu" en temps réel avec le serveur Jellyfin (les médias lus disparaissent automatiquement de la cloche), y compris l'héritage d'état (Saison/Série) et un bouton "Tout marquer comme lu" qui synchronise la base de données native.
 *   **Filtrage Avancé** : Exclusion automatique des génériques (OP/ED), thèmes musicaux et respect strict des bibliothèques actives.
 *   **Compatibilité** : PC/Mac et Mobiles (via app officielle). *Note : Non supporté sur TV.*
 
@@ -24,7 +24,7 @@ NotifySync transforme l'interface de Jellyfin en ajoutant une icône de notifica
 *   **Temps Réel Absolu** : Mise à jour instantanée via WebSockets natifs Jellyfin (plus de polling 60s).
 *   **Zéro-Latence** : Système de cache RAM intelligent pour un affichage instantané.
 *   **Optimisé .NET 9** : Architecture haute performance et faible consommation.
-*   **Efficacité** : Gestion optimisée du réseau (ETags) et des ressources serveur.
+*   **Efficacité** : Gestion optimisée du réseau (ETags) et limitation stricte et saine de la base de données intégrée pour empêcher la saturation.
 
 ### 🛡️ Sécurité & Confidentialité
 *   **Respect des Permissions** : Isolation stricte des données (Tags, Classification, Bibliothèques).
@@ -37,24 +37,13 @@ NotifySync transforme l'interface de Jellyfin en ajoutant une icône de notifica
 * **Jellyfin 10.11.X**
 * **.NET 9 Runtime**
 
-### Méthode 1 : Via le Dépôt (Recommandé)
+### Installation via le Dépôt NotifySync
 1.  Ouvrez votre tableau de bord Jellyfin > **Extensions** > **Dépôts**.
 2.  Ajoutez un nouveau dépôt :
     * **Nom :** NotifySync Repo
     * **URL :** `https://raw.githubusercontent.com/peterdu1109/NotifySync/refs/heads/main/repository.json`
 3.  Allez dans le **Catalogue**, trouvez **NotifySync** et cliquez sur **Installer**.
 4.  Redémarrez votre serveur Jellyfin.
-
-### Méthode 2 : Installation Manuelle
-1.  Téléchargez le fichier `.zip` depuis la page [Releases](https://github.com/peterdu1109/NotifySync/releases/tag/5.1.0.0).
-2.  Décompressez la DLL dans le dossier `plugins/NotifySync` de votre serveur.
-3.  Redémarrez Jellyfin.
-
-| OS | Chemin des plugins |
-| :--- | :--- |
-| **Docker** | `/config/plugins/NotifySync` |
-| **Linux** | `/var/lib/jellyfin/plugins/NotifySync` |
-| **Windows** | `%ProgramData%\Jellyfin\Server\plugins\NotifySync` |
 
 ## Étape 2 : Activer la Cloche
 

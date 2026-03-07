@@ -2035,7 +2035,7 @@
     "C:\\Users\\eliem\\.nuget\\packages\\": {}
   },
   "project": {
-    "version": "5.1.0.2",
+    "version": "5.2.0",
     "restore": {
       "projectUniqueName": "C:\\Users\\eliem\\Documents\\GitHub\\NotifySync\\NotifySync.csproj",
       "projectName": "NotifySync",

@@ -37,9 +37,13 @@ namespace NotifySync
         /// <inheritdoc />
         public IEnumerable<TaskTriggerInfo> GetDefaultTriggers()
         {
-            // Pas de trigger par défaut auto-planifié pour éviter les scans inutiles,
-            // mais l'utilisateur peut en ajouter.
-            return Array.Empty<TaskTriggerInfo>();
+            return new[]
+            {
+                new TaskTriggerInfo
+                {
+                    Type = TaskTriggerInfoType.StartupTrigger
+                }
+            };
         }
     }
 }

@@ -25,6 +25,7 @@ namespace NotifySync
     /// </summary>
     public sealed class NotificationManager : IDisposable
     {
+        private const int DatabaseCategoryLimit = 100;
         private const int GlobalRetentionLimit = 2000;
         private readonly ILibraryManager _libraryManager;
         private readonly IUserDataManager _userDataManager;
@@ -170,9 +171,7 @@ namespace NotifySync
             }
 
             // Enforce Quota even on startup to trim any bloat from before
-            var config = Plugin.Instance?.Configuration;
-            int maxItems = config?.MaxItems ?? 10;
-            var quotaResult = ApplyCategoryQuotas(diskNotifs, maxItems);
+            var quotaResult = ApplyCategoryQuotas(diskNotifs, DatabaseCategoryLimit);
             var finalNotifications = quotaResult.Kept;
             var itemsToDelete = quotaResult.RemovedIds;
 
@@ -333,8 +332,6 @@ namespace NotifySync
 
                 if (newItems.Count > 0)
                 {
-                    var config = Plugin.Instance?.Configuration;
-                    int maxItems = config?.MaxItems ?? 10;
                     var itemsToDelete = new List<string>();
                     var itemsToSave = new List<NotificationItem>(newItems);
 
@@ -348,7 +345,7 @@ namespace NotifySync
                         }
 
                         // Apply Quota per category
-                        var quotaResult = ApplyCategoryQuotas(_notifications, maxItems);
+                        var quotaResult = ApplyCategoryQuotas(_notifications, DatabaseCategoryLimit);
                         var finalNotifications = quotaResult.Kept;
                         itemsToDelete.AddRange(quotaResult.RemovedIds);
 
@@ -470,7 +467,7 @@ namespace NotifySync
                 IncludeItemTypes = new[] { BaseItemKind.Movie },
                 Recursive = true,
                 OrderBy = new[] { (ItemSortBy.DateCreated, (Jellyfin.Database.Implementations.Enums.SortOrder)1) },
-                Limit = maxItems * 100, // Enough depth to find unique items across multi-libraries
+                Limit = 1000, // Safe hard limit for initial history scan
                 DtoOptions = new MediaBrowser.Controller.Dto.DtoOptions(false)
             };
 
@@ -479,7 +476,7 @@ namespace NotifySync
                 IncludeItemTypes = new[] { BaseItemKind.Episode },
                 Recursive = true,
                 OrderBy = new[] { (ItemSortBy.DateCreated, (Jellyfin.Database.Implementations.Enums.SortOrder)1) },
-                Limit = maxItems * 400, // High depth for episodes mapping to same category globally (e.g. Animés + Séries)
+                Limit = 2000, // Safe hard limit for initial history scan
                 DtoOptions = new MediaBrowser.Controller.Dto.DtoOptions(false)
             };
 
@@ -488,7 +485,7 @@ namespace NotifySync
                 IncludeItemTypes = new[] { BaseItemKind.Audio },
                 Recursive = true,
                 OrderBy = new[] { (ItemSortBy.DateCreated, (Jellyfin.Database.Implementations.Enums.SortOrder)1) },
-                Limit = maxItems * 400, // Dozens of tracks per album
+                Limit = 2000, // Safe hard limit for initial history scan
                 DtoOptions = new MediaBrowser.Controller.Dto.DtoOptions(false)
             };
 
@@ -499,7 +496,7 @@ namespace NotifySync
                 Recursive = true,
                 OrderBy = new[] { (ItemSortBy.DateCreated, (Jellyfin.Database.Implementations.Enums.SortOrder)1) },
                 MediaTypes = new[] { MediaType.Video, MediaType.Audio },
-                Limit = maxItems * 400,
+                Limit = 2000, // Safe hard limit for initial history scan
                 DtoOptions = new MediaBrowser.Controller.Dto.DtoOptions(false)
             };
 
@@ -581,9 +578,9 @@ namespace NotifySync
 
                     if (isEpisodeOrAlbum)
                     {
-                        // For episodes: allow if we haven't reached maxItems unique series yet
+                        // For episodes: allow if we haven't reached DatabaseCategoryLimit unique series yet
                         bool isNewSeries = !seriesSet.Contains(notif.SeriesId!);
-                        if (isNewSeries && currentCount >= maxItems)
+                        if (isNewSeries && currentCount >= DatabaseCategoryLimit)
                         {
                             // Already have enough unique series, skip this new series
                         }
@@ -600,7 +597,7 @@ namespace NotifySync
                     else
                     {
                         // For movies: count individually as before
-                        if (currentCount < maxItems)
+                        if (currentCount < DatabaseCategoryLimit)
                         {
                             results.Add(notif);
                             categoryCounts[categoryKey] = currentCount + 1;

@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Net;
-using MediaBrowser.Model.Entities; // Added for BaseItemKind
+using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.Querying;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -211,6 +211,27 @@ namespace NotifySync
                         return;
                     }
 
+                    // Héritage du statut "Vu" depuis la Saison ou la Série
+                    if (item.GetType().Name == "Episode")
+                    {
+                        var parents = item.GetParents();
+                        bool parentPlayed = false;
+                        foreach (var parent in parents)
+                        {
+                            var parentUserData = _userDataManager.GetUserData(user, parent);
+                            if (parentUserData != null && parentUserData.Played)
+                            {
+                                parentPlayed = true;
+                                break;
+                            }
+                        }
+
+                        if (parentPlayed)
+                        {
+                            return;
+                        }
+                    }
+
                     filtered.Add(n);
                 });
 
@@ -331,10 +352,44 @@ namespace NotifySync
             DateTime dt = string.IsNullOrEmpty(date) ? DateTime.UtcNow : DateTime.Parse(date, System.Globalization.CultureInfo.InvariantCulture);
             long timestamp = dt.Ticks;
 
+            try
+            {
+                // Synchroniser l'état "Vu" avec Jellyfin pour tous les éléments actuellement non-vus dans la cloche
+                if (NotificationManager.Instance != null)
+                {
+                    var allNotifs = NotificationManager.Instance.GetRecentNotifications();
+                    var user = _userManager.GetUserById(Guid.Parse(userId));
+                    if (user != null)
+                    {
+                        // On ne marque comme vu que les éléments antérieurs à la date cliquée
+                        var toMark = allNotifs.Where(n => n.DateCreated <= dt).ToList();
+                        foreach (var n in toMark)
+                        {
+                            var item = _libraryManager.GetItemById(n.Id);
+                            if (item != null && item.IsVisible(user))
+                            {
+                                var userData = _userDataManager.GetUserData(user, item);
+                                if (userData != null && !userData.Played)
+                                {
+                                    userData.Played = true;
+                                    userData.PlayCount = Math.Max(1, userData.PlayCount + 1);
+                                    userData.LastPlayedDate = dt;
+                                    _userDataManager.SaveUserData(user, item, userData, UserDataSaveReason.PlaybackFinished, CancellationToken.None);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Erreur lors de la synchronisation de l'état Vu avec Jellyfin pour l'utilisateur {UserId}", userId);
+            }
+
             UserLastSeenCache[userId] = timestamp;
             SaveUserLastSeen(userId, timestamp);
 
-            // Invalidate cache for this user because LastSeen changed
+            // Invalidate cache for this user because LastSeen changed (and UserData was modified)
             InvalidateUserCache(userId);
 
             return Ok();
@@ -389,7 +444,23 @@ namespace NotifySync
                     {
                         var userObj = user!;
                         var userData = _userDataManager.GetUserData(userObj, item);
-                        results[id] = userData.Played;
+                        bool isPlayed = userData.Played;
+
+                        if (!isPlayed && item.GetType().Name == "Episode")
+                        {
+                            var parents = item.GetParents();
+                            foreach (var parent in parents)
+                            {
+                                var parentUserData = _userDataManager.GetUserData(userObj, parent);
+                                if (parentUserData != null && parentUserData.Played)
+                                {
+                                    isPlayed = true;
+                                    break;
+                                }
+                            }
+                        }
+
+                        results[id] = isPlayed;
                     }
                     else
                     {

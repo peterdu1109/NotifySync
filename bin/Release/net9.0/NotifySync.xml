@@ -19,6 +19,20 @@
             Gets or sets the name of the category.
             </summary>
         </member>
+        <member name="T:NotifySync.CategoryQuotaService">
+            <summary>
+            Service to apply database and UI quotas ensuring groups (e.g., Series) count as a single slot.
+            </summary>
+        </member>
+        <member name="M:NotifySync.CategoryQuotaService.ApplyCategoryQuotas(System.Collections.Generic.IEnumerable{NotifySync.NotificationItem},System.Int32)">
+            <summary>
+            Applies the maximum item quota per category, ensuring that items of the same Series
+            only consume a single quota slot.
+            </summary>
+            <param name="sourceList">The initial list of items (most recent first expected).</param>
+            <param name="maxItems">The maximum retention or display quota per category.</param>
+            <returns>A tuple of kept items and removed item IDs.</returns>
+        </member>
         <member name="T:NotifySync.FileTransformationPayload">
             <summary>
             Payload class matching File Transformation's callback parameter.

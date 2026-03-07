@@ -211,27 +211,6 @@ namespace NotifySync
                         return;
                     }
 
-                    // Héritage du statut "Vu" depuis la Saison ou la Série
-                    if (item.GetType().Name == "Episode")
-                    {
-                        var parents = item.GetParents();
-                        bool parentPlayed = false;
-                        foreach (var parent in parents)
-                        {
-                            var parentUserData = _userDataManager.GetUserData(user, parent);
-                            if (parentUserData != null && parentUserData.Played)
-                            {
-                                parentPlayed = true;
-                                break;
-                            }
-                        }
-
-                        if (parentPlayed)
-                        {
-                            return;
-                        }
-                    }
-
                     filtered.Add(n);
                 });
 
@@ -444,23 +423,7 @@ namespace NotifySync
                     {
                         var userObj = user!;
                         var userData = _userDataManager.GetUserData(userObj, item);
-                        bool isPlayed = userData.Played;
-
-                        if (!isPlayed && item.GetType().Name == "Episode")
-                        {
-                            var parents = item.GetParents();
-                            foreach (var parent in parents)
-                            {
-                                var parentUserData = _userDataManager.GetUserData(userObj, parent);
-                                if (parentUserData != null && parentUserData.Played)
-                                {
-                                    isPlayed = true;
-                                    break;
-                                }
-                            }
-                        }
-
-                        results[id] = isPlayed;
+                        results[id] = userData.Played;
                     }
                     else
                     {

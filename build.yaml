@@ -1,7 +1,11 @@
 project: NotifySync
-version: 5.2.0.0
+version: 5.2.2.0
 targetAbi: 10.11.0.0
 build:
+  - CRITICAL : Élimination du syndrome du 'média fantôme' (lorsque le téléchargement des images TMDB accusait un retard réseau) via intégration dans l'ItemUpdated (v5.2.2.0).
+  - PERFORMANCE : Instauration d'un cache mémoire absolu (0ms, 0 File I/O) pour empêcher le rechargement intempestif sur le disque du client.js natif pour chaque client ou TV s'y connectant. (v5.2.2.0).
+  - CRITICAL : Élimination du "ThreadPool Starvation" (Freeze Web) causé par le Parallel.ForEach lors de l'accès au menu de notifications (v5.2.2.0).
+  - CRITICAL : Élimination d'un sévère goulot d'étranglement bloquant l'API Web lors du 'Tout marquer comme vu' (passage en asynchrone) (v5.2.2.0).
   - FEATURE : Le scan de l'historique (NotifySync) se lance désormais automatiquement au démarrage de Jellyfin (v5.2.0.0).
   - CRITICAL : Limitation stricte de l'historique en base de données à 100 éléments par catégorie pour une stabilité absolue (v5.2.0.0).
   - FIX : Le statut "Vu" (cloches et petites pastilles vertes) se synchronise désormais réellement avec Jellyfin lors du clic sur "Tout marquer comme lu" (v5.2.0.0).

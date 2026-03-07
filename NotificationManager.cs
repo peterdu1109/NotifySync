@@ -260,6 +260,7 @@ namespace NotifySync
 
             bool dbNeedsUpdate = false;
             NotificationItem? updatedNotif = null;
+            bool isGhostItemRescue = false;
 
             try
             {
@@ -284,12 +285,26 @@ namespace NotifySync
                         Interlocked.Exchange(ref _versionCounter, DateTime.UtcNow.Ticks);
                     }
                 }
+                else
+                {
+                    isGhostItemRescue = true;
+                }
             }
             finally
             {
                 if (_dataLock.IsWriteLockHeld)
                 {
                     _dataLock.ExitWriteLock();
+                }
+            }
+
+            if (isGhostItemRescue)
+            {
+                var notifCheck = CreateNotificationFromItem(e.Item);
+                if (notifCheck != null)
+                {
+                    _eventBuffer.Enqueue(e.Item);
+                    _bufferProcessTimer.Change(500, Timeout.Infinite);
                 }
             }
 

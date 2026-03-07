@@ -33,6 +33,7 @@ namespace NotifySync
         private static readonly object GlobalFileLock = new ();
         private static long _lastRefreshTime;
         private static ILogger<NotifyController>? _staticLogger;
+        private static string? _clientJsCache;
 
         // I/O Optimization
         private static Timer? _saveTimer;
@@ -126,17 +127,22 @@ namespace NotifySync
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
         public ActionResult GetClientJs()
         {
-            var assembly = GetType().Assembly;
-            const string ResourceName = "NotifySync.client.js";
-            using var stream = assembly.GetManifestResourceStream(ResourceName);
-            if (stream == null)
+            if (_clientJsCache == null)
             {
-                _logger.LogError("NotifySync: client.js resource not found! Expected: {ResourceName}", ResourceName);
-                return NotFound();
+                var assembly = GetType().Assembly;
+                const string ResourceName = "NotifySync.client.js";
+                using var stream = assembly.GetManifestResourceStream(ResourceName);
+                if (stream == null)
+                {
+                    _logger.LogError("NotifySync: client.js resource not found! Expected: {ResourceName}", ResourceName);
+                    return NotFound();
+                }
+
+                using var reader = new StreamReader(stream);
+                _clientJsCache = reader.ReadToEnd();
             }
 
-            using var reader = new StreamReader(stream);
-            return Content(reader.ReadToEnd(), "application/javascript");
+            return Content(_clientJsCache, "application/javascript");
         }
 
         /// <summary>
@@ -183,36 +189,36 @@ namespace NotifySync
                     return NotFound();
                 }
 
-                var filtered = new ConcurrentBag<NotificationItem>();
+                var filtered = new List<NotificationItem>();
                 int filteredNotVisible = 0;
                 int itemNotFound = 0;
 
-                Parallel.ForEach(allNotifs, new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount }, n =>
+                foreach (var n in allNotifs)
                 {
                     var item = _libraryManager.GetItemById(n.Id);
                     if (item == null)
                     {
                         // Item not in native Jellyfin DB (e.g. IPTV/external provider).
                         // Keep it — it was validated during the scan phase.
-                        Interlocked.Increment(ref itemNotFound);
+                        itemNotFound++;
                         filtered.Add(n);
-                        return;
+                        continue;
                     }
 
                     if (!item.IsVisible(user))
                     {
-                        Interlocked.Increment(ref filteredNotVisible);
-                        return;
+                        filteredNotVisible++;
+                        continue;
                     }
 
                     var userData = _userDataManager.GetUserData(user, item);
                     if (userData != null && userData.Played)
                     {
-                        return;
+                        continue;
                     }
 
                     filtered.Add(n);
-                });
+                }
 
                 var filteredList = filtered.OrderByDescending(n => n.DateCreated).ToList();
 
@@ -301,33 +307,43 @@ namespace NotifySync
                 // Synchroniser l'état "Vu" avec Jellyfin pour tous les éléments actuellement non-vus dans la cloche
                 if (NotificationManager.Instance != null)
                 {
-                    var allNotifs = NotificationManager.Instance.GetRecentNotifications();
-                    var user = _userManager.GetUserById(Guid.Parse(userId));
-                    if (user != null)
+                    Task.Run(() =>
                     {
-                        // On ne marque comme vu que les éléments antérieurs à la date cliquée
-                        var toMark = allNotifs.Where(n => n.DateCreated <= dt).ToList();
-                        foreach (var n in toMark)
+                        try
                         {
-                            var item = _libraryManager.GetItemById(n.Id);
-                            if (item != null && item.IsVisible(user))
+                            var allNotifs = NotificationManager.Instance.GetRecentNotifications();
+                            var user = _userManager.GetUserById(Guid.Parse(userId));
+                            if (user != null)
                             {
-                                var userData = _userDataManager.GetUserData(user, item);
-                                if (userData != null && !userData.Played)
+                                // On ne marque comme vu que les éléments antérieurs à la date cliquée
+                                var toMark = allNotifs.Where(n => n.DateCreated <= dt).ToList();
+                                foreach (var n in toMark)
                                 {
-                                    userData.Played = true;
-                                    userData.PlayCount = Math.Max(1, userData.PlayCount + 1);
-                                    userData.LastPlayedDate = dt;
-                                    _userDataManager.SaveUserData(user, item, userData, UserDataSaveReason.PlaybackFinished, CancellationToken.None);
+                                    var item = _libraryManager.GetItemById(n.Id);
+                                    if (item != null && item.IsVisible(user))
+                                    {
+                                        var userData = _userDataManager.GetUserData(user, item);
+                                        if (userData != null && !userData.Played)
+                                        {
+                                            userData.Played = true;
+                                            userData.PlayCount = Math.Max(1, userData.PlayCount + 1);
+                                            userData.LastPlayedDate = dt;
+                                            _userDataManager.SaveUserData(user, item, userData, UserDataSaveReason.PlaybackFinished, CancellationToken.None);
+                                        }
+                                    }
                                 }
                             }
                         }
-                    }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex, "Erreur asynchrone lors de la synchronisation de l'état Vu avec Jellyfin pour l'utilisateur {UserId}", userId);
+                        }
+                    });
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Erreur lors de la synchronisation de l'état Vu avec Jellyfin pour l'utilisateur {UserId}", userId);
+                _logger.LogError(ex, "Erreur au lancement de la tâche asynchrone pour l'état Vu. User: {UserId}", userId);
             }
 
             UserLastSeenCache[userId] = timestamp;

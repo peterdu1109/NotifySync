@@ -208,7 +208,6 @@ namespace NotifySync
                     var userData = _userDataManager.GetUserData(user, item);
                     if (userData != null && userData.Played)
                     {
-                        // Ne pas renvoyer les éléments déjà vus (s'assure qu'ils ne pop pas dans la cloche comme 'non lus')
                         return;
                     }
 
@@ -216,6 +215,46 @@ namespace NotifySync
                 });
 
                 var filteredList = filtered.OrderByDescending(n => n.DateCreated).ToList();
+
+                // --- Per-user quota: keep only the X most recent UNSEEN items per category ---
+                int maxItems = Plugin.Instance?.Configuration?.MaxItems ?? 10;
+                var quotaFiltered = new List<NotificationItem>();
+                foreach (var group in filteredList.GroupBy(n => n.Category))
+                {
+                    var seriesIds = new HashSet<string>();
+                    int slotCount = 0;
+
+                    foreach (var item in group)
+                    {
+                        bool isEpisode = !string.IsNullOrEmpty(item.SeriesId);
+                        if (isEpisode)
+                        {
+                            bool isNew = seriesIds.Add(item.SeriesId!);
+                            if (isNew && slotCount >= maxItems)
+                            {
+                                continue;
+                            }
+
+                            if (isNew)
+                            {
+                                slotCount++;
+                            }
+                        }
+                        else
+                        {
+                            if (slotCount >= maxItems)
+                            {
+                                continue;
+                            }
+
+                            slotCount++;
+                        }
+
+                        quotaFiltered.Add(item);
+                    }
+                }
+
+                filteredList = quotaFiltered;
 
                 _logger.LogInformation(
                     "GetData Diagnostics: Total={Total}, NotInLibrary(kept)={NotFound}, FilteredNotVisible={NotVisible}, Result: {Cats}",

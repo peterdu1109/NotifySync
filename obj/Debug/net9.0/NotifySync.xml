@@ -19,6 +19,17 @@
             Gets or sets the name of the category.
             </summary>
         </member>
+        <member name="T:NotifySync.FileTransformationPayload">
+            <summary>
+            Payload class matching File Transformation's callback parameter.
+            The property 'Contents' receives the raw HTML of the intercepted file.
+            </summary>
+        </member>
+        <member name="P:NotifySync.FileTransformationPayload.Contents">
+            <summary>
+            Gets or sets the HTML contents of the file being transformed.
+            </summary>
+        </member>
         <member name="T:NotifySync.HistoryScanTask">
             <summary>
             A scheduled task to scan the library and populate the notification history.
@@ -181,6 +192,11 @@
             Gets the singleton instance.
             </summary>
         </member>
+        <member name="P:NotifySync.NotificationManager.Db">
+            <summary>
+            Gets the notification database.
+            </summary>
+        </member>
         <member name="M:NotifySync.NotificationManager.ManualHistoryScan(System.IProgress{System.Double},System.Threading.CancellationToken)">
             <summary>
             Triggers a manual history scan.
@@ -229,6 +245,12 @@
             </summary>
             <returns>The javascript file.</returns>
         </member>
+        <member name="M:NotifySync.NotifyController.GetDebugState">
+            <summary>
+            Gets the debug state of the notification manager.
+            </summary>
+            <returns>A JSON object containing the debug state.</returns>
+        </member>
         <member name="M:NotifySync.NotifyController.GetData(System.String)">
             <summary>
             Gets notification data for a specific user.
@@ -263,6 +285,53 @@
             Invalidates the view cache for a specific user.
             </summary>
             <param name="userId">The user identifier.</param>
+        </member>
+        <member name="T:NotifySync.NotifySyncEntryPoint">
+            <summary>
+            Background service that registers a File Transformation callback
+            to inject client.js into index.html at the HTTP level.
+            Falls back with a helpful log message if File Transformation is not installed.
+            </summary>
+        </member>
+        <member name="M:NotifySync.NotifySyncEntryPoint.#ctor(Microsoft.Extensions.Logging.ILogger{NotifySync.NotifySyncEntryPoint})">
+            <summary>
+            Initializes a new instance of the <see cref="T:NotifySync.NotifySyncEntryPoint"/> class.
+            </summary>
+            <param name="logger">The logger.</param>
+        </member>
+        <member name="M:NotifySync.NotifySyncEntryPoint.StartAsync(System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:NotifySync.NotifySyncEntryPoint.StopAsync(System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:NotifySync.NotifySyncEntryPoint.TryRegisterFileTransformation">
+            <summary>
+            Tries to find the File Transformation plugin via reflection and register
+            our transformation callback. Returns true on success.
+            </summary>
+        </member>
+        <member name="T:NotifySync.NotifySyncServiceRegistrator">
+            <summary>
+            Registers NotifySync services into the Jellyfin DI container.
+            </summary>
+        </member>
+        <member name="M:NotifySync.NotifySyncServiceRegistrator.RegisterServices(Microsoft.Extensions.DependencyInjection.IServiceCollection,MediaBrowser.Controller.IServerApplicationHost)">
+            <inheritdoc />
+        </member>
+        <member name="T:NotifySync.NotifySyncTransformation">
+            <summary>
+            Static callback class invoked by File Transformation plugin
+            to inject the NotifySync client script into index.html.
+            </summary>
+        </member>
+        <member name="M:NotifySync.NotifySyncTransformation.Transform(NotifySync.FileTransformationPayload)">
+            <summary>
+            Called by File Transformation via reflection.
+            Injects the client.js script tag before &lt;/body&gt;.
+            </summary>
+            <param name="payload">The file contents payload.</param>
+            <returns>The modified HTML string.</returns>
         </member>
         <member name="T:NotifySync.Plugin">
             <summary>

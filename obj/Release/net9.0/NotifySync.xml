@@ -192,6 +192,11 @@
             Gets the singleton instance.
             </summary>
         </member>
+        <member name="P:NotifySync.NotificationManager.Db">
+            <summary>
+            Gets the notification database.
+            </summary>
+        </member>
         <member name="M:NotifySync.NotificationManager.ManualHistoryScan(System.IProgress{System.Double},System.Threading.CancellationToken)">
             <summary>
             Triggers a manual history scan.

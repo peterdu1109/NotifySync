@@ -1,7 +1,13 @@
 project: NotifySync
-version: 5.1.0.0
+version: 5.1.0.2
 targetAbi: 10.11.0.0
 build:
+  - CRITICAL : Résolution du bug de perte de la base de données au redémarrage (HistoryScanTask) et conflit de versions. (v5.1.0.2).
+  - FIX : Refonte du Client.js (hook 'authenticated') pour affichage instantané des notifications au login sans F5 (v5.1.0.2).
+  - UI : Amélioration de l'intégration visuelle de la cloche (espacement et alignement parfaits avec les icônes natives) (v5.1.0.2).
+  - FIX : Le cache utilisateur se met à jour automatiquement quand un item passe de vu à non vu (et inversement) (v5.1.0.2).
+  - FIX : Marquer une saison entière comme vue met à jour la cloche instantanément (v5.1.0.2).
+  - FEATURE : Quota par utilisateur - seuls les X derniers items non vus par catégorie sont affichés (v5.1.0.2).
   - FEATURE : Support File Transformation pour injection automatique du script client (tous les OS) (v5.1.0.0).
   - FEATURE : Intégration des WebSockets pour un rafraîchissement temps réel absolu (client.js) (v5.0.0.0).
   - REFACTOR : Modernisation de l'interface de configuration en ES6 (ConfigurationPage.html) (v5.0.0.0).

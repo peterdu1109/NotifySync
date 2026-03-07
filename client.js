@@ -57,11 +57,10 @@
         if (document.getElementById('notifysync-css')) return;
         const css = `
             :root { --ns-red: #e50914; --ns-glass: rgba(20, 20, 20, 0.98); --ns-blur: 16px; --ns-border: rgba(255,255,255,0.15); }
-            #bell-container { display:flex!important;align-items:center;justify-content:center; }
-            #netflix-bell { background:0 0;border:none;cursor:pointer;padding:10px;color:inherit;position:relative; transition: transform 0.2s; }
+            #netflix-bell { background:0 0;border:none;cursor:pointer;color:inherit;position:relative; transition: transform 0.2s; width:35px;height:35px;overflow:visible;display:inline-flex!important;align-items:center;justify-content:center; }
             #netflix-bell:active { transform: scale(0.9); }
             .ns-badge {
-                position: absolute; top: 4px; right: 4px;
+                position: absolute!important; top: 4px; right: 4px; margin: 0!important;
                 background: var(--ns-red); color: white;
                 font-size: 10px; font-weight: bold;
                 padding: 1px 5px; border-radius: 10px;
@@ -427,15 +426,17 @@
 
     const installBell = () => {
         const header = document.querySelector('.headerRight') || document.querySelector('.headerButtons-right') || document.querySelector('.emby-header-right') || document.querySelector('.skinHeader-content');
-        if (!header || document.getElementById('bell-container')) {
-            if (document.getElementById('bell-container') && observerInstance) { observerInstance.disconnect(); observerInstance = null; monitorBellDisappearance(); }
+        if (!header || document.getElementById('netflix-bell')) {
+            if (document.getElementById('netflix-bell') && observerInstance) { observerInstance.disconnect(); observerInstance = null; monitorBellDisappearance(); }
             return;
         }
         injectStyles();
-        const div = document.createElement('div'); div.id = 'bell-container';
-        div.innerHTML = `<button id="netflix-bell" class="paper-icon-button-light headerButton"><span class="material-icons notifications"></span></button>`;
-        div.firstChild.onclick = (e) => { e.preventDefault(); e.stopPropagation(); toggleDropdown(); };
-        header.prepend(div);
+        const bellBtn = document.createElement('button');
+        bellBtn.id = 'netflix-bell';
+        bellBtn.className = 'paper-icon-button-light headerButton headerButtonRight';
+        bellBtn.innerHTML = '<span class="material-icons notifications"></span>';
+        bellBtn.onclick = (e) => { e.preventDefault(); e.stopPropagation(); toggleDropdown(); };
+        header.prepend(bellBtn);
         loadFromCache();
 
         // Initial fetch attempt
@@ -443,7 +444,7 @@
     };
 
     const monitorBellDisappearance = () => {
-        const obs = new MutationObserver(() => { if (!document.getElementById('bell-container')) { obs.disconnect(); startMainObserver(); } });
+        const obs = new MutationObserver(() => { if (!document.getElementById('netflix-bell')) { obs.disconnect(); startMainObserver(); } });
         obs.observe(document.body, { childList: true, subtree: true });
     };
 
@@ -455,6 +456,8 @@
 
     // --- NEW: WebSockets Real-Time Sync ---
     let wsDebounceTimeout = null;
+    let wsFollowUp1 = null;
+    let wsFollowUp2 = null;
     const onWebSocketMessage = (e, msg) => {
         if (!msg || !msg.MessageType) return;
 
@@ -462,33 +465,54 @@
         if (msg.MessageType === "LibraryChanged" || msg.MessageType === "UserDataChanged") {
             console.log("NotifySync: Intercepted WebSocket event ->", msg.MessageType);
 
-            // Debounce to prevent flooding if 50 items are added at once
+            // Reset all timers on each event
             if (wsDebounceTimeout) clearTimeout(wsDebounceTimeout);
+            if (wsFollowUp1) clearTimeout(wsFollowUp1);
+            if (wsFollowUp2) clearTimeout(wsFollowUp2);
+
             wsDebounceTimeout = setTimeout(() => {
                 retryDelay = 2000;
                 fetchData();
-            }, 3000); // Wait 3 seconds after the last event before fetching
+                // Jellyfin propagates Played to episodes one-by-one (~15s for a season).
+                // Multi-stage follow-up to catch stragglers.
+                wsFollowUp1 = setTimeout(() => fetchData(), 5000);
+                wsFollowUp2 = setTimeout(() => fetchData(), 12000);
+            }, 2000);
         }
     };
 
-    const setupWebSockets = () => {
-        // Jellyfin global Events dispatcher
+    const setupEvents = () => {
         if (window.Events && window.ApiClient) {
             window.Events.on(window.ApiClient, "websocketmessage", onWebSocketMessage);
-            console.log("NotifySync: WebSockets successfully hooked.");
+
+            // Re-fetch data instantly when user logs in or reconnects
+            window.Events.on(window.ApiClient, "authenticated", () => {
+                console.log("NotifySync: User authenticated! Fetching data immediately.");
+                retryDelay = 1000;
+                fetchData();
+            });
+
+            console.log("NotifySync: Events successfully hooked.");
         } else {
-            console.warn("NotifySync: window.Events or ApiClient not ready for WebSockets. Retrying...");
-            setTimeout(setupWebSockets, 5000);
+            console.warn("NotifySync: window.Events or ApiClient not ready. Retrying...");
+            setTimeout(setupEvents, 2000);
         }
     };
 
     document.addEventListener('viewshow', () => {
         console.log("NotifySync: View changed, checking auth...");
-        retryDelay = 2000; // Reset backoff
+        retryDelay = 1000; // Reset backoff to be more aggressive
         fetchData();
     });
 
-    // Start WebSocket listener instead of setInterval
-    setupWebSockets();
+    // Handle SPA navigation visibility changes
+    document.addEventListener("visibilitychange", () => {
+        if (!document.hidden) {
+            retryDelay = 1000;
+            fetchData();
+        }
+    });
+
+    setupEvents();
     startMainObserver();
 })();

@@ -9,6 +9,14 @@
     "supportUrl": "https://github.com/",
     "versions": [
       {
+        "version": "5.1.0.2",
+        "changelog": "- CRITICAL: Résolution du bug de perte de la base de données au redémarrage (HistoryScanTask) et conflit de dossiers Jellyfin.\\n- FIX: Refonte du Client.js (hook 'authenticated') pour un affichage instantané des notifications au login sans devoir appuyer sur F5.\\n- UI: Alignement et espacement parfaits de la cloche avec les icônes natives du header Jellyfin.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/5.1.0.2/NotifySync_5.1.0.2.zip",
+        "checksum": "15B7D400647F61F19DA4AB4D10C5B420",
+        "timestamp": "2026-03-07T16:10:00Z"
+      },
+      {
         "version": "5.1.0.0",
         "changelog": "- FEATURE: Support File Transformation pour injection automatique du script client (tous les OS, sans modification de fichier).\\n- FIX: Le mappage des cat\u00e9gories affichait 'text' au lieu du nom de la biblioth\u00e8que.",
         "targetAbi": "10.11.0.0",

@@ -100,14 +100,23 @@ namespace NotifySync
         /// <param name="items">The items to save or update.</param>
         public void SaveNotifications(IEnumerable<NotificationItem> items)
         {
+            var itemList = items.ToList();
+            _logger.LogWarning("DEBUG DB: SaveNotifications called with {Count} items.", itemList.Count);
+            if (itemList.Count == 0)
+            {
+                return;
+            }
+
             try
             {
                 using var connection = new SqliteConnection(_connectionString);
                 connection.Open();
+                _logger.LogWarning("DEBUG DB: SQLite connection opened successfully.");
 
                 using var transaction = connection.BeginTransaction();
                 try
                 {
+                    int insertedCount = 0;
                     using (var insertCmd = connection.CreateCommand())
                     {
                         insertCmd.Transaction = transaction;
@@ -136,7 +145,7 @@ namespace NotifySync
                         var pIdx = insertCmd.Parameters.Add("@Index", SqliteType.Integer);
                         var pPIdx = insertCmd.Parameters.Add("@ParentIndex", SqliteType.Integer);
 
-                        foreach (var item in items)
+                        foreach (var item in itemList)
                         {
                             pId.Value = item.Id ?? string.Empty;
                             pName.Value = item.Name ?? string.Empty;
@@ -153,20 +162,23 @@ namespace NotifySync
                             pPIdx.Value = (object?)item.ParentIndexNumber ?? DBNull.Value;
 
                             insertCmd.ExecuteNonQuery();
+                            insertedCount++;
                         }
                     }
 
                     transaction.Commit();
+                    _logger.LogWarning("DEBUG DB: Successfully committed {Count} rows to the database.", insertedCount);
                 }
-                catch
+                catch (Exception ex)
                 {
+                    _logger.LogError(ex, "DEBUG DB: Error during transaction execution. Rolling back.");
                     transaction.Rollback();
                     throw;
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Erreur lors de la sauvegarde/mise à jour des notifications en SQLite.");
+                _logger.LogError(ex, "DEBUG DB: FATAL Erreur lors de la sauvegarde/mise à jour des notifications en SQLite.");
             }
         }
 

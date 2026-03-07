@@ -72,6 +72,11 @@ namespace NotifySync
         public static NotificationManager? Instance { get; private set; }
 
         /// <summary>
+        /// Gets the notification database.
+        /// </summary>
+        public NotificationDatabase Db => _db;
+
+        /// <summary>
         /// Triggers a manual history scan.
         /// </summary>
         /// <param name="progress">The progress object.</param>
@@ -138,6 +143,7 @@ namespace NotifySync
         private void LoadAndMigrate()
         {
             var diskNotifs = _db.GetAllNotifications().ToList();
+            _logger.LogInformation("NotifySync Startup: Loaded {Count} notifications from SQLite DB.", diskNotifs.Count);
 
             if (diskNotifs.Count == 0 && File.Exists(_jsonPath))
             {
@@ -171,6 +177,7 @@ namespace NotifySync
             var itemsToDelete = quotaResult.RemovedIds;
 
             var newNotifs = finalNotifications.OrderByDescending(n => n.DateCreated).ToList();
+            _logger.LogInformation("NotifySync Startup: Kept {Count} notifications after quota enforcement. ({Deleted} deleted)", newNotifs.Count, itemsToDelete.Count);
 
             if (itemsToDelete.Count > 0)
             {
@@ -194,10 +201,12 @@ namespace NotifySync
 
         private void OnUserDataSaved(object? sender, UserDataSaveEventArgs e)
         {
-            if (e.UserData != null && e.UserData.Played)
-            {
-                NotifyController.InvalidateUserCache(e.UserId.ToString("N"));
-            }
+            // Invalidate cache on ANY user data change (played, unplayed, season-level, etc.)
+            // This ensures the bell updates when:
+            //   - An item is marked as watched (disappears from bell)
+            //   - An item is unmarked (reappears in bell)
+            //   - A whole season is toggled (propagates to episodes)
+            NotifyController.InvalidateUserCache(e.UserId.ToString("N"));
         }
 
         private void OnItemAdded(object? sender, ItemChangeEventArgs e)
@@ -636,6 +645,12 @@ namespace NotifySync
             }
 
             // Discard old, insert new into DB directly
+            if (newNotifs.Count == 0 && oldDbIds.Count > 0)
+            {
+                _logger.LogWarning("Le scan de l'historique a retourné 0 élément (probablement en raison d'un démarrage du serveur où la bibliothèque n'est pas encore prête). La base de données existante ne sera pas effacée.");
+                return;
+            }
+
             _db.DeleteNotifications(oldDbIds!);
             _db.SaveNotifications(newNotifs);
             _db.Vacuum(); // Reclaim space after mass delete/insert

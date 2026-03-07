@@ -218,43 +218,8 @@ namespace NotifySync
 
                 // --- Per-user quota: keep only the X most recent UNSEEN items per category ---
                 int maxItems = Plugin.Instance?.Configuration?.MaxItems ?? 10;
-                var quotaFiltered = new List<NotificationItem>();
-                foreach (var group in filteredList.GroupBy(n => n.Category))
-                {
-                    var seriesIds = new HashSet<string>();
-                    int slotCount = 0;
-
-                    foreach (var item in group)
-                    {
-                        bool isEpisode = !string.IsNullOrEmpty(item.SeriesId);
-                        if (isEpisode)
-                        {
-                            bool isNew = seriesIds.Add(item.SeriesId!);
-                            if (isNew && slotCount >= maxItems)
-                            {
-                                continue;
-                            }
-
-                            if (isNew)
-                            {
-                                slotCount++;
-                            }
-                        }
-                        else
-                        {
-                            if (slotCount >= maxItems)
-                            {
-                                continue;
-                            }
-
-                            slotCount++;
-                        }
-
-                        quotaFiltered.Add(item);
-                    }
-                }
-
-                filteredList = quotaFiltered;
+                var quotaResult = CategoryQuotaService.ApplyCategoryQuotas(filteredList, maxItems);
+                filteredList = quotaResult.Kept.ToList();
 
                 _logger.LogInformation(
                     "GetData Diagnostics: Total={Total}, NotInLibrary(kept)={NotFound}, FilteredNotVisible={NotVisible}, Result: {Cats}",

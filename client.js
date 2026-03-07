@@ -308,10 +308,16 @@
         try {
             await fetch('/NotifySync/Refresh', { method: 'POST', headers: getAuthHeaders() });
             localStorage.removeItem('ns-etag');
-            // --- CORRECTION : Attendre plus longtemps pour que le serveur finisse le scan ---
-            await new Promise(r => setTimeout(r, 1500));
-            await fetchData();
-        } finally { if (btn) btn.classList.remove('spinning'); }
+            // Le serveur lance un Task.Run en background. 
+            // On laisse le WebSocketMessage ("LibraryChanged" ou "UserDataChanged") nous notifier 
+            // lorsque le scan aura modifié la base de données.
+            // On enlève le "spinning" manuellement au bout de 2 sec par pure esthétique UX.
+            setTimeout(() => {
+                if (btn) btn.classList.remove('spinning');
+            }, 2000);
+        } catch (e) {
+            if (btn) btn.classList.remove('spinning');
+        }
     };
 
     const updateBadge = () => {

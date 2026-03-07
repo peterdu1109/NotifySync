@@ -171,7 +171,7 @@ namespace NotifySync
             }
 
             // Enforce Quota even on startup to trim any bloat from before
-            var quotaResult = ApplyCategoryQuotas(diskNotifs, DatabaseCategoryLimit);
+            var quotaResult = CategoryQuotaService.ApplyCategoryQuotas(diskNotifs, DatabaseCategoryLimit);
             var finalNotifications = quotaResult.Kept;
             var itemsToDelete = quotaResult.RemovedIds;
 
@@ -341,11 +341,11 @@ namespace NotifySync
                         foreach (var ni in itemsToSave)
                         {
                             _notifications.RemoveAll(n => n.Id == ni.Id);
-                            _notifications.Insert(0, ni);
+                            _notifications.Add(ni);
                         }
 
                         // Apply Quota per category
-                        var quotaResult = ApplyCategoryQuotas(_notifications, DatabaseCategoryLimit);
+                        var quotaResult = CategoryQuotaService.ApplyCategoryQuotas(_notifications, DatabaseCategoryLimit);
                         var finalNotifications = quotaResult.Kept;
                         itemsToDelete.AddRange(quotaResult.RemovedIds);
 
@@ -553,56 +553,13 @@ namespace NotifySync
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                // Track type distribution
                 var typeName = item.GetType().Name;
                 typeCounts[typeName] = typeCounts.GetValueOrDefault(typeName) + 1;
 
                 var notif = CreateNotificationFromItem(item);
                 if (notif != null)
                 {
-                    // For episodes and audio albums: count unique series/albums, not individual tracks
-                    // For movies/other: count individual items
-                    bool isEpisodeOrAlbum = !string.IsNullOrEmpty(notif.SeriesId);
-                    string categoryKey = notif.Category;
-
-                    if (!categorySeriesIds.TryGetValue(categoryKey, out var seriesSet))
-                    {
-                        seriesSet = new HashSet<string>();
-                        categorySeriesIds[categoryKey] = seriesSet;
-                    }
-
-                    if (!categoryCounts.TryGetValue(categoryKey, out int currentCount))
-                    {
-                        currentCount = 0;
-                    }
-
-                    if (isEpisodeOrAlbum)
-                    {
-                        // For episodes: allow if we haven't reached DatabaseCategoryLimit unique series yet
-                        bool isNewSeries = !seriesSet.Contains(notif.SeriesId!);
-                        if (isNewSeries && currentCount >= DatabaseCategoryLimit)
-                        {
-                            // Already have enough unique series, skip this new series
-                        }
-                        else
-                        {
-                            results.Add(notif);
-                            if (isNewSeries)
-                            {
-                                seriesSet.Add(notif.SeriesId!);
-                                categoryCounts[categoryKey] = currentCount + 1;
-                            }
-                        }
-                    }
-                    else
-                    {
-                        // For movies: count individually as before
-                        if (currentCount < DatabaseCategoryLimit)
-                        {
-                            results.Add(notif);
-                            categoryCounts[categoryKey] = currentCount + 1;
-                        }
-                    }
+                    results.Add(notif);
                 }
                 else
                 {
@@ -622,10 +579,10 @@ namespace NotifySync
 
             // Log diagnostics
             _logger.LogInformation("NotifySync Scan Diagnostics: Types found: {Types}", string.Join(", ", typeCounts.Select(kv => $"{kv.Key}={kv.Value}")));
-            _logger.LogInformation("NotifySync Scan Diagnostics: Categories Reach: {Categories}", string.Join(", ", categoryCounts.Select(kv => $"{kv.Key}={kv.Value}")));
             _logger.LogInformation("NotifySync Scan Diagnostics: Skipped (not in enabled library): {Skipped}, Skipped (null/error): {Null}", skippedNotEnabled, skippedNull);
 
-            var newNotifs = results.OrderByDescending(n => n.DateCreated).ToList();
+            var quotaResult = CategoryQuotaService.ApplyCategoryQuotas(results, DatabaseCategoryLimit);
+            var newNotifs = quotaResult.Kept.OrderByDescending(n => n.DateCreated).ToList();
             var oldDbIds = new List<string>();
 
             try
@@ -860,63 +817,6 @@ namespace NotifySync
             {
                 return null;
             }
-        }
-
-        private (List<NotificationItem> Kept, List<string> RemovedIds) ApplyCategoryQuotas(List<NotificationItem> sourceList, int maxItems)
-        {
-            var categorized = sourceList.GroupBy(n => n.Category).ToList();
-            var finalNotifications = new List<NotificationItem>();
-            var itemsToDelete = new List<string>();
-
-            foreach (var group in categorized)
-            {
-                var sorted = group.OrderByDescending(n => n.DateCreated).ToList();
-                var categorySeriesIds = new HashSet<string>();
-                int currentCount = 0;
-
-                foreach (var item in sorted)
-                {
-                    bool isEpisode = !string.IsNullOrEmpty(item.SeriesId);
-                    bool keep = false;
-
-                    if (isEpisode)
-                    {
-                        bool isNewSeries = !categorySeriesIds.Contains(item.SeriesId!);
-                        if (isNewSeries && currentCount >= maxItems)
-                        {
-                            // Already have max unique series, do not keep
-                        }
-                        else
-                        {
-                            keep = true;
-                            if (isNewSeries)
-                            {
-                                categorySeriesIds.Add(item.SeriesId!);
-                                currentCount++;
-                            }
-                        }
-                    }
-                    else
-                    {
-                        if (currentCount < maxItems)
-                        {
-                            keep = true;
-                            currentCount++;
-                        }
-                    }
-
-                    if (keep)
-                    {
-                        finalNotifications.Add(item);
-                    }
-                    else
-                    {
-                        itemsToDelete.Add(item.Id);
-                    }
-                }
-            }
-
-            return (finalNotifications, itemsToDelete);
         }
     }
 }

@@ -16,11 +16,7 @@ NotifySync transforme l'interface de Jellyfin en ajoutant une icône de notifica
 ### 🎨 Expérience Utilisateur
 *   **Design Moderne** : Intégration fluide "Netflix-Style" avec badge de nouveautés et effets visuels (Glassmorphism).
 *   **Navigation Intuitive** : "Hero Section" pour les derniers ajouts et regroupement intelligent des épisodes.
-<<<<<<< HEAD
-*   **Synchronisation Intelligente** : Indicateurs "Vu/Non vu" en temps réel avec le serveur Jellyfin (un clic sur "Tout marquer comme lu" coche instantanément vos médias dans la base).
-=======
 *   **Synchronisation Intelligente** : Indicateurs "Vu/Non vu" en temps réel avec le serveur Jellyfin (les médias lus disparaissent automatiquement de la cloche) et un bouton "Tout marquer comme lu" qui synchronise la base de données native.
->>>>>>> 357fa6edf8e29c765a263b63e0fe1c89fd0fda50
 *   **Filtrage Avancé** : Exclusion automatique des génériques (OP/ED), thèmes musicaux et respect strict des bibliothèques actives.
 *   **Compatibilité** : PC/Mac et Mobiles (via app officielle). *Note : Non supporté sur TV.*
 

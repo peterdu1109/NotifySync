@@ -13,43 +13,41 @@
                 <form id="notifySyncConfigForm">
                     <div class="verticalSection">
                         <div class="sectionTitleContainer">
-                            <h2 class="sectionTitle">Configuration NotifySync</h2>
-                            <p>Gérez les notifications et les catégories de la cloche.</p>
+                            <h2 class="sectionTitle">${HeaderNotifySync}</h2>
+                            <p>${DescriptionNotifySync}</p>
                         </div>
 
                         <div class="inputContainer">
-                            <label class="inputLabel" for="maxItems">Quota par Catégorie</label>
+                            <label class="inputLabel" for="maxItems">${LabelQuota}</label>
                             <input is="emby-input" type="number" id="maxItems" name="maxItems" min="3" max="20" />
-                            <div class="fieldDescription">Définit le nombre d'éléments à garder pour CHAQUE type (ex: 5
-                                Films + 5 Animes + 5 Musiques).</div>
+                            <div class="fieldDescription">${DescQuota}</div>
                         </div>
 
                         <div class="inputContainer">
-                            <h3 class="sectionTitle">Bibliothèques Surveillées</h3>
-                            <div class="fieldDescription">Cochez les bibliothèques à afficher dans la cloche.</div>
+                            <h3 class="sectionTitle">${LabelMonitoredLibraries}</h3>
+                            <div class="fieldDescription">${DescMonitoredLibraries}</div>
                             <div id="libraryCheckboxes"
                                 style="margin-top:10px; padding: 10px; background: rgba(0,0,0,0.2); min-height:50px;">
-                                Chargement...
+                                Loading...
                             </div>
                         </div>
 
                         <div class="inputContainer">
-                            <h3 class="sectionTitle">Mappage des Catégories</h3>
-                            <div class="fieldDescription">
-                                Créez vos propres catégories (ex: <b>Documentaires</b>, <b>Animes</b>).
-                            </div>
+                            <h3 class="sectionTitle">${LabelCategoryMapping}</h3>
+                            <div class="fieldDescription">${DescCategoryMapping}</div>
                             <div style="display:flex; gap:10px; margin-bottom:10px; align-items:flex-end;">
                                 <div style="flex-grow:1;">
-                                    <label class="inputLabel">Bibliothèque source</label>
+                                    <label class="inputLabel">${LabelSourceLibrary}</label>
                                     <select id="mappingLibrarySelect" is="emby-select" style="width:100%;"></select>
                                 </div>
                                 <div style="flex-grow:1;">
-                                    <label class="inputLabel">Nom de la catégorie cible</label>
-                                    <input is="emby-input" id="mappingCategoryInput" placeholder="ex: Animes" />
+                                    <label class="inputLabel">${LabelTargetCategory}</label>
+                                    <input is="emby-input" id="mappingCategoryInput"
+                                        placeholder="${PlaceholderCategory}" />
                                 </div>
                                 <button type="button" is="emby-button" class="raised button-accent"
                                     onclick="NotifySyncConf.addMapping()" style="margin-bottom:5px;">
-                                    Ajouter
+                                    ${ButtonAdd}
                                 </button>
                             </div>
                             <div id="mappingList"
@@ -57,12 +55,8 @@
                         </div>
 
                         <div class="inputContainer">
-                            <h3 class="sectionTitle">Sélection Manuelle (IDs ou Noms)</h3>
-                            <div class="fieldDescription">
-                                Si les cases ci-dessus ne fonctionnent pas, entrez ici l'ID <b>OU LE NOM EXACT</b> du
-                                dossier.<br />
-                                Exemples : <code>acf898...</code> ou simplement <code>Animes</code>.
-                            </div>
+                            <h3 class="sectionTitle">${LabelManualSelection}</h3>
+                            <div class="fieldDescription">${DescManualSelection}</div>
                             <textarea is="emby-textarea" id="manualLibraryIds" name="manualLibraryIds"
                                 rows="2"></textarea>
                         </div>
@@ -70,15 +64,14 @@
                         <div style="margin-top:30px;">
                             <button is="emby-button" type="submit" class="raised button-submit block"
                                 style="margin-bottom:20px;">
-                                Sauvegarder la configuration
+                                ${ButtonSave}
                             </button>
 
-                            <h3 class="sectionTitle">Maintenance</h3>
-                            <p class="fieldDescription">Cliquez ici après avoir changé les bibliothèques pour forcer le
-                                scan.</p>
+                            <h3 class="sectionTitle">${LabelMaintenance}</h3>
+                            <p class="fieldDescription">${DescMaintenance}</p>
                             <button is="emby-button" type="button" class="raised button-cancel block"
                                 onclick="NotifySyncConf.refreshHistory()">
-                                🔄 Régénérer l'historique et appliquer les filtres
+                                ${ButtonRefresh}
                             </button>
                         </div>
                     </div>

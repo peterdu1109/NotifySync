@@ -9,13 +9,13 @@
     <CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
     
     <!-- Versioning & Metadata -->
-    <AssemblyVersion>5.2.2.0</AssemblyVersion>
-    <FileVersion>5.2.2.0</FileVersion>
-    <Version>5.2.2.0</Version>
+    <AssemblyVersion>5.3.0.0</AssemblyVersion>
+    <FileVersion>5.3.0.0</FileVersion>
+    <Version>5.3.0.0</Version>
     <Authors>Peterdu1109, ElieM</Authors>
     <Company>NotifySync</Company>
     <Product>NotifySync</Product>
-    <Description>NotifySync transforme l'interface de Jellyfin en ajoutant une icône de notification (cloche) native. Il permet à vos utilisateurs de voir instantanément les derniers ajouts (Films, Séries, Musique) sans quitter leur page actuelle.</Description>
+    <Description>NotifySync transforms the Jellyfin interface by adding a native notification icon (bell). It allows your users to instantly see the latest additions (Movies, Series, Music) without leaving their current page.</Description>
     <Copyright>Copyright © 2026 Peterdu1109 &amp; ElieM</Copyright>
     
     <!-- Optimisations -->
@@ -42,5 +42,6 @@
   <ItemGroup>
     <EmbeddedResource Include="client.js" />
     <EmbeddedResource Include="ConfigurationPage.html" />
+    <EmbeddedResource Include="i18n\*.json" />
   </ItemGroup>
 </Project>

@@ -1,7 +1,10 @@
 project: NotifySync
-version: 5.2.2.0
+version: 5.3.0.0
 targetAbi: 10.11.0.0
 build:
+  - FEATURE : Support complet de l'internationalisation (i18n) pour l'anglais et le français (v5.3.0.0).
+  - FEATURE : Détection automatique de la langue du navigateur pour l'interface de la cloche (v5.3.0.0).
+  - FEATURE : Nouveau README bilingue premium avec supports visuels (v5.3.0.0).
   - CRITICAL : Élimination du syndrome du 'média fantôme' (lorsque le téléchargement des images TMDB accusait un retard réseau) via intégration dans l'ItemUpdated (v5.2.2.0).
   - PERFORMANCE : Instauration d'un cache mémoire absolu (0ms, 0 File I/O) pour empêcher le rechargement intempestif sur le disque du client.js natif pour chaque client ou TV s'y connectant. (v5.2.2.0).
   - CRITICAL : Élimination du "ThreadPool Starvation" (Freeze Web) causé par le Parallel.ForEach lors de l'accès au menu de notifications (v5.2.2.0).

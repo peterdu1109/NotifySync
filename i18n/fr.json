@@ -1,0 +1,20 @@
+{
+    "HeaderNotifySync": "Configuration NotifySync",
+    "DescriptionNotifySync": "Gérez les notifications et les quotas de catégories pour l'icône de cloche.",
+    "LabelQuota": "Quota par Catégorie",
+    "DescQuota": "Définit le nombre d'éléments à garder pour CHAQUE type (ex: 5 Films + 5 Séries + 5 Musique).",
+    "LabelMonitoredLibraries": "Bibliothèques Surveillées",
+    "DescMonitoredLibraries": "Cochez les bibliothèques à afficher dans la cloche.",
+    "LabelCategoryMapping": "Mappage des Catégories",
+    "DescCategoryMapping": "Créez vos propres catégories (ex: Documentaires, Animes).",
+    "LabelSourceLibrary": "Bibliothèque source",
+    "LabelTargetCategory": "Nom de la catégorie cible",
+    "PlaceholderCategory": "ex: Animes",
+    "ButtonAdd": "Ajouter",
+    "LabelManualSelection": "Sélection Manuelle (IDs ou Noms)",
+    "DescManualSelection": "Si les cases ci-dessus ne fonctionnent pas, entrez ici l'ID OU LE NOM EXACT du dossier.",
+    "ButtonSave": "Sauvegarder la configuration",
+    "LabelMaintenance": "Maintenance",
+    "DescMaintenance": "Cliquez ici après avoir changé les bibliothèques pour forcer le scan.",
+    "ButtonRefresh": "🔄 Régénérer l'historique et appliquer les filtres"
+}

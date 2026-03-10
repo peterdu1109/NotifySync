@@ -1,4 +1,4 @@
-# 🔔 NotifySync
+<h1 align="center">🔔 NotifySync</h1>
 
 <p align="center">
   <img src="https://img.shields.io/badge/version-5.3.0.0-blue" alt="Version">

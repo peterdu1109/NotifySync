@@ -18,13 +18,6 @@
   <a href="#english">English</a> | <a href="#français">Français</a>
 </p>
 
-<p align="center">
-  <a href="#✨-key-features">Features</a> •
-  <a href="#📦-installation">Installation</a> •
-  <a href="#⚙️-configuration">Configuration</a> •
-  <a href="#❓-troubleshooting">Troubleshooting</a>
-</p>
-
 ---
 ## 🖼️ Preview / Aperçu
 <div align="center">

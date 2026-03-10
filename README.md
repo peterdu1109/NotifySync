@@ -18,6 +18,13 @@
   <a href="#english">English</a> | <a href="#français">Français</a>
 </p>
 
+<p align="center">
+  <a href="#✨-key-features">Features</a> •
+  <a href="#📦-installation">Installation</a> •
+  <a href="#⚙️-configuration">Configuration</a> •
+  <a href="#❓-troubleshooting">Troubleshooting</a>
+</p>
+
 ---
 ## 🖼️ Preview / Aperçu
 <div align="center">
@@ -57,9 +64,9 @@ NotifySync transforms the Jellyfin interface by adding a native notification ico
 
 ## 📦 Installation
 
-### 1. Prerequisites
-* **Jellyfin 10.11.X**
-* **.NET 9 Runtime**
+> [!IMPORTANT]
+> **Prerequisites :**
+> * Jellyfin 10.11.X
 
 ### 2. Steps
 1.  Open your Jellyfin dashboard > **Plugins** > **Repositories**.
@@ -69,11 +76,12 @@ NotifySync transforms the Jellyfin interface by adding a native notification ico
 
 ### 🔔 Enable the Bell
 
-#### Method 1: File Transformation (Highly Recommended) ✅
-Install the **File Transformation** plugin for automatic injection (No file editing required):
-1.  Add repository: `https://www.iamparadox.dev/jellyfin/plugins/manifest.json`
-2.  Install **File Transformation**.
-3.  Restart Jellyfin → `Ctrl+F5`.
+> [!TIP]
+> **Method 1: File Transformation (Highly Recommended) ✅**
+> Install the File Transformation plugin for automatic injection (No file editing required):
+> 1.  Add repository: `https://www.iamparadox.dev/jellyfin/plugins/manifest.json`
+> 2.  Install **File Transformation**.
+> 3.  Restart Jellyfin → `Ctrl+F5`.
 
 #### Method 2: Manual Injection
 If you don't want to install another plugin, manually add the script to your `index.html`:
@@ -97,7 +105,7 @@ Go to **Dashboard > Plugins > NotifySync**.
 | **Content missing** | Ensure the library is checked in "Monitored Libraries". |
 | **Unauthorized content** | Plugin respects Jellyfin permissions. Check user restrictions. |
 | **429 Error** | Wait 1 minute between "Regenerate history" clicks (anti-spam). |
-| **Incompatible** | Ensure you are on Jellyfin 10.11.X with .NET 9. |
+| **Incompatible** | Ensure you are on Jellyfin 10.11.X |
 
 ---
 
@@ -105,6 +113,8 @@ Go to **Dashboard > Plugins > NotifySync**.
 # Français
 
 NotifySync transforme l'interface de Jellyfin en ajoutant une icône de notification (cloche) native. Il permet à vos utilisateurs de voir instantanément les derniers ajouts (Films, Séries, Musique) sans quitter leur page actuelle.
+
+## ✨ Fonctionnalités Principales
 
 ### 🎨 Expérience Utilisateur
 *   **Design Moderne** : Intégration fluide "Netflix-Style" avec badge de nouveautés et effets visuels (Glassmorphism).
@@ -126,20 +136,22 @@ NotifySync transforme l'interface de Jellyfin en ajoutant une icône de notifica
 
 ## 📦 Installation
 
-### 1. Pré-requis
-* **Jellyfin 10.11.X**
-* **.NET 9 Runtime**
+> [!IMPORTANT]
+> **Pré-requis :**
+> * Jellyfin 10.11.X
 
-### 2. Étapes
+### 1. Étapes
 1.  Tableau de bord Jellyfin > **Extensions** > **Dépôts**.
 2.  Ajoutez : `https://raw.githubusercontent.com/peterdu1109/NotifySync/refs/heads/main/repository.json`
 3.  Installez **NotifySync** et redémarrez Jellyfin.
 
 ### 🔔 Activer la Cloche
-#### Méthode 1 : File Transformation (Recommandé) ✅
-Injection automatique sans modification de fichier :
-1.  Dépôt : `https://www.iamparadox.dev/jellyfin/plugins/manifest.json`
-2.  Installez **File Transformation** et redémarrez Jellyfin → `Ctrl+F5`.
+
+> [!TIP]
+> **Méthode 1 : File Transformation (Recommandé) ✅**
+> Injection automatique sans modification de fichier :
+> 1.  Dépôt : `https://www.iamparadox.dev/jellyfin/plugins/manifest.json`
+> 2.  Installez **File Transformation** et redémarrez Jellyfin → `Ctrl+F5`.
 
 #### Méthode 2 : Injection Manuelle
 Si vous ne voulez pas d'extension tierce :
@@ -161,4 +173,4 @@ Allez dans **Tableau de bord > Extensions > NotifySync**.
 | **Contenu manquant** | Vérifiez que la bibliothèque est cochée dans la configuration. |
 | **Contenu non autorisé** | Le plugin respecte les permissions Jellyfin. |
 | **Erreur 429** | Attendez 1 minute entre chaque clic sur "Régénérer l'historique". |
-| **Incompatible** | Vérifiez Jellyfin 10.11.X et .NET 9. |
+| **Incompatible** | Vérifiez Jellyfin 10.11.X |

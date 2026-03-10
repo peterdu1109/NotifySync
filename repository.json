@@ -9,14 +9,6 @@
     "supportUrl": "https://github.com/",
     "versions": [
       {
-        "version": "5.3.0.0",
-        "changelog": "- FEATURE: Full Internationalization (i18n) support for English and French.\\n- FEATURE: Automatic browser language detection.\\n- DOCS: Premium bilingual README with screenshots placeholders.\\n- STABILITY: Final build v5.3.0.0 for Jellyfin 10.11.X.",
-        "targetAbi": "10.11.0.0",
-        "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/5.3.0.0/NotifySync_v5.3.0.0.zip",
-        "checksum": "D717F00C95E56F0474DD8C7FFEB61487",
-        "timestamp": "2026-03-10T17:55:00Z"
-      },
-      {
         "version": "5.2.2.0",
         "changelog": "- CRITICAL: Élimination du syndrome du 'média fantôme' (retard TMDB) via ajout d'un rattrapage sur OnItemUpdated.\\n- PERFORMANCE: Mise en cache absolu du script JS servant l'interface pour éliminer les appels disques (I/O).\\n- CRITICAL: Élimination du 'ThreadPool Starvation' gelant Jellyfin à l'ouverture de la cloche.\\n- CRITICAL: Plus de blocage de l'interface lors du clic sur 'Tout marquer comme vu' (passage en tâche de fond).",
         "targetAbi": "10.11.0.0",

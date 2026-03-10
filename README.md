@@ -27,11 +27,9 @@ NotifySync transforms the Jellyfin interface by adding a native notification ico
 
 ### 🖼️ Preview
 <p align="center">
-  <a href="docs/screenshots/notifysync_demo.mp4">
-    <img src="docs/screenshots/dropdown_preview.png" alt="Watch Video Demo" width="600">
-    <br>
-    <b>▶️ Click to watch the video demo</b>
-  </a>
+  <video src="docs/screenshots/notifysync_demo.mp4" width="600" controls>
+    Votre navigateur ne supporte pas la lecture de vidéos.
+  </video>
 </p>
 
 ## ✨ Key Features

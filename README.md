@@ -1,4 +1,6 @@
+<p align="center">
 # 🔔 NotifySync
+</p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/version-5.3.0.0-blue" alt="Version">
@@ -12,10 +14,10 @@
 </p>
 
 ---
-
+<p align="center">
 ## 🌐 Language / Langue
 [English](#english) | [Français](#français)
-
+</p>
 ---
 
 <a name="english"></a>
@@ -25,8 +27,6 @@ NotifySync transforms the Jellyfin interface by adding a native notification ico
 
 ### 🖼️ Preview
 <p align="center">
-  <img src="docs/screenshots/bell_header.png" alt="NotifySync Bell Header" width="300">
-  <br><br>
   <a href="docs/screenshots/notifysync_demo.mp4">
     <img src="https://img.shields.io/badge/▶️_Watch-Video_Demo-red?style=for-the-badge&logo=youtube" alt="Video Demo">
   </a>
@@ -105,8 +105,6 @@ NotifySync transforme l'interface de Jellyfin en ajoutant une icône de notifica
 
 ## 🖼️ Aperçu
 <p align="center">
-  <img src="docs/screenshots/bell_header.png" alt="Cloche NotifySync" width="300">
-  <br><br>
   <a href="docs/screenshots/notifysync_demo.mp4">
     <img src="https://img.shields.io/badge/▶️_Voir-La_Démo_Vidéo-red?style=for-the-badge&logo=youtube" alt="Démo Vidéo">
   </a>

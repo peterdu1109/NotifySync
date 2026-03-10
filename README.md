@@ -19,18 +19,13 @@
 </p>
 
 ---
+## 🖼️ Preview / Aperçu
+https://github.com/user-attachments/assets/147190ed-3d3c-4974-8ca1-979c753c8ec2
 
 <a name="english"></a>
 # English
 
 NotifySync transforms the Jellyfin interface by adding a native notification icon (bell). It allows your users to instantly see the latest additions (Movies, Series, Music) without leaving their current page, all with a fluid design inspired by major streaming platforms.
-
-### 🖼️ Preview
-<p align="center">
-  <video src="https://github.com/peterdu1109/NotifySync/raw/refs/heads/main/docs/screenshots/notifysync_demo.mp4" width="600" controls>
-    Votre navigateur ne supporte pas la lecture de vidéos.
-  </video>
-</p>
 
 ## ✨ Key Features
 
@@ -102,16 +97,6 @@ Go to **Dashboard > Plugins > NotifySync**.
 # Français
 
 NotifySync transforme l'interface de Jellyfin en ajoutant une icône de notification (cloche) native. Il permet à vos utilisateurs de voir instantanément les derniers ajouts (Films, Séries, Musique) sans quitter leur page actuelle.
-
-## 🖼️ Aperçu
-<p align="center">
-  <a href="docs/screenshots/notifysync_demo.mp4">
-    <img src="docs/screenshots/dropdown_preview.png" alt="Voir la démo vidéo" width="600">
-    <br>
-    <b>▶️ Cliquez pour voir la démo vidéo</b>
-  </a>
-</p>
-
 
 ### 🎨 Expérience Utilisateur
 *   **Design Moderne** : Intégration fluide "Netflix-Style" avec badge de nouveautés et effets visuels (Glassmorphism).

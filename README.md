@@ -25,9 +25,11 @@ NotifySync transforms the Jellyfin interface by adding a native notification ico
 
 ### 🖼️ Preview
 <p align="center">
-  <img src="docs/screenshots/bell_header.png" alt="NotifySync Bell Header" width="400">
+  <img src="docs/screenshots/bell_header.png" alt="NotifySync Bell Header" width="300">
   <br><br>
-  <video src="docs/screenshots/notifysync_demo.mp4" width="600" controls autoplay loop muted></video>
+  <a href="docs/screenshots/notifysync_demo.mp4">
+    <img src="https://img.shields.io/badge/▶️_Watch-Video_Demo-red?style=for-the-badge&logo=youtube" alt="Video Demo">
+  </a>
 </p>
 
 ## ✨ Key Features
@@ -103,9 +105,11 @@ NotifySync transforme l'interface de Jellyfin en ajoutant une icône de notifica
 
 ## 🖼️ Aperçu
 <p align="center">
-  <img src="docs/screenshots/bell_header.png" alt="Cloche NotifySync" width="400">
+  <img src="docs/screenshots/bell_header.png" alt="Cloche NotifySync" width="300">
   <br><br>
-  <video src="docs/screenshots/notifysync_demo.mp4" width="600" controls autoplay loop muted></video>
+  <a href="docs/screenshots/notifysync_demo.mp4">
+    <img src="https://img.shields.io/badge/▶️_Voir-La_Démo_Vidéo-red?style=for-the-badge&logo=youtube" alt="Démo Vidéo">
+  </a>
 </p>
 
 

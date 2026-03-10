@@ -20,9 +20,9 @@
 
 ---
 ## 🖼️ Preview / Aperçu
-<p align="center">
-  <video src="https://github.com/user-attachments/assets/147190ed-3d3c-4974-8ca1-979c753c8ec2" width="600" controls="controls"></video>
-</p>
+<div align="center">
+  <video src="https://github.com/user-attachments/assets/147190ed-3d3c-4974-8ca1-979c753c8ec2" width="350" controls></video>
+</div>
 
 <a name="english"></a>
 # English

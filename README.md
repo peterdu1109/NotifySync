@@ -20,9 +20,15 @@
 
 ---
 ## 🖼️ Preview / Aperçu
-<p align="center">
-  <img src="https://github.com/user-attachments/assets/147190ed-3d3c-4974-8ca1-979c753c8ec2" width="300" />
-</p>
+<div align="center">
+  <table>
+    <tr>
+      <td width="300">
+        <video src="https://github.com/user-attachments/assets/147190ed-3d3c-4974-8ca1-979c753c8ec2" controls></video>
+      </td>
+    </tr>
+  </table>
+</div>
 
 <a name="english"></a>
 # English

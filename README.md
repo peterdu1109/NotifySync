@@ -21,7 +21,7 @@
 ---
 ## 🖼️ Preview / Aperçu
 <div align="center">
-  <video src="https://github.com/user-attachments/assets/147190ed-3d3c-4974-8ca1-979c753c8ec2" width="200" controls></video>
+  <video src="https://github.com/user-attachments/assets/147190ed-3d3c-4974-8ca1-979c753c8ec2" width="100" controls></video>
 </div>
 
 <a name="english"></a>

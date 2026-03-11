@@ -13,14 +13,14 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("NotifySync")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyCopyrightAttribute("Copyright © 2026 Peterdu1109 & ElieM")]
-[assembly: System.Reflection.AssemblyDescriptionAttribute(("NotifySync transforms the Jellyfin interface by adding a native notification icon" +
-    " (bell). It allows your users to instantly see the latest additions (Movies, Ser" +
-    "ies, Music) without leaving their current page."))]
-[assembly: System.Reflection.AssemblyFileVersionAttribute("5.3.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("5.3.0.0+c8cf0786306f21e98b9df494ad86394682e4e91e")]
+[assembly: System.Reflection.AssemblyDescriptionAttribute(("NotifySync transforme l\'interface de Jellyfin en ajoutant une icône de notificati" +
+    "on (cloche) native. Il permet à vos utilisateurs de voir instantanément les dern" +
+    "iers ajouts (Films, Séries, Musique) sans quitter leur page actuelle."))]
+[assembly: System.Reflection.AssemblyFileVersionAttribute("5.2.2.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("5.2.2.0+110662709eed75b16d22de4f1352f059e35a4334")]
 [assembly: System.Reflection.AssemblyProductAttribute("NotifySync")]
 [assembly: System.Reflection.AssemblyTitleAttribute("NotifySync")]
-[assembly: System.Reflection.AssemblyVersionAttribute("5.3.0.0")]
+[assembly: System.Reflection.AssemblyVersionAttribute("5.2.2.0")]
 
 // Généré par la classe MSBuild WriteCodeFragment.
 

@@ -18,21 +18,10 @@
         }
     };
 
-    const userLang = (navigator.language || 'en').toLowerCase();
-    const isFr = userLang.startsWith('fr');
-
-    const T = {
-        header: isFr ? "Quoi de neuf ?" : "What's New?",
-        empty: isFr ? "Vous êtes à jour !" : "You're all caught up!",
-        markAll: isFr ? "Tout marquer comme vu" : "Mark all read",
-        badgeNew: isFr ? "NOUVEAU" : "NEW",
-        newEps: isFr ? "nouveaux épisodes" : "new episodes",
-        eps: isFr ? "épisodes" : "episodes",
-        filterAll: isFr ? "Tout" : "All",
-        filterMovie: isFr ? "Films" : "Movies",
-        filterSeries: isFr ? "Séries" : "Series",
-        filterMusic: isFr ? "Musique" : "Music"
-    };
+    const userLang = navigator.language || 'en';
+    const T = userLang.startsWith('fr')
+        ? { header: "Quoi de neuf ?", empty: "Vous êtes à jour !", markAll: "Tout marquer comme vu", badgeNew: "NOUVEAU", newEps: "nouveaux épisodes", eps: "épisodes", filterAll: "Tout", filterMovie: "Films", filterSeries: "Séries", filterMusic: "Musique" }
+        : { header: "What's New?", empty: "You're all caught up!", markAll: "Mark all read", badgeNew: "NEW", newEps: "new episodes", eps: "episodes", filterAll: "All", filterMovie: "Movies", filterSeries: "Series", filterMusic: "Music" };
 
     const rtf = new Intl.RelativeTimeFormat(userLang, { numeric: 'auto' });
 

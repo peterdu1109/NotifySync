@@ -266,16 +266,16 @@
             <param name="userId">The user identifier.</param>
             <returns>An ActionResult containing the notification data.</returns>
         </member>
-        <member name="M:NotifySync.NotifyController.GetLastSeen(System.String)">
+        <member name="M:NotifySync.NotifyController.GetCleared(System.String)">
             <summary>
-            Gets the last seen timestamp for a user.
+            Gets the last cleared timestamp for a user.
             </summary>
             <param name="userId">The user identifier.</param>
-            <returns>An ActionResult containing the last seen timestamp.</returns>
+            <returns>An ActionResult containing the last cleared timestamp.</returns>
         </member>
-        <member name="M:NotifySync.NotifyController.SetLastSeen(System.String,System.String)">
+        <member name="M:NotifySync.NotifyController.SetCleared(System.String,System.String)">
             <summary>
-            Sets the last seen timestamp for a user.
+            Sets the cleared timestamp for a user.
             </summary>
             <param name="userId">The user identifier.</param>
             <param name="date">The ISO date string (optional, defaults to now).</param>

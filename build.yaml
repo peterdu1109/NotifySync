@@ -1,7 +1,12 @@
 project: NotifySync
-version: 5.2.2.0
+version: 5.3.0.0
 targetAbi: 10.11.0.0
 build:
+  - FEATURE : Nouveau bouton 'Vider la liste' qui efface les alertes sans impact sur Jellyfin (v5.3.0.0).
+  - FIX : Persistence absolue du 'Vider la liste' via redirection vers le dossier 'data' stable (v5.3.0.0).
+  - FIX : Correction du décalage de fuseau horaire (UTC vs Local) pour les notifications (v5.3.0.0).
+  - FEATURE : Refonte UX totale de la cloche style Netflix (v5.3.0.0).
+  - REFACTOR : Suppression du comportement 'Tout marquer comme vu' obsolète (v5.3.0.0).
   - CRITICAL : Élimination du syndrome du 'média fantôme' (lorsque le téléchargement des images TMDB accusait un retard réseau) via intégration dans l'ItemUpdated (v5.2.2.0).
   - PERFORMANCE : Instauration d'un cache mémoire absolu (0ms, 0 File I/O) pour empêcher le rechargement intempestif sur le disque du client.js natif pour chaque client ou TV s'y connectant. (v5.2.2.0).
   - CRITICAL : Élimination du "ThreadPool Starvation" (Freeze Web) causé par le Parallel.ForEach lors de l'accès au menu de notifications (v5.2.2.0).

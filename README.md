@@ -1,7 +1,7 @@
 <h1 align="center">🔔 NotifySync</h1>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-5.2.2.0-blue" alt="Version">
+  <img src="https://img.shields.io/badge/version-5.3.0.0-blue" alt="Version">
   <img src="https://img.shields.io/badge/.NET-9.0-purple" alt=".NET Framework">
   <img src="https://img.shields.io/badge/Jellyfin-10.11.X-blueviolet" alt="Jellyfin">
 </p>
@@ -38,9 +38,10 @@ NotifySync transforms the Jellyfin interface by adding a native notification ico
 ## ✨ Key Features
 
 ### 🎨 User Experience
-*   **Modern Design**: Seamless "Netflix-Style" integration with a "New" badge and glassmorphism visual effects.
+*   **Modern Design**: Seamless "Netflix-Style" integration. The red badge disappears instantly when you open the bell, just by looking at the updates.
+*   **Clear List (Safe)**: A simple button to clear the notification list without ever marking media as "Played" in your official Jellyfin history.
 *   **Intuitive Navigation**: "Hero Section" for latest additions and smart episode grouping.
-*   **Smart Sync**: Real-time "Seen/Unseen" indicators. Read media automatically disappears from the bell.
+*   **Smart Sync**: Real-time updates. New items are highlighted and grouped automatically.
 *   **Advanced Filtering**: Automatic exclusion of theme songs (OP/ED).
 *   **Compatibility**: PC/Mac and Mobile (via official app). *Note: Not supported on TV.*
 
@@ -110,9 +111,10 @@ NotifySync transforme l'interface de Jellyfin en ajoutant une icône de notifica
 ## ✨ Fonctionnalités Principales
 
 ### 🎨 Expérience Utilisateur
-*   **Design Moderne** : Intégration fluide "Netflix-Style" avec badge de nouveautés et effets visuels (Glassmorphism).
+*   **Design Moderne** : Intégration fluide "Netflix-Style". La pastille rouge disparait instantanément à l'ouverture de la cloche (prise de connaissance).
+*   **Vider la liste (Sans risque)** : Effacez les alertes en un clic sans impacter votre historique de lecture Jellyfin (les médias restent "Non vus").
 *   **Navigation Intuitive** : "Hero Section" pour les derniers ajouts et regroupement intelligent des épisodes.
-*   **Synchronisation Intelligente** : Indicateurs "Vu/Non vu" en temps réel. Les médias lus disparaissent automatiquement.
+*   **Synchronisation Intelligente** : Indicateurs visuels en temps réel. Les nouveaux médias sont mis en avant et groupés automatiquement.
 *   **Filtrage Avancé** : Exclusion automatique des génériques (OP/ED).
 *   **Compatibilité** : PC/Mac et Mobiles. *Note : Non supporté sur TV.*
 

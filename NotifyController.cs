@@ -29,16 +29,9 @@ namespace NotifySync
     public class NotifyController : ControllerBase
     {
         private static readonly ConcurrentDictionary<string, byte[]> UserViewCache = new ();
-        private static readonly ConcurrentDictionary<string, long> UserLastSeenCache = new ();
-        private static readonly object GlobalFileLock = new ();
         private static long _lastRefreshTime;
         private static ILogger<NotifyController>? _staticLogger;
         private static string? _clientJsCache;
-
-        // I/O Optimization
-        private static Timer? _saveTimer;
-        private static bool _isCacheDirty;
-        private static bool _isSaving;
 
         private readonly IUserManager _userManager;
         private readonly ILibraryManager _libraryManager;
@@ -64,11 +57,6 @@ namespace NotifySync
             _userDataManager = userDataManager;
             _logger = logger;
             _staticLogger ??= logger;
-
-            if (_saveTimer == null)
-            {
-                _saveTimer = new Timer(PersistCache, null, TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(30));
-            }
         }
 
         /// <summary>
@@ -198,8 +186,6 @@ namespace NotifySync
                     var item = _libraryManager.GetItemById(n.Id);
                     if (item == null)
                     {
-                        // Item not in native Jellyfin DB (e.g. IPTV/external provider).
-                        // Keep it — it was validated during the scan phase.
                         itemNotFound++;
                         filtered.Add(n);
                         continue;
@@ -208,6 +194,12 @@ namespace NotifySync
                     if (!item.IsVisible(user))
                     {
                         filteredNotVisible++;
+                        continue;
+                    }
+
+                    long clearedUntil = NotificationManager.Instance.GetUserCleared(userId);
+                    if (n.DateCreated.ToUniversalTime().Ticks <= clearedUntil)
+                    {
                         continue;
                     }
 
@@ -221,8 +213,6 @@ namespace NotifySync
                 }
 
                 var filteredList = filtered.OrderByDescending(n => n.DateCreated).ToList();
-
-                // --- Per-user quota: keep only the X most recent UNSEEN items per category ---
                 int maxItems = Plugin.Instance?.Configuration?.MaxItems ?? 10;
                 var quotaResult = CategoryQuotaService.ApplyCategoryQuotas(filteredList, maxItems);
                 filteredList = quotaResult.Kept.ToList();
@@ -236,8 +226,6 @@ namespace NotifySync
 
                 byte[] serialized = JsonSerializer.SerializeToUtf8Bytes(filteredList, PluginJsonContext.Default.ListNotificationItem);
 
-                // --- FIX MEMORY LEAK ---
-                // Iterating over KeyValuePair to avoid locking the entire ConcurrentDictionary structure with .Keys
                 foreach (var kvp in UserViewCache)
                 {
                     if (kvp.Key.StartsWith(userId + "_", StringComparison.Ordinal))
@@ -247,7 +235,6 @@ namespace NotifySync
                 }
 
                 UserViewCache.TryAdd(cacheKey, serialized);
-
                 Response.Headers["ETag"] = hash;
                 return new FileContentResult(serialized, "application/json");
             }
@@ -259,12 +246,12 @@ namespace NotifySync
         }
 
         /// <summary>
-        /// Gets the last seen timestamp for a user.
+        /// Gets the last cleared timestamp for a user.
         /// </summary>
         /// <param name="userId">The user identifier.</param>
-        /// <returns>An ActionResult containing the last seen timestamp.</returns>
-        [HttpGet("LastSeen/{userId}")]
-        public ActionResult GetLastSeen([FromRoute] string userId)
+        /// <returns>An ActionResult containing the last cleared timestamp.</returns>
+        [HttpGet("Cleared/{userId}")]
+        public ActionResult GetCleared([FromRoute] string userId)
         {
             if (string.IsNullOrEmpty(userId))
             {
@@ -276,18 +263,18 @@ namespace NotifySync
                 return Forbid();
             }
 
-            long lastSeen = GetUserLastSeen(userId);
-            return Ok(JsonSerializer.Serialize(new DateTime(lastSeen).ToString("O"), PluginJsonContext.Default.Object));
+            long cleared = NotificationManager.Instance?.GetUserCleared(userId) ?? 0;
+            return Ok(JsonSerializer.Serialize(new DateTime(cleared).ToString("O"), PluginJsonContext.Default.Object));
         }
 
         /// <summary>
-        /// Sets the last seen timestamp for a user.
+        /// Sets the cleared timestamp for a user.
         /// </summary>
         /// <param name="userId">The user identifier.</param>
         /// <param name="date">The ISO date string (optional, defaults to now).</param>
         /// <returns>An ActionResult indicating the status.</returns>
-        [HttpPost("LastSeen/{userId}")]
-        public ActionResult SetLastSeen([FromRoute] string userId, [FromQuery] string? date)
+        [HttpPost("Clear/{userId}")]
+        public ActionResult SetCleared([FromRoute] string userId, [FromQuery] string? date)
         {
             if (string.IsNullOrEmpty(userId))
             {
@@ -302,54 +289,7 @@ namespace NotifySync
             DateTime dt = string.IsNullOrEmpty(date) ? DateTime.UtcNow : DateTime.Parse(date, System.Globalization.CultureInfo.InvariantCulture);
             long timestamp = dt.Ticks;
 
-            try
-            {
-                // Synchroniser l'état "Vu" avec Jellyfin pour tous les éléments actuellement non-vus dans la cloche
-                if (NotificationManager.Instance != null)
-                {
-                    Task.Run(() =>
-                    {
-                        try
-                        {
-                            var allNotifs = NotificationManager.Instance.GetRecentNotifications();
-                            var user = _userManager.GetUserById(Guid.Parse(userId));
-                            if (user != null)
-                            {
-                                // On ne marque comme vu que les éléments antérieurs à la date cliquée
-                                var toMark = allNotifs.Where(n => n.DateCreated <= dt).ToList();
-                                foreach (var n in toMark)
-                                {
-                                    var item = _libraryManager.GetItemById(n.Id);
-                                    if (item != null && item.IsVisible(user))
-                                    {
-                                        var userData = _userDataManager.GetUserData(user, item);
-                                        if (userData != null && !userData.Played)
-                                        {
-                                            userData.Played = true;
-                                            userData.PlayCount = Math.Max(1, userData.PlayCount + 1);
-                                            userData.LastPlayedDate = dt;
-                                            _userDataManager.SaveUserData(user, item, userData, UserDataSaveReason.PlaybackFinished, CancellationToken.None);
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.LogError(ex, "Erreur asynchrone lors de la synchronisation de l'état Vu avec Jellyfin pour l'utilisateur {UserId}", userId);
-                        }
-                    });
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Erreur au lancement de la tâche asynchrone pour l'état Vu. User: {UserId}", userId);
-            }
-
-            UserLastSeenCache[userId] = timestamp;
-            SaveUserLastSeen(userId, timestamp);
-
-            // Invalidate cache for this user because LastSeen changed (and UserData was modified)
+            NotificationManager.Instance?.SetUserCleared(userId, timestamp);
             InvalidateUserCache(userId);
 
             return Ok();
@@ -424,10 +364,7 @@ namespace NotifySync
 
         private bool IsAuthorizedForUser(string userId)
         {
-            // First try NameIdentifier (Standard)
             var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-            // Fallback to "Name" or "UserId" claims if NameIdentifier is missing
             if (string.IsNullOrEmpty(currentUserId))
             {
                 currentUserId = User.FindFirst("UserId")?.Value ?? User.Identity?.Name;
@@ -439,10 +376,8 @@ namespace NotifySync
                 return false;
             }
 
-            // If the claim is a username (not a GUID), resolve it to a user GUID
             if (!Guid.TryParse(currentUserId, out var currentGuid))
             {
-                // The claim is a username string (e.g. "jellyfin"), look up the user by name
                 var userByName = _userManager.GetUserByName(currentUserId);
                 if (userByName != null)
                 {
@@ -456,7 +391,6 @@ namespace NotifySync
                 }
             }
 
-            // Normalize both IDs for comparison (handle hyphenated vs non-hyphenated formats)
             var normalizedCurrent = currentUserId.Replace("-", string.Empty, StringComparison.OrdinalIgnoreCase).ToLowerInvariant();
             var normalizedRequested = userId.Replace("-", string.Empty, StringComparison.OrdinalIgnoreCase).ToLowerInvariant();
 
@@ -465,7 +399,6 @@ namespace NotifySync
                 return true;
             }
 
-            // Check if the current user is an admin (allow admin access to any user's data)
             var isAdmin = User.IsInRole("Administrator")
                 || string.Equals(User.FindFirst("Jellyfin-IsApiKey")?.Value, "true", StringComparison.OrdinalIgnoreCase);
             if (isAdmin)
@@ -475,113 +408,6 @@ namespace NotifySync
 
             _logger.LogWarning("NotifySync: Authorization denied. Current: {Current}, Requested: {Requested}", currentUserId, userId);
             return false;
-        }
-
-        private long GetUserLastSeen(string userId)
-        {
-            if (UserLastSeenCache.TryGetValue(userId, out var ts))
-            {
-                return ts;
-            }
-
-            bool lockTaken = false;
-            try
-            {
-                Monitor.TryEnter(GlobalFileLock, TimeSpan.FromSeconds(5), ref lockTaken);
-                if (!lockTaken)
-                {
-                    return 0;
-                }
-
-                string path = Path.Combine(Plugin.Instance!.DataFolderPath, "users_seen.json");
-                if (!System.IO.File.Exists(path))
-                {
-                    return 0;
-                }
-
-                try
-                {
-                    var json = System.IO.File.ReadAllText(path);
-                    var data = JsonSerializer.Deserialize(json, PluginJsonContext.Default.DictionaryStringInt64);
-                    if (data != null && data.TryGetValue(userId, out var val))
-                    {
-                        UserLastSeenCache[userId] = val;
-                        return val;
-                    }
-                }
-                catch
-                {
-                    // Ignore errors during read
-                }
-            }
-            finally
-            {
-                if (lockTaken)
-                {
-                    Monitor.Exit(GlobalFileLock);
-                }
-            }
-
-            return 0;
-        }
-
-        private void SaveUserLastSeen(string userId, long timestamp)
-        {
-            // Just mark cache as dirty, let the background timer persist it to avoid lock congestion
-            _isCacheDirty = true;
-        }
-
-        private static void PersistCache(object? state)
-        {
-            if (!_isCacheDirty || _isSaving)
-            {
-                return;
-            }
-
-            _isSaving = true;
-            try
-            {
-                bool lockTaken = false;
-                try
-                {
-                    Monitor.TryEnter(GlobalFileLock, TimeSpan.FromSeconds(5), ref lockTaken);
-                    if (!lockTaken)
-                    {
-                        return;
-                    }
-
-                    _isCacheDirty = false;
-
-                    if (Plugin.Instance == null)
-                    {
-                        return;
-                    }
-
-                    string path = Path.Combine(Plugin.Instance.DataFolderPath, "users_seen.json");
-                    string tmpPath = path + ".tmp";
-                    // Create a snapshot of the current state
-                    var snapshot = UserLastSeenCache.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-
-                    System.IO.File.WriteAllText(tmpPath, JsonSerializer.Serialize(snapshot, PluginJsonContext.Default.DictionaryStringInt64));
-                    System.IO.File.Move(tmpPath, path, true);
-                }
-                catch (Exception ex)
-                {
-                    _isCacheDirty = true; // Retry next time
-                    _staticLogger?.LogError(ex, "Error persiting user seen data background cache");
-                }
-                finally
-                {
-                    if (lockTaken)
-                    {
-                        Monitor.Exit(GlobalFileLock);
-                    }
-                }
-            }
-            finally
-            {
-                _isSaving = false;
-            }
         }
 
         /// <summary>

@@ -31,11 +31,16 @@ namespace NotifySync
         private readonly IUserDataManager _userDataManager;
         private readonly ILogger<NotificationManager> _logger;
         private readonly string _jsonPath;
+        private readonly string _clearedPath;
         private readonly NotificationDatabase _db;
+        private readonly ConcurrentDictionary<string, long> _userClearedCache = new ();
+        private readonly object _clearedLock = new ();
         private readonly ConcurrentQueue<BaseItem> _eventBuffer = new ();
         private readonly Timer _bufferProcessTimer;
         private readonly ReaderWriterLockSlim _dataLock = new ();
         private readonly CancellationTokenSource _disposeCts = new ();
+
+        private bool _isClearedDirty;
         private List<NotificationItem> _notifications = new List<NotificationItem>();
         private long _versionCounter = DateTime.UtcNow.Ticks;
         private int _isProcessingBuffer;
@@ -52,9 +57,18 @@ namespace NotifySync
             _libraryManager = libraryManager;
             _logger = logger;
             _userDataManager = userDataManager;
-            _jsonPath = Path.Combine(Plugin.Instance!.DataFolderPath, "notifications.json");
 
-            _db = new NotificationDatabase(Plugin.Instance!.DataFolderPath, _logger);
+            // Stable data path to avoid losing data when plugin version (folder name) changes
+            var stableDataPath = Plugin.Instance!.PluginDataFolderPath;
+            Directory.CreateDirectory(stableDataPath);
+
+            _jsonPath = Path.Combine(stableDataPath, "notifications.json");
+            _clearedPath = Path.Combine(stableDataPath, "users_cleared.json");
+            _logger.LogInformation("NotifySync Registry: REDIRECTING persistence to STABLE PATH: {Path}", stableDataPath);
+            _logger.LogInformation("NotifySync Registry: DataPath={Path}, ClearedPath={ClearedPath}", stableDataPath, _clearedPath);
+
+            _db = new NotificationDatabase(stableDataPath, _logger);
+            LoadUserCleared();
             Instance = this;
 
             LoadAndMigrate();
@@ -117,9 +131,110 @@ namespace NotifySync
             }
         }
 
+        /// <summary>
+        /// Gets the cleared timestamp for a user.
+        /// </summary>
+        /// <param name="userId">The user unique identifier.</param>
+        /// <returns>The ticks until which notifications are cleared.</returns>
+        public long GetUserCleared(string userId)
+        {
+            var normalized = NormalizeUserId(userId);
+            return _userClearedCache.TryGetValue(normalized, out var ts) ? ts : 0;
+        }
+
+        /// <summary>
+        /// Sets the cleared timestamp for a user and persists it.
+        /// </summary>
+        /// <param name="userId">The user unique identifier.</param>
+        /// <param name="timestamp">The ticks timestamp to set.</param>
+        public void SetUserCleared(string userId, long timestamp)
+        {
+            var normalized = NormalizeUserId(userId);
+            _userClearedCache[normalized] = timestamp;
+            _isClearedDirty = true;
+            SaveUserCleared();
+            _logger.LogInformation("NotifySync: User {User} cleared until {Date} (Timestamp={Ts})", normalized, new DateTime(timestamp).ToString("O"), timestamp);
+        }
+
+        private string NormalizeUserId(string userId)
+        {
+            if (string.IsNullOrEmpty(userId))
+            {
+                return string.Empty;
+            }
+
+            if (Guid.TryParse(userId, out var guid))
+            {
+                return guid.ToString("N");
+            }
+
+            return userId.Replace("-", string.Empty, StringComparison.OrdinalIgnoreCase).ToLowerInvariant();
+        }
+
+        private void LoadUserCleared()
+        {
+            _logger.LogInformation("NotifySync Registry: LoadUserCleared starting. File exists: {Exists}", File.Exists(_clearedPath));
+            if (!File.Exists(_clearedPath))
+            {
+                return;
+            }
+
+            try
+            {
+                var json = File.ReadAllText(_clearedPath);
+                _logger.LogInformation("NotifySync Registry: Read {Len} bytes from {Path}", json.Length, _clearedPath);
+                var data = JsonSerializer.Deserialize(json, PluginJsonContext.Default.DictionaryStringInt64);
+                if (data != null)
+                {
+                    _logger.LogInformation("NotifySync Registry: Deserialized {Count} users", data.Count);
+                    foreach (var kvp in data)
+                    {
+                        var normalized = NormalizeUserId(kvp.Key);
+                        _userClearedCache[normalized] = kvp.Value;
+                        _logger.LogInformation("NotifySync Registry: Loaded cleared state for {User} -> {Ts} ({Date})", normalized, kvp.Value, new DateTime(kvp.Value).ToString("O"));
+                    }
+                }
+                else
+                {
+                    _logger.LogWarning("NotifySync Registry: Deserialization returned null for {Path}", _clearedPath);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "NotifySync: Error loading users_cleared.json from {Path}", _clearedPath);
+            }
+        }
+
+        private void SaveUserCleared()
+        {
+            _logger.LogDebug("NotifySync: SaveUserCleared called, Dirty={Dirty}", _isClearedDirty);
+            if (!_isClearedDirty)
+            {
+                return;
+            }
+
+            lock (_clearedLock)
+            {
+                try
+                {
+                    var snapshot = _userClearedCache.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+                    var json = JsonSerializer.Serialize(snapshot, PluginJsonContext.Default.DictionaryStringInt64);
+                    File.WriteAllText(_clearedPath + ".tmp", json);
+                    File.Move(_clearedPath + ".tmp", _clearedPath, true);
+                    _isClearedDirty = false;
+                    _logger.LogInformation("NotifySync Registry: Successfully saved {Count} users to {Path}", snapshot.Count, _clearedPath);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "NotifySync: Error saving users_cleared.json");
+                }
+            }
+        }
+
         /// <inheritdoc />
         public void Dispose()
         {
+            SaveUserCleared();
             _disposeCts.Cancel();
             _bufferProcessTimer?.Dispose();
             _dataLock?.Dispose();
@@ -810,7 +925,7 @@ namespace NotifySync
                     Category = category,
                     SeriesName = (item as Episode)?.SeriesName,
                     SeriesId = (item as Episode)?.SeriesId.ToString(),
-                    DateCreated = item.DateCreated,
+                    DateCreated = item.DateCreated.ToUniversalTime(),
                     Type = item.GetType().Name,
                     RunTimeTicks = item.RunTimeTicks,
                     ProductionYear = item.ProductionYear,

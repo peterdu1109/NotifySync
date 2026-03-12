@@ -9,6 +9,13 @@
     "supportUrl": "https://github.com/",
     "versions": [
       {
+        "version": "5.3.0.0",
+        "changelog": "- FEATURE: Refonte UX de la cloche (Netflix-Style). La pastille rouge disparait instantanément à l'ouverture.\\n- FEATURE: Nouveau bouton 'Vider la liste' qui efface les alertes sans impacter l'historique de lecture Jellyfin.\\n- FIX: Persistence absolue du 'Vider la liste' via redirection vers ProgramData/Jellyfin/Server/data/NotifySync.\\n- FIX: Correction du décalage de fuseau horaire (UTC vs Local) pour une expiration précise.\\n- REFACTOR: Suppression de l'ancien comportement 'Tout marquer comme vu' imposé par la communauté.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/5.3.0.0/NotifySync_5.3.0.0.zip",
+        "checksum": "19ECECAD394E6627680D1F8E10103632",
+        "timestamp": "2026-03-12T19:15:00Z"
+      },{
         "version": "5.2.2.0",
         "changelog": "- CRITICAL: Élimination du syndrome du 'média fantôme' (retard TMDB) via ajout d'un rattrapage sur OnItemUpdated.\\n- PERFORMANCE: Mise en cache absolu du script JS servant l'interface pour éliminer les appels disques (I/O).\\n- CRITICAL: Élimination du 'ThreadPool Starvation' gelant Jellyfin à l'ouverture de la cloche.\\n- CRITICAL: Plus de blocage de l'interface lors du clic sur 'Tout marquer comme vu' (passage en tâche de fond).",
         "targetAbi": "10.11.0.0",
@@ -227,3 +234,5 @@
     ]
   }
 ]
+
+

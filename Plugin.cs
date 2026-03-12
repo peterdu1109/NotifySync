@@ -14,6 +14,7 @@ namespace NotifySync
     /// </summary>
     public sealed class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages, IDisposable
     {
+        private readonly IApplicationPaths _applicationPaths;
         private NotificationManager? _notificationManager;
 
         /// <summary>
@@ -34,6 +35,7 @@ namespace NotifySync
             IUserDataManager userDataManager)
             : base(applicationPaths, xmlSerializer)
         {
+            _applicationPaths = applicationPaths;
             Instance = this;
             _notificationManager = new NotificationManager(libraryManager, loggerFactory.CreateLogger<NotificationManager>(), fileSystem, userDataManager);
         }
@@ -53,6 +55,18 @@ namespace NotifySync
         /// Gets the notification manager.
         /// </summary>
         public NotificationManager? NotificationManager => _notificationManager;
+
+        /// <summary>
+        /// Gets the permanent data folder path for this plugin.
+        /// </summary>
+        public string PluginDataFolderPath
+        {
+            get
+            {
+                // DataPath points to the persistent data folder (e.g., C:/ProgramData/Jellyfin/Server/data)
+                return Path.Combine(_applicationPaths.DataPath, "NotifySync");
+            }
+        }
 
         /// <inheritdoc />
         public IEnumerable<PluginPageInfo> GetPages()

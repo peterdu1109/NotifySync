@@ -20,8 +20,8 @@
 
     const userLang = navigator.language || 'en';
     const T = userLang.startsWith('fr')
-        ? { header: "Quoi de neuf ?", empty: "Vous êtes à jour !", markAll: "Tout marquer comme vu", badgeNew: "NOUVEAU", newEps: "nouveaux épisodes", eps: "épisodes", filterAll: "Tout", filterMovie: "Films", filterSeries: "Séries", filterMusic: "Musique" }
-        : { header: "What's New?", empty: "You're all caught up!", markAll: "Mark all read", badgeNew: "NEW", newEps: "new episodes", eps: "episodes", filterAll: "All", filterMovie: "Movies", filterSeries: "Series", filterMusic: "Music" };
+        ? { header: "Quoi de neuf ?", empty: "Vous êtes à jour !", clearAll: "Vider la liste", badgeNew: "NOUVEAU", newEps: "nouveaux épisodes", eps: "épisodes", filterAll: "Tout", filterMovie: "Films", filterSeries: "Séries", filterMusic: "Musique" }
+        : { header: "What's New?", empty: "You're all caught up!", clearAll: "Clear list", badgeNew: "NEW", newEps: "new episodes", eps: "episodes", filterAll: "All", filterMovie: "Movies", filterSeries: "Series", filterMusic: "Music" };
 
     const rtf = new Intl.RelativeTimeFormat(userLang, { numeric: 'auto' });
 
@@ -159,16 +159,16 @@
         if (!userId) return; // Keep existing lastSeenDate (from cache)
 
         try {
-            const res = await fetch(`/NotifySync/LastSeen/${userId}`, { headers: getAuthHeaders() });
+            const res = await fetch(`/NotifySync/Cleared/${userId}`, { headers: getAuthHeaders() });
             if (res.ok) {
                 const text = await res.text();
                 // Ensure valid date string
                 if (text && text.length > 5) {
                     lastSeenDate = new Date(JSON.parse(text));
-                    localStorage.setItem('ns-lastseen', lastSeenDate.toISOString());
+                    localStorage.setItem('ns-cleared', lastSeenDate.toISOString());
                 }
             }
-        } catch (e) { console.warn("NotifySync: LastSeen fetch failed, using cache."); }
+        } catch (e) { console.warn("NotifySync: Cleared fetch failed, using cache."); }
     };
 
     const applyPlayStates = (statusMap) => {
@@ -178,19 +178,16 @@
         });
     };
 
-    const updateLastSeen = async () => {
+    const clearAllNotifications = async () => {
         const userId = getUserId();
         if (!userId) return;
 
-        await fetch(`/NotifySync/LastSeen/${userId}?date=${encodeURIComponent(new Date().toISOString())}`, { method: 'POST', headers: getAuthHeaders() });
+        await fetch(`/NotifySync/Clear/${userId}?date=${encodeURIComponent(new Date().toISOString())}`, { method: 'POST', headers: getAuthHeaders() });
         lastSeenDate = new Date();
 
-        currentData.forEach(i => {
-            if (!i.Played) markLocalPlayed(i.Id);
-        });
-
-        applyPlayStates();
-        recalculateNewStatus();
+        currentData = []; // Clear local data
+        groupedData = [];
+        updateBadge();
         closeDropdown();
     };
 
@@ -283,9 +280,9 @@
     const loadFromCache = () => {
         try {
             // Restore lastSeenDate from localStorage first
-            const cachedLastSeen = localStorage.getItem('ns-lastseen');
-            if (cachedLastSeen) {
-                lastSeenDate = new Date(cachedLastSeen);
+            const cachedCleared = localStorage.getItem('ns-cleared');
+            if (cachedCleared) {
+                lastSeenDate = new Date(cachedCleared);
             }
 
             const cached = localStorage.getItem('ns-data');
@@ -387,7 +384,7 @@
             htmlParts.push(`<div class="dropdown-item ${item.IsNew ? 'style-new' : 'style-seen'}" onclick="document.dispatchEvent(new CustomEvent('ns-navigate', {detail: '${item.Id}'}))"><div class="status-dot"></div><div class="thumb-wrapper"><img data-src="${imgUrl}" decoding="async" class="dropdown-thumb ${isMusic ? 'music' : ''}" loading="lazy" onerror="this.style.display='none'"><span class="material-icons" style="color:#444;position:absolute;z-index:-1;">${isMusic ? 'album' : 'movie'}</span></div><div class="dropdown-info"><div class="dropdown-title">${title}</div><div class="dropdown-subtitle">${sub} &bull; ${timeAgo(item.DateCreated)}</div></div></div>`);
         });
 
-        htmlParts.push(`<div class="footer-tools" onclick="document.dispatchEvent(new Event('ns-markall'))">${T.markAll}</div>`);
+        htmlParts.push(`<div class="footer-tools" onclick="document.dispatchEvent(new Event('ns-clearall'))">${T.clearAll}</div>`);
         const finalHtml = htmlParts.join('');
         if (container.innerHTML !== finalHtml) {
             container.innerHTML = finalHtml;
@@ -411,7 +408,7 @@
             drop = document.createElement('div'); drop.id = 'notification-dropdown';
             document.body.appendChild(drop);
             document.addEventListener('ns-filter', (e) => { activeFilter = e.detail; updateList(drop); });
-            document.addEventListener('ns-markall', () => { updateLastSeen(); closeDropdown(); });
+            document.addEventListener('ns-clearall', () => { clearAllNotifications(); });
             document.addEventListener('ns-refresh', () => { triggerHardRefresh(); });
             document.addEventListener('ns-navigate', (e) => {
                 const id = e.detail;
@@ -424,7 +421,24 @@
         if (!backdrop) { const b = document.createElement('div'); b.id = 'notify-backdrop'; b.onclick = closeDropdown; document.body.appendChild(b); }
 
         if (drop.style.display !== 'flex') {
-            fetchData().then(() => updateList(drop));
+            fetchData().then(() => {
+                updateList(drop);
+                
+                // NOUVEAU COMPORTEMENT: Marquer tout comme vu localement lors de l'ouverture
+                let hasNewAndUnseen = false;
+                currentData.forEach(i => {
+                    if (!i.Played && !localPlayed.includes(i.Id)) {
+                        markLocalPlayed(i.Id);
+                        i.Played = true; // Update local state directly so UI reflects this immediately
+                        hasNewAndUnseen = true;
+                    }
+                });
+
+                if (hasNewAndUnseen) {
+                    recalculateNewStatus(); // Recalculate to remove the red dots and the bell badge
+                    updateList(drop);       // Refresh the list to remove the 'style-new' classes
+                }
+            });
             document.getElementById('notify-backdrop').style.display = 'block';
             drop.style.display = 'flex';
         } else { closeDropdown(); }

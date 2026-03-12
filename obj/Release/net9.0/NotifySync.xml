@@ -230,6 +230,20 @@
             </summary>
             <returns>A collection of notification items.</returns>
         </member>
+        <member name="M:NotifySync.NotificationManager.GetUserCleared(System.String)">
+            <summary>
+            Gets the cleared timestamp for a user.
+            </summary>
+            <param name="userId">The user unique identifier.</param>
+            <returns>The ticks until which notifications are cleared.</returns>
+        </member>
+        <member name="M:NotifySync.NotificationManager.SetUserCleared(System.String,System.Int64)">
+            <summary>
+            Sets the cleared timestamp for a user and persists it.
+            </summary>
+            <param name="userId">The user unique identifier.</param>
+            <param name="timestamp">The ticks timestamp to set.</param>
+        </member>
         <member name="M:NotifySync.NotificationManager.Dispose">
             <inheritdoc />
         </member>
@@ -266,16 +280,16 @@
             <param name="userId">The user identifier.</param>
             <returns>An ActionResult containing the notification data.</returns>
         </member>
-        <member name="M:NotifySync.NotifyController.GetLastSeen(System.String)">
+        <member name="M:NotifySync.NotifyController.GetCleared(System.String)">
             <summary>
-            Gets the last seen timestamp for a user.
+            Gets the last cleared timestamp for a user.
             </summary>
             <param name="userId">The user identifier.</param>
-            <returns>An ActionResult containing the last seen timestamp.</returns>
+            <returns>An ActionResult containing the last cleared timestamp.</returns>
         </member>
-        <member name="M:NotifySync.NotifyController.SetLastSeen(System.String,System.String)">
+        <member name="M:NotifySync.NotifyController.SetCleared(System.String,System.String)">
             <summary>
-            Sets the last seen timestamp for a user.
+            Sets the cleared timestamp for a user.
             </summary>
             <param name="userId">The user identifier.</param>
             <param name="date">The ISO date string (optional, defaults to now).</param>
@@ -371,6 +385,11 @@
         <member name="P:NotifySync.Plugin.NotificationManager">
             <summary>
             Gets the notification manager.
+            </summary>
+        </member>
+        <member name="P:NotifySync.Plugin.PluginDataFolderPath">
+            <summary>
+            Gets the permanent data folder path for this plugin.
             </summary>
         </member>
         <member name="M:NotifySync.Plugin.GetPages">

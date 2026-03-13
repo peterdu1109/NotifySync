@@ -63,11 +63,11 @@
 
     let rtf = new Intl.RelativeTimeFormat(userLang, { numeric: 'auto' });
 
-    const detectJellyfinLang = async () => {
+    const detectJellyfinLang = () => {
         try {
-            if (!window.ApiClient) return;
-            const user = await window.ApiClient.getCurrentUser();
-            const jfLang = user?.Configuration?.UICulture || userLang;
+            const userId = getUserId();
+            if (!userId) return;
+            const jfLang = localStorage.getItem(userId + '-language') || userLang;
             const key = jfLang.startsWith('fr') ? 'fr' : 'en';
             if (T !== strings[key]) {
                 T = strings[key];
@@ -616,6 +616,7 @@
     document.addEventListener('viewshow', () => {
         console.log("NotifySync: View changed, checking auth...");
         retryDelay = 1000; // Reset backoff to be more aggressive
+        detectJellyfinLang();
         fetchData();
     });
 
@@ -623,6 +624,7 @@
     document.addEventListener("visibilitychange", () => {
         if (!document.hidden) {
             retryDelay = 1000;
+            detectJellyfinLang();
             fetchData();
         }
     });

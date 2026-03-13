@@ -13,7 +13,7 @@
         "changelog": "- FEAT: i18n automatique — la langue suit les paramètres Jellyfin de l'utilisateur (FR/EN), avec fallback navigateur.\\n- FEAT: Page de configuration entièrement localisée FR/EN.\\n- FIX: Dismiss sur les groupes (séries) fonctionnel — tous les épisodes sont maintenant dismissés côté serveur.\\n- FIX: 304 périmé après Played/Unplayed — l'ETag est maintenant invalidé quand un média est marqué comme vu.\\n- FIX: Faux pulse après 'Vider tout' — previousDataIds réinitialisé.\\n- FIX: Deep clone de BackdropImageTags (plus de référence partagée entre clones).\\n- PERF: Dismiss optimisé — ResolveNotificationIds sans clonage des 2000+ notifications.\\n- PERF: Suppression du code mort client (item.Played, double isFetching check).\\n- CLEANUP: Labels config page pré-remplis immédiatement (pas de flash vide).",
         "targetAbi": "10.11.0.0",
         "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/5.4.1.0/NotifySync_5.4.1.0.zip",
-        "checksum": "9F28BFFACD7F204707624ADDA1384DC8",
+        "checksum": "1E15EFCE1B99CC81426E94DEA7CD35DA",
         "timestamp": "2026-03-13T20:00:00Z"
       },
       {

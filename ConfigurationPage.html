@@ -169,8 +169,8 @@
                     try {
                         // Override with Jellyfin user language if different
                         try {
-                            const userInfo = await ApiClient.getCurrentUser();
-                            const jfLang = userInfo?.Configuration?.UICulture || navigator.language || 'en';
+                            const userId = ApiClient.getCurrentUserId();
+                            const jfLang = userId ? (localStorage.getItem(userId + '-language') || navigator.language || 'en') : (navigator.language || 'en');
                             const newCT = cfgStrings[jfLang.startsWith('fr') ? 'fr' : 'en'];
                             if (newCT !== CT) {
                                 CT = newCT;

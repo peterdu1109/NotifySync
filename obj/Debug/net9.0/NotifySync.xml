@@ -192,13 +192,12 @@
             Manages notifications and their persistence in SQLite.
             </summary>
         </member>
-        <member name="M:NotifySync.NotificationManager.#ctor(MediaBrowser.Controller.Library.ILibraryManager,Microsoft.Extensions.Logging.ILogger{NotifySync.NotificationManager},MediaBrowser.Model.IO.IFileSystem,MediaBrowser.Controller.Library.IUserDataManager)">
+        <member name="M:NotifySync.NotificationManager.#ctor(MediaBrowser.Controller.Library.ILibraryManager,Microsoft.Extensions.Logging.ILogger{NotifySync.NotificationManager},MediaBrowser.Controller.Library.IUserDataManager)">
             <summary>
             Initializes a new instance of the <see cref="T:NotifySync.NotificationManager"/> class.
             </summary>
             <param name="libraryManager">The library manager.</param>
             <param name="logger">The logger.</param>
-            <param name="fileSystem">The file system.</param>
             <param name="userDataManager">The user data manager.</param>
         </member>
         <member name="P:NotifySync.NotificationManager.Instance">
@@ -229,6 +228,20 @@
             Returns all recent notifications.
             </summary>
             <returns>A collection of notification items.</returns>
+        </member>
+        <member name="M:NotifySync.NotificationManager.GetUserCleared(System.String)">
+            <summary>
+            Gets the cleared timestamp for a user.
+            </summary>
+            <param name="userId">The user unique identifier.</param>
+            <returns>The ticks until which notifications are cleared.</returns>
+        </member>
+        <member name="M:NotifySync.NotificationManager.SetUserCleared(System.String,System.Int64)">
+            <summary>
+            Sets the cleared timestamp for a user and persists it.
+            </summary>
+            <param name="userId">The user unique identifier.</param>
+            <param name="timestamp">The ticks timestamp to set.</param>
         </member>
         <member name="M:NotifySync.NotificationManager.Dispose">
             <inheritdoc />
@@ -346,7 +359,7 @@
             The main plugin class for NotifySync.
             </summary>
         </member>
-        <member name="M:NotifySync.Plugin.#ctor(MediaBrowser.Common.Configuration.IApplicationPaths,MediaBrowser.Model.Serialization.IXmlSerializer,MediaBrowser.Controller.Library.ILibraryManager,Microsoft.Extensions.Logging.ILoggerFactory,MediaBrowser.Model.IO.IFileSystem,MediaBrowser.Controller.Library.IUserDataManager)">
+        <member name="M:NotifySync.Plugin.#ctor(MediaBrowser.Common.Configuration.IApplicationPaths,MediaBrowser.Model.Serialization.IXmlSerializer,MediaBrowser.Controller.Library.ILibraryManager,Microsoft.Extensions.Logging.ILoggerFactory,MediaBrowser.Controller.Library.IUserDataManager)">
             <summary>
             Initializes a new instance of the <see cref="T:NotifySync.Plugin"/> class.
             </summary>
@@ -354,7 +367,6 @@
             <param name="xmlSerializer">The XML serializer.</param>
             <param name="libraryManager">The library manager.</param>
             <param name="loggerFactory">The logger factory.</param>
-            <param name="fileSystem">The file system.</param>
             <param name="userDataManager">The user data manager.</param>
         </member>
         <member name="P:NotifySync.Plugin.Instance">
@@ -371,6 +383,11 @@
         <member name="P:NotifySync.Plugin.NotificationManager">
             <summary>
             Gets the notification manager.
+            </summary>
+        </member>
+        <member name="P:NotifySync.Plugin.PluginDataFolderPath">
+            <summary>
+            Gets the permanent data folder path for this plugin.
             </summary>
         </member>
         <member name="M:NotifySync.Plugin.GetPages">

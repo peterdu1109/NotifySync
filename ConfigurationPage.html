@@ -13,43 +13,38 @@
                 <form id="notifySyncConfigForm">
                     <div class="verticalSection">
                         <div class="sectionTitleContainer">
-                            <h2 class="sectionTitle">Configuration NotifySync</h2>
-                            <p>Gérez les notifications et les catégories de la cloche.</p>
+                            <h2 class="sectionTitle" id="i18n-title"></h2>
+                            <p id="i18n-desc"></p>
                         </div>
 
                         <div class="inputContainer">
-                            <label class="inputLabel" for="maxItems">Quota par Catégorie</label>
+                            <label class="inputLabel" for="maxItems" id="i18n-quotaLabel"></label>
                             <input is="emby-input" type="number" id="maxItems" name="maxItems" min="3" max="20" />
-                            <div class="fieldDescription">Définit le nombre d'éléments à garder pour CHAQUE type (ex: 5
-                                Films + 5 Animes + 5 Musiques).</div>
+                            <div class="fieldDescription" id="i18n-quotaDesc"></div>
                         </div>
 
                         <div class="inputContainer">
-                            <h3 class="sectionTitle">Bibliothèques Surveillées</h3>
-                            <div class="fieldDescription">Cochez les bibliothèques à afficher dans la cloche.</div>
+                            <h3 class="sectionTitle" id="i18n-libTitle"></h3>
+                            <div class="fieldDescription" id="i18n-libDesc"></div>
                             <div id="libraryCheckboxes"
                                 style="margin-top:10px; padding: 10px; background: rgba(0,0,0,0.2); min-height:50px;">
-                                Chargement...
                             </div>
                         </div>
 
                         <div class="inputContainer">
-                            <h3 class="sectionTitle">Mappage des Catégories</h3>
-                            <div class="fieldDescription">
-                                Créez vos propres catégories (ex: <b>Documentaires</b>, <b>Animes</b>).
-                            </div>
+                            <h3 class="sectionTitle" id="i18n-mapTitle"></h3>
+                            <div class="fieldDescription" id="i18n-mapDesc"></div>
                             <div style="display:flex; gap:10px; margin-bottom:10px; align-items:flex-end;">
                                 <div style="flex-grow:1;">
-                                    <label class="inputLabel">Bibliothèque source</label>
+                                    <label class="inputLabel" id="i18n-mapLibLabel"></label>
                                     <select id="mappingLibrarySelect" is="emby-select" style="width:100%;"></select>
                                 </div>
                                 <div style="flex-grow:1;">
-                                    <label class="inputLabel">Nom de la catégorie cible</label>
-                                    <input is="emby-input" id="mappingCategoryInput" placeholder="ex: Animes" />
+                                    <label class="inputLabel" id="i18n-mapCatLabel"></label>
+                                    <input is="emby-input" id="mappingCategoryInput" />
                                 </div>
                                 <button type="button" is="emby-button" class="raised button-accent"
-                                    onclick="NotifySyncConf.addMapping()" style="margin-bottom:5px;">
-                                    Ajouter
+                                    id="i18n-addBtn" onclick="NotifySyncConf.addMapping()" style="margin-bottom:5px;">
                                 </button>
                             </div>
                             <div id="mappingList"
@@ -57,28 +52,21 @@
                         </div>
 
                         <div class="inputContainer">
-                            <h3 class="sectionTitle">Sélection Manuelle (IDs ou Noms)</h3>
-                            <div class="fieldDescription">
-                                Si les cases ci-dessus ne fonctionnent pas, entrez ici l'ID <b>OU LE NOM EXACT</b> du
-                                dossier.<br />
-                                Exemples : <code>acf898...</code> ou simplement <code>Animes</code>.
-                            </div>
+                            <h3 class="sectionTitle" id="i18n-manualTitle"></h3>
+                            <div class="fieldDescription" id="i18n-manualDesc"></div>
                             <textarea is="emby-textarea" id="manualLibraryIds" name="manualLibraryIds"
                                 rows="2"></textarea>
                         </div>
 
                         <div style="margin-top:30px;">
                             <button is="emby-button" type="submit" class="raised button-submit block"
-                                style="margin-bottom:20px;">
-                                Sauvegarder la configuration
+                                id="i18n-saveBtn" style="margin-bottom:20px;">
                             </button>
 
-                            <h3 class="sectionTitle">Maintenance</h3>
-                            <p class="fieldDescription">Cliquez ici après avoir changé les bibliothèques pour forcer le
-                                scan.</p>
+                            <h3 class="sectionTitle" id="i18n-maintTitle"></h3>
+                            <p class="fieldDescription" id="i18n-maintDesc"></p>
                             <button is="emby-button" type="button" class="raised button-cancel block"
-                                onclick="NotifySyncConf.refreshHistory()">
-                                🔄 Régénérer l'historique et appliquer les filtres
+                                id="i18n-refreshBtn" onclick="NotifySyncConf.refreshHistory()">
                             </button>
                         </div>
                     </div>
@@ -87,13 +75,109 @@
         </div>
 
         <script type="text/javascript">
+            const cfgStrings = {
+                fr: {
+                    title: "Configuration NotifySync",
+                    desc: "Gérez les notifications et les catégories de la cloche.",
+                    quotaLabel: "Quota par Catégorie",
+                    quotaDesc: "Définit le nombre d'éléments à garder pour CHAQUE type (ex: 5 Films + 5 Animes + 5 Musiques).",
+                    libTitle: "Bibliothèques Surveillées",
+                    libDesc: "Cochez les bibliothèques à afficher dans la cloche.",
+                    loading: "Chargement...",
+                    mapTitle: "Mappage des Catégories",
+                    mapDesc: "Créez vos propres catégories (ex: Documentaires, Animes).",
+                    mapLibLabel: "Bibliothèque source",
+                    mapCatLabel: "Nom de la catégorie cible",
+                    mapPlaceholder: "ex: Animes",
+                    addBtn: "Ajouter",
+                    manualTitle: "Sélection Manuelle (IDs ou Noms)",
+                    manualDesc: "Si les cases ci-dessus ne fonctionnent pas, entrez ici l'ID ou le nom exact du dossier.",
+                    saveBtn: "Sauvegarder la configuration",
+                    maintTitle: "Maintenance",
+                    maintDesc: "Cliquez ici après avoir changé les bibliothèques pour forcer le scan.",
+                    refreshBtn: "🔄 Régénérer l'historique et appliquer les filtres",
+                    successMsg: "Historique régénéré ! Vérifiez la cloche.",
+                    successTitle: "Succès",
+                    rateLimitMsg: "Veuillez patienter 30 secondes entre chaque rafraîchissement.",
+                    rateLimitTitle: "Patience",
+                    errorMsg: "Erreur régénération.",
+                    errorTitle: "Erreur",
+                    fetching: "Récupération...",
+                    selectLib: "-- Choisir une bibliothèque --",
+                    noLibs: "Aucune bibliothèque trouvée via API.",
+                    noMappings: "Aucune catégorie personnalisée définie.",
+                    libPrefix: "Bibliothèque ",
+                    deleteBtn: "Supprimer"
+                },
+                en: {
+                    title: "NotifySync Configuration",
+                    desc: "Manage notifications and bell categories.",
+                    quotaLabel: "Quota per Category",
+                    quotaDesc: "Number of items to keep for EACH type (e.g., 5 Movies + 5 Anime + 5 Music).",
+                    libTitle: "Monitored Libraries",
+                    libDesc: "Check the libraries to display in the bell.",
+                    loading: "Loading...",
+                    mapTitle: "Category Mapping",
+                    mapDesc: "Create your own categories (e.g., Documentaries, Anime).",
+                    mapLibLabel: "Source library",
+                    mapCatLabel: "Target category name",
+                    mapPlaceholder: "e.g., Anime",
+                    addBtn: "Add",
+                    manualTitle: "Manual Selection (IDs or Names)",
+                    manualDesc: "If the checkboxes above don't work, enter the exact ID or folder name here.",
+                    saveBtn: "Save configuration",
+                    maintTitle: "Maintenance",
+                    maintDesc: "Click here after changing libraries to force a scan.",
+                    refreshBtn: "🔄 Regenerate history and apply filters",
+                    successMsg: "History regenerated! Check the bell.",
+                    successTitle: "Success",
+                    rateLimitMsg: "Please wait 30 seconds between refreshes.",
+                    rateLimitTitle: "Please wait",
+                    errorMsg: "Regeneration error.",
+                    errorTitle: "Error",
+                    fetching: "Fetching...",
+                    selectLib: "-- Choose a library --",
+                    noLibs: "No libraries found via API.",
+                    noMappings: "No custom categories defined.",
+                    libPrefix: "Library ",
+                    deleteBtn: "Delete"
+                }
+            };
+
+            let CT = cfgStrings[(navigator.language || 'en').startsWith('fr') ? 'fr' : 'en'];
+
+            function applyTranslations(page) {
+                const ids = ['title', 'desc', 'quotaLabel', 'quotaDesc', 'libTitle', 'libDesc',
+                    'mapTitle', 'mapDesc', 'mapLibLabel', 'mapCatLabel', 'addBtn',
+                    'manualTitle', 'manualDesc', 'saveBtn', 'maintTitle', 'maintDesc', 'refreshBtn'];
+                ids.forEach(id => {
+                    const el = page.querySelector('#i18n-' + id);
+                    if (el) el.textContent = CT[id];
+                });
+                const catInput = page.querySelector('#mappingCategoryInput');
+                if (catInput) catInput.placeholder = CT.mapPlaceholder;
+            }
+
             const NotifySyncConf = {
                 pluginId: "95655672-2342-4321-8291-321312312312",
                 config: {},
 
                 load: async function (page) {
+                    // Apply browser-based translations immediately (no flash of empty labels)
+                    applyTranslations(page);
                     Dashboard.showLoadingMsg();
                     try {
+                        // Override with Jellyfin user language if different
+                        try {
+                            const userInfo = await ApiClient.getCurrentUser();
+                            const jfLang = userInfo?.Configuration?.UICulture || navigator.language || 'en';
+                            const newCT = cfgStrings[jfLang.startsWith('fr') ? 'fr' : 'en'];
+                            if (newCT !== CT) {
+                                CT = newCT;
+                                applyTranslations(page);
+                            }
+                        } catch (e) { /* keep browser lang */ }
+
                         const cfg = await ApiClient.getPluginConfiguration(this.pluginId);
                         this.config = cfg || {};
                         this.config.EnabledLibraries = this.config.EnabledLibraries || [];
@@ -106,7 +190,7 @@
                         await this.renderLibs(page);
                         this.renderMap(page);
                     } catch (err) {
-                        console.error('Erreur NotifySync load', err);
+                        console.error('NotifySync config load error', err);
                     } finally {
                         Dashboard.hideLoadingMsg();
                     }
@@ -117,13 +201,13 @@
                     try {
                         await ApiClient.ajax({ type: "POST", url: "/NotifySync/Refresh" });
                         Dashboard.hideLoadingMsg();
-                        Dashboard.alert({ message: "Historique régénéré ! Vérifiez la cloche.", title: "Succès" });
+                        Dashboard.alert({ message: CT.successMsg, title: CT.successTitle });
                     } catch (err) {
                         Dashboard.hideLoadingMsg();
                         if (err && err.status === 429) {
-                            Dashboard.alert({ message: "Veuillez patienter 30 secondes entre chaque rafraîchissement.", title: "Patience" });
+                            Dashboard.alert({ message: CT.rateLimitMsg, title: CT.rateLimitTitle });
                         } else {
-                            Dashboard.alert({ message: "Erreur régénération.", title: "Erreur" });
+                            Dashboard.alert({ message: CT.errorMsg, title: CT.errorTitle });
                         }
                     }
                 },
@@ -131,16 +215,16 @@
                 renderLibs: async function (page) {
                     const container = page.querySelector('#libraryCheckboxes');
                     const select = page.querySelector('#mappingLibrarySelect');
-                    container.innerHTML = 'Récupération...';
+                    container.innerHTML = CT.fetching;
 
                     try {
                         const result = await ApiClient.getUserViews({}, ApiClient.getCurrentUserId());
                         const items = result.Items || [];
                         container.innerHTML = '';
-                        select.innerHTML = '<option value="">-- Choisir une bibliothèque --</option>';
+                        select.innerHTML = '<option value="">' + CT.selectLib + '</option>';
 
                         if (items.length === 0) {
-                            container.innerHTML = 'Aucune bibliothèque trouvée via API.';
+                            container.innerHTML = CT.noLibs;
                             return;
                         }
 
@@ -180,7 +264,7 @@
                             select.appendChild(option);
                         }
                     } catch (err) {
-                        console.error('Erreur getUserViews API', err);
+                        console.error('getUserViews API error', err);
                     }
                 },
 
@@ -189,7 +273,7 @@
                     list.innerHTML = '';
 
                     if (this.config.CategoryMappings.length === 0) {
-                        list.innerHTML = '<div style="padding:10px; color:#888; font-style:italic;">Aucune catégorie personnalisée définie.</div>';
+                        list.innerHTML = '<div style="padding:10px; color:#888; font-style:italic;">' + CT.noMappings + '</div>';
                         return;
                     }
 
@@ -215,7 +299,7 @@
                         const catBold = document.createElement('b');
                         catBold.style.color = '#00a4dc';
                         catBold.textContent = mapping.CategoryName;
-                        span.appendChild(document.createTextNode('Bibliothèque '));
+                        span.appendChild(document.createTextNode(CT.libPrefix));
                         span.appendChild(libBold);
                         span.appendChild(document.createTextNode(' \u2192 '));
                         span.appendChild(catBold);
@@ -223,7 +307,7 @@
 
                         const btn = document.createElement('button');
                         btn.type = 'button';
-                        btn.innerText = 'Supprimer';
+                        btn.innerText = CT.deleteBtn;
                         btn.style.color = 'red';
                         btn.setAttribute('data-index', index);
                         btn.onclick = (e) => {
@@ -268,7 +352,7 @@
                         const response = await ApiClient.updatePluginConfiguration(this.pluginId, this.config);
                         Dashboard.processPluginConfigurationUpdateResult(response);
                     } catch (err) {
-                        console.error('Erreur updatePluginConfiguration', err);
+                        console.error('updatePluginConfiguration error', err);
                     } finally {
                         Dashboard.hideLoadingMsg();
                     }

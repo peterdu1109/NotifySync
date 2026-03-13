@@ -1,7 +1,7 @@
 <h1 align="center">🔔 NotifySync</h1>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-5.4.0.0-blue" alt="Version">
+  <img src="https://img.shields.io/badge/version-5.4.1.0-blue" alt="Version">
   <img src="https://img.shields.io/badge/.NET-9.0-purple" alt=".NET Framework">
   <img src="https://img.shields.io/badge/Jellyfin-10.11.X-blueviolet" alt="Jellyfin">
 </p>
@@ -45,6 +45,7 @@ NotifySync transforms the Jellyfin interface by adding a native notification ico
 *   **Clear List (Safe)**: A simple button to clear the notification list without ever marking media as "Played" in your official Jellyfin history.
 *   **Intuitive Navigation**: "Hero Section" for latest additions and smart episode grouping.
 *   **Smart Sync**: Real-time updates. New items are highlighted and grouped automatically.
+*   **Automatic i18n**: Interface language (bell + config page) follows the user's Jellyfin language setting (French/English). Falls back to browser language.
 *   **Advanced Filtering**: Automatic exclusion of theme songs (OP/ED).
 *   **Compatibility**: PC/Mac and Mobile (via official app). *Note: Not supported on TV.*
 
@@ -121,6 +122,7 @@ NotifySync transforme l'interface de Jellyfin en ajoutant une icône de notifica
 *   **Vider la liste (Sans risque)** : Effacez les alertes en un clic sans impacter votre historique de lecture Jellyfin (les médias restent "Non vus").
 *   **Navigation Intuitive** : "Hero Section" pour les derniers ajouts et regroupement intelligent des épisodes.
 *   **Synchronisation Intelligente** : Indicateurs visuels en temps réel. Les nouveaux médias sont mis en avant et groupés automatiquement.
+*   **i18n automatique** : La langue de l'interface (cloche + page config) suit le paramètre de langue Jellyfin de l'utilisateur (Français/Anglais). Fallback sur la langue du navigateur.
 *   **Filtrage Avancé** : Exclusion automatique des génériques (OP/ED).
 *   **Compatibilité** : PC/Mac et Mobiles. *Note : Non supporté sur TV.*
 

@@ -1,4 +1,4 @@
-/* NOTIFYSYNC V5.4.0.0 */
+/* NOTIFYSYNC V5.4.1.0 */
 (function () {
     let currentData = [];
     let groupedData = [];
@@ -54,12 +54,31 @@
         } catch (e) { console.warn("NotifySync: Dismiss failed."); return false; }
     };
 
-    const userLang = navigator.language || 'en';
-    const T = userLang.startsWith('fr')
-        ? { header: "Quoi de neuf ?", empty: "Vous êtes à jour !", clearAll: "Vider la liste", badgeNew: "NOUVEAU", newEps: "nouveaux épisodes", eps: "épisodes", newTracks: "nouvelles pistes", tracks: "pistes", filterAll: "Tout", filterMovie: "Films", filterSeries: "Séries", filterMusic: "Musique" }
-        : { header: "What's New?", empty: "You're all caught up!", clearAll: "Clear list", badgeNew: "NEW", newEps: "new episodes", eps: "episodes", newTracks: "new tracks", tracks: "tracks", filterAll: "All", filterMovie: "Movies", filterSeries: "Series", filterMusic: "Music" };
+    let userLang = navigator.language || 'en';
+    const strings = {
+        fr: { header: "Quoi de neuf ?", empty: "Vous êtes à jour !", clearAll: "Vider la liste", badgeNew: "NOUVEAU", newEps: "nouveaux épisodes", eps: "épisodes", newTracks: "nouvelles pistes", tracks: "pistes", filterAll: "Tout", filterMovie: "Films", filterSeries: "Séries", filterMusic: "Musique" },
+        en: { header: "What's New?", empty: "You're all caught up!", clearAll: "Clear list", badgeNew: "NEW", newEps: "new episodes", eps: "episodes", newTracks: "new tracks", tracks: "tracks", filterAll: "All", filterMovie: "Movies", filterSeries: "Series", filterMusic: "Music" }
+    };
+    let T = strings[userLang.startsWith('fr') ? 'fr' : 'en'];
 
-    const rtf = new Intl.RelativeTimeFormat(userLang, { numeric: 'auto' });
+    let rtf = new Intl.RelativeTimeFormat(userLang, { numeric: 'auto' });
+
+    const detectJellyfinLang = async () => {
+        try {
+            if (!window.ApiClient) return;
+            const user = await window.ApiClient.getCurrentUser();
+            const jfLang = user?.Configuration?.UICulture || userLang;
+            const key = jfLang.startsWith('fr') ? 'fr' : 'en';
+            if (T !== strings[key]) {
+                T = strings[key];
+                userLang = jfLang;
+                rtf = new Intl.RelativeTimeFormat(userLang, { numeric: 'auto' });
+                updateBadge();
+                const drop = document.getElementById('notification-dropdown');
+                if (drop && drop.style.display === 'flex') updateList(drop);
+            }
+        } catch (e) { /* silently use browser fallback */ }
+    };
 
     const timeAgo = (date) => {
         const diff = (new Date(date) - new Date()) / 1000;
@@ -218,13 +237,6 @@
         } catch (e) { console.warn("NotifySync: Cleared fetch failed, using cache."); }
     };
 
-    const applyPlayStates = (statusMap) => {
-        currentData.forEach(item => {
-            let isServerPlayed = statusMap ? !!statusMap[item.Id] : item.Played;
-            item.Played = isServerPlayed || localPlayed.includes(item.Id);
-        });
-    };
-
     const clearAllNotifications = async () => {
         const userId = getUserId();
         if (!userId) return;
@@ -234,30 +246,16 @@
 
         currentData = []; // Clear local data
         groupedData = [];
+        previousDataIds = new Set(); // Reset to avoid false pulse on next fetch
         updateBadge();
         closeDropdown();
     };
 
-    const refreshPlayStates = async () => {
-        const userId = getUserId();
-        if (!currentData.length || !userId) return;
-        try {
-            const idsToCheck = new Set();
-            currentData.forEach(i => {
-                idsToCheck.add(i.Id);
-            });
-            const res = await fetch(`/NotifySync/BulkUserData?userId=${userId}`, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(Array.from(idsToCheck)) });
-            if (res.ok) {
-                const statusMap = await res.json();
-                applyPlayStates(statusMap);
-            }
-        } catch (e) { console.error("Bulk check failed", e); }
-    };
-
     const recalculateNewStatus = () => {
         currentData.forEach(item => {
-            // IsNew = not read on server AND not played in Jellyfin AND not locally marked
-            item.IsNew = !item.IsRead && !item.Played && !localPlayed.includes(item.Id);
+            // IsNew = not read on server AND not locally marked
+            // (Played items are already excluded server-side in GetData)
+            item.IsNew = !item.IsRead && !localPlayed.includes(item.Id);
         });
         groupedData = processGrouping(currentData);
         updateBadge();
@@ -280,7 +278,6 @@
             return;
         }
 
-        if (isFetching) return;
         console.log("NotifySync: Fetching data for UserID:", userId);
         isFetching = true;
         try {
@@ -295,8 +292,7 @@
 
             if (res.status === 304) {
                 console.log("NotifySync: Data 304 Not Modified");
-                // Data unchanged, just refresh play states and recalculate
-                await refreshPlayStates();
+                // Data unchanged, recalculate with existing state
                 recalculateNewStatus();
             }
             else if (res.ok) {
@@ -312,11 +308,7 @@
                 if (newEtag) localStorage.setItem('ns-etag', newEtag);
                 localStorage.setItem('ns-data', JSON.stringify(currentData));
 
-                // First show badge immediately with available data
-                recalculateNewStatus();
-
-                // Then fetch accurate play states and refresh
-                await refreshPlayStates();
+                // Server already filters out played items in GetData(), no need for BulkUserData
                 recalculateNewStatus();
                 retryDelay = 2000;
 
@@ -363,7 +355,6 @@
             if (cached) {
                 currentData = JSON.parse(cached);
                 previousDataIds = new Set(currentData.map(i => i.Id));
-                applyPlayStates();
                 // Recalculate IsNew with IsRead from server + local state
                 recalculateNewStatus();
             }
@@ -496,8 +487,8 @@
 
                     const success = await dismissOnServer(itemId);
                     if (success) {
-                        // Remove from local data
-                        currentData = currentData.filter(i => i.Id !== itemId);
+                        // Remove from local data (by Id AND by SeriesId for group dismiss)
+                        currentData = currentData.filter(i => i.Id !== itemId && i.SeriesId !== itemId);
                         localStorage.setItem('ns-data', JSON.stringify(currentData));
                         localStorage.removeItem('ns-etag'); // Force fresh fetch next time
                         recalculateNewStatus();
@@ -524,7 +515,7 @@
                 // Mark all as read: optimistic local update + server sync
                 const unreadIds = [];
                 currentData.forEach(i => {
-                    if (!i.IsRead && !i.Played && !localPlayed.includes(i.Id)) {
+                    if (!i.IsRead && !localPlayed.includes(i.Id)) {
                         markLocalPlayed(i.Id); // Optimistic local cache
                         i.IsRead = true;       // Update local state immediately
                         unreadIds.push(i.Id);
@@ -604,10 +595,14 @@
         if (window.Events && window.ApiClient) {
             window.Events.on(window.ApiClient, "websocketmessage", onWebSocketMessage);
 
+            // Detect Jellyfin user language preference
+            detectJellyfinLang();
+
             // Re-fetch data instantly when user logs in or reconnects
             window.Events.on(window.ApiClient, "authenticated", () => {
                 console.log("NotifySync: User authenticated! Fetching data immediately.");
                 retryDelay = 1000;
+                detectJellyfinLang();
                 fetchData();
             });
 

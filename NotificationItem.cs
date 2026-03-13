@@ -87,7 +87,9 @@ namespace NotifySync
         /// <returns>A new <see cref="NotificationItem"/>.</returns>
         public NotificationItem Clone()
         {
-            return (NotificationItem)MemberwiseClone();
+            var clone = (NotificationItem)MemberwiseClone();
+            clone.BackdropImageTags = new List<string>(BackdropImageTags);
+            return clone;
         }
     }
 }

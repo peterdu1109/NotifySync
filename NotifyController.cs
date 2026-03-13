@@ -177,7 +177,7 @@ namespace NotifySync
 
             try
             {
-                var normalizedId = userId.Replace("-", string.Empty, StringComparison.OrdinalIgnoreCase).ToLowerInvariant();
+                var normalizedId = NormalizeId(userId);
                 var hash = NotificationManager.Instance.GetVersionHash(normalizedId);
 
                 // ETag 304 support: if client already has this version, skip serialization
@@ -187,7 +187,7 @@ namespace NotifySync
                     return StatusCode(304);
                 }
 
-                string cacheKey = userId + "_" + hash;
+                string cacheKey = normalizedId + "_" + hash;
 
                 if (UserViewCache.TryGetValue(cacheKey, out var cachedData))
                 {
@@ -265,8 +265,8 @@ namespace NotifySync
                 var quotaResult = CategoryQuotaService.ApplyCategoryQuotas(filteredList, maxItems);
                 filteredList = quotaResult.Kept.ToList();
 
-                _logger.LogInformation(
-                    "GetData Diagnostics: Total={Total}, NotInLibrary(kept)={NotFound}, FilteredNotVisible={NotVisible}, Result: {Cats}",
+                _logger.LogDebug(
+                    "GetData: Total={Total}, NotFound={NotFound}, NotVisible={NotVisible}, Result: {Cats}",
                     allNotifs.Count,
                     itemNotFound,
                     filteredNotVisible,
@@ -274,10 +274,11 @@ namespace NotifySync
 
                 byte[] serialized = JsonSerializer.SerializeToUtf8Bytes(filteredList, PluginJsonContext.Default.ListNotificationItem);
 
-                // Store new cache entry (overwrite any previous for this user+hash)
+                // Evict stale entries for this user before inserting new one
+                InvalidateUserCache(normalizedId);
                 UserViewCache[cacheKey] = serialized;
 
-                // Purge cache if it grows too large
+                // Purge cache if it grows too large (safety net)
                 if (UserViewCache.Count > 500)
                 {
                     UserViewCache.Clear();
@@ -341,7 +342,7 @@ namespace NotifySync
             long timestamp = dt.Ticks;
 
             NotificationManager.Instance?.SetUserCleared(userId, timestamp);
-            InvalidateUserCache(userId);
+            InvalidateUserCache(NormalizeId(userId));
 
             return Ok();
         }
@@ -439,10 +440,15 @@ namespace NotifySync
                     return BadRequest("Empty item list");
                 }
 
-                var normalizedUserId = userId.Replace("-", string.Empty, StringComparison.OrdinalIgnoreCase).ToLowerInvariant();
-                NotificationManager.Instance?.Db.BulkSetRead(normalizedUserId, itemIds);
-                NotificationManager.Instance?.IncrementUserStateVersion(normalizedUserId);
-                InvalidateUserCache(userId);
+                if (NotificationManager.Instance == null)
+                {
+                    return StatusCode(StatusCodes.Status503ServiceUnavailable, "Manager not initialized.");
+                }
+
+                var normalizedUserId = NormalizeId(userId);
+                NotificationManager.Instance.Db.BulkSetRead(normalizedUserId, itemIds);
+                NotificationManager.Instance.IncrementUserStateVersion(normalizedUserId);
+                InvalidateUserCache(normalizedUserId);
                 return Ok();
             }
             catch (Exception ex)
@@ -471,10 +477,23 @@ namespace NotifySync
                 return Forbid();
             }
 
-            var normalizedUserId = userId.Replace("-", string.Empty, StringComparison.OrdinalIgnoreCase).ToLowerInvariant();
-            NotificationManager.Instance?.Db.SetItemDismissed(normalizedUserId, itemId);
-            NotificationManager.Instance?.IncrementUserStateVersion(normalizedUserId);
-            InvalidateUserCache(userId);
+            if (NotificationManager.Instance == null)
+            {
+                return StatusCode(StatusCodes.Status503ServiceUnavailable, "Manager not initialized.");
+            }
+
+            var normalizedUserId = NormalizeId(userId);
+
+            // Resolve group dismiss: if itemId is a SeriesId, find all episode IDs (no clone overhead)
+            var idsToDissmiss = NotificationManager.Instance.ResolveNotificationIds(itemId);
+
+            foreach (var id in idsToDissmiss)
+            {
+                NotificationManager.Instance.Db.SetItemDismissed(normalizedUserId, id);
+            }
+
+            NotificationManager.Instance.IncrementUserStateVersion(normalizedUserId);
+            InvalidateUserCache(normalizedUserId);
             return Ok();
         }
 
@@ -496,22 +515,35 @@ namespace NotifySync
                 return Forbid();
             }
 
-            var normalizedUserId = userId.Replace("-", string.Empty, StringComparison.OrdinalIgnoreCase).ToLowerInvariant();
+            var normalizedUserId = NormalizeId(userId);
             var states = NotificationManager.Instance?.Db.GetUserStates(normalizedUserId)
                 ?? new Dictionary<string, (bool IsRead, bool IsDismissed)>();
 
-            // Convert to serializable format
-            var result = new Dictionary<string, Dictionary<string, bool>>();
+            // Flatten to AOT-compatible Dictionary<string, bool> with composite keys
+            var result = new Dictionary<string, bool>();
             foreach (var kvp in states)
             {
-                result[kvp.Key] = new Dictionary<string, bool>
-                {
-                    ["isRead"] = kvp.Value.IsRead,
-                    ["isDismissed"] = kvp.Value.IsDismissed
-                };
+                result[kvp.Key + ":isRead"] = kvp.Value.IsRead;
+                result[kvp.Key + ":isDismissed"] = kvp.Value.IsDismissed;
             }
 
-            return Ok(result);
+            byte[] serialized = JsonSerializer.SerializeToUtf8Bytes(result, PluginJsonContext.Default.DictionaryStringBoolean);
+            return new FileContentResult(serialized, "application/json");
+        }
+
+        private static string NormalizeId(string userId)
+        {
+            if (string.IsNullOrEmpty(userId))
+            {
+                return string.Empty;
+            }
+
+            if (Guid.TryParse(userId, out var guid))
+            {
+                return guid.ToString("N");
+            }
+
+            return userId.Replace("-", string.Empty, StringComparison.OrdinalIgnoreCase).ToLowerInvariant();
         }
 
         private bool IsAuthorizedForUser(string userId)
@@ -543,8 +575,8 @@ namespace NotifySync
                 }
             }
 
-            var normalizedCurrent = currentUserId.Replace("-", string.Empty, StringComparison.OrdinalIgnoreCase).ToLowerInvariant();
-            var normalizedRequested = userId.Replace("-", string.Empty, StringComparison.OrdinalIgnoreCase).ToLowerInvariant();
+            var normalizedCurrent = NormalizeId(currentUserId);
+            var normalizedRequested = NormalizeId(userId);
 
             if (normalizedCurrent == normalizedRequested)
             {

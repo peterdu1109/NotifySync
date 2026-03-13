@@ -240,6 +240,102 @@ namespace NotifySync
         }
 
         /// <summary>
+        /// Atomically replaces all notifications: deletes old IDs and inserts new items in a single transaction.
+        /// Prevents data loss if the process crashes between delete and insert.
+        /// </summary>
+        /// <param name="oldIds">IDs to delete.</param>
+        /// <param name="newItems">Items to insert.</param>
+        public void ReplaceAllNotifications(IEnumerable<string> oldIds, IEnumerable<NotificationItem> newItems)
+        {
+            var oldList = oldIds.Where(id => !string.IsNullOrEmpty(id)).ToList();
+            var newList = newItems.ToList();
+
+            try
+            {
+                using var connection = new SqliteConnection(_connectionString);
+                connection.Open();
+                using var transaction = connection.BeginTransaction();
+                try
+                {
+                    // Phase 1: Delete old entries
+                    if (oldList.Count > 0)
+                    {
+                        using var delCmd = connection.CreateCommand();
+                        delCmd.Transaction = transaction;
+                        delCmd.CommandText = "DELETE FROM Notifications WHERE Id = @Id";
+                        var pId = delCmd.Parameters.Add("@Id", SqliteType.Text);
+                        foreach (var id in oldList)
+                        {
+                            pId.Value = id;
+                            delCmd.ExecuteNonQuery();
+                        }
+                    }
+
+                    // Phase 2: Insert new entries
+                    if (newList.Count > 0)
+                    {
+                        using var insertCmd = connection.CreateCommand();
+                        insertCmd.Transaction = transaction;
+                        insertCmd.CommandText = @"
+                            INSERT OR REPLACE INTO Notifications (
+                                Id, Name, Category, SeriesName, SeriesId, DateCreated,
+                                Type, RunTimeTicks, ProductionYear, BackdropImageTags,
+                                PrimaryImageTag, IndexNumber, ParentIndexNumber
+                            ) VALUES (
+                                @Id, @Name, @Category, @SeriesName, @SeriesId, @DateCreated,
+                                @Type, @RunTimeTicks, @ProductionYear, @Backdrop,
+                                @Primary, @Index, @ParentIndex
+                            )";
+
+                        var pId = insertCmd.Parameters.Add("@Id", SqliteType.Text);
+                        var pName = insertCmd.Parameters.Add("@Name", SqliteType.Text);
+                        var pCat = insertCmd.Parameters.Add("@Category", SqliteType.Text);
+                        var pSName = insertCmd.Parameters.Add("@SeriesName", SqliteType.Text);
+                        var pSId = insertCmd.Parameters.Add("@SeriesId", SqliteType.Text);
+                        var pDate = insertCmd.Parameters.Add("@DateCreated", SqliteType.Text);
+                        var pType = insertCmd.Parameters.Add("@Type", SqliteType.Text);
+                        var pRun = insertCmd.Parameters.Add("@RunTimeTicks", SqliteType.Integer);
+                        var pYear = insertCmd.Parameters.Add("@ProductionYear", SqliteType.Integer);
+                        var pBack = insertCmd.Parameters.Add("@Backdrop", SqliteType.Text);
+                        var pPrim = insertCmd.Parameters.Add("@Primary", SqliteType.Text);
+                        var pIdx = insertCmd.Parameters.Add("@Index", SqliteType.Integer);
+                        var pPIdx = insertCmd.Parameters.Add("@ParentIndex", SqliteType.Integer);
+
+                        foreach (var item in newList)
+                        {
+                            pId.Value = item.Id ?? string.Empty;
+                            pName.Value = item.Name ?? string.Empty;
+                            pCat.Value = item.Category ?? string.Empty;
+                            pSName.Value = (object?)item.SeriesName ?? DBNull.Value;
+                            pSId.Value = (object?)item.SeriesId ?? DBNull.Value;
+                            pDate.Value = item.DateCreated.ToString("O");
+                            pType.Value = item.Type ?? string.Empty;
+                            pRun.Value = (object?)item.RunTimeTicks ?? DBNull.Value;
+                            pYear.Value = (object?)item.ProductionYear ?? DBNull.Value;
+                            pBack.Value = JsonSerializer.Serialize(item.BackdropImageTags ?? new List<string>(), PluginJsonContext.Default.ListString);
+                            pPrim.Value = (object?)item.PrimaryImageTag ?? DBNull.Value;
+                            pIdx.Value = (object?)item.IndexNumber ?? DBNull.Value;
+                            pPIdx.Value = (object?)item.ParentIndexNumber ?? DBNull.Value;
+                            insertCmd.ExecuteNonQuery();
+                        }
+                    }
+
+                    transaction.Commit();
+                    _logger.LogInformation("ReplaceAllNotifications: Deleted {Del}, Inserted {Ins} in single transaction.", oldList.Count, newList.Count);
+                }
+                catch
+                {
+                    transaction.Rollback();
+                    throw;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in ReplaceAllNotifications (atomic delete+insert).");
+            }
+        }
+
+        /// <summary>
         /// Optimizes the SQLite database.
         /// </summary>
         public void Vacuum()
@@ -274,23 +370,39 @@ namespace NotifySync
                 cmd.CommandText = "SELECT * FROM Notifications ORDER BY DateCreated DESC";
 
                 using var reader = cmd.ExecuteReader();
+
+                // Resolve ordinals once for robustness against schema changes
+                int oId = reader.GetOrdinal("Id");
+                int oName = reader.GetOrdinal("Name");
+                int oCategory = reader.GetOrdinal("Category");
+                int oSeriesName = reader.GetOrdinal("SeriesName");
+                int oSeriesId = reader.GetOrdinal("SeriesId");
+                int oDateCreated = reader.GetOrdinal("DateCreated");
+                int oType = reader.GetOrdinal("Type");
+                int oRunTimeTicks = reader.GetOrdinal("RunTimeTicks");
+                int oProductionYear = reader.GetOrdinal("ProductionYear");
+                int oBackdrop = reader.GetOrdinal("BackdropImageTags");
+                int oPrimary = reader.GetOrdinal("PrimaryImageTag");
+                int oIndex = reader.GetOrdinal("IndexNumber");
+                int oParentIndex = reader.GetOrdinal("ParentIndexNumber");
+
                 while (reader.Read())
                 {
                     result.Add(new NotificationItem
                     {
-                        Id = reader.GetString(0),
-                        Name = reader.GetString(1),
-                        Category = reader.GetString(2),
-                        SeriesName = reader.IsDBNull(3) ? null : reader.GetString(3),
-                        SeriesId = reader.IsDBNull(4) ? null : reader.GetString(4),
-                        DateCreated = DateTime.Parse(reader.GetString(5), CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.RoundtripKind),
-                        Type = reader.GetString(6),
-                        RunTimeTicks = reader.IsDBNull(7) ? null : reader.GetInt64(7),
-                        ProductionYear = reader.IsDBNull(8) ? null : reader.GetInt32(8),
-                        BackdropImageTags = reader.IsDBNull(9) ? new List<string>() : JsonSerializer.Deserialize(reader.GetString(9), PluginJsonContext.Default.ListString) ?? new List<string>(),
-                        PrimaryImageTag = reader.IsDBNull(10) ? null : reader.GetString(10),
-                        IndexNumber = reader.IsDBNull(11) ? null : reader.GetInt32(11),
-                        ParentIndexNumber = reader.IsDBNull(12) ? null : reader.GetInt32(12)
+                        Id = reader.GetString(oId),
+                        Name = reader.GetString(oName),
+                        Category = reader.GetString(oCategory),
+                        SeriesName = reader.IsDBNull(oSeriesName) ? null : reader.GetString(oSeriesName),
+                        SeriesId = reader.IsDBNull(oSeriesId) ? null : reader.GetString(oSeriesId),
+                        DateCreated = DateTime.Parse(reader.GetString(oDateCreated), CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.RoundtripKind),
+                        Type = reader.GetString(oType),
+                        RunTimeTicks = reader.IsDBNull(oRunTimeTicks) ? null : reader.GetInt64(oRunTimeTicks),
+                        ProductionYear = reader.IsDBNull(oProductionYear) ? null : reader.GetInt32(oProductionYear),
+                        BackdropImageTags = reader.IsDBNull(oBackdrop) ? new List<string>() : JsonSerializer.Deserialize(reader.GetString(oBackdrop), PluginJsonContext.Default.ListString) ?? new List<string>(),
+                        PrimaryImageTag = reader.IsDBNull(oPrimary) ? null : reader.GetString(oPrimary),
+                        IndexNumber = reader.IsDBNull(oIndex) ? null : reader.GetInt32(oIndex),
+                        ParentIndexNumber = reader.IsDBNull(oParentIndex) ? null : reader.GetInt32(oParentIndex)
                     });
                 }
             }

@@ -97,6 +97,14 @@
             </summary>
             <param name="ids">List of notification IDs to delete.</param>
         </member>
+        <member name="M:NotifySync.NotificationDatabase.ReplaceAllNotifications(System.Collections.Generic.IEnumerable{System.String},System.Collections.Generic.IEnumerable{NotifySync.NotificationItem})">
+            <summary>
+            Atomically replaces all notifications: deletes old IDs and inserts new items in a single transaction.
+            Prevents data loss if the process crashes between delete and insert.
+            </summary>
+            <param name="oldIds">IDs to delete.</param>
+            <param name="newItems">Items to insert.</param>
+        </member>
         <member name="M:NotifySync.NotificationDatabase.Vacuum">
             <summary>
             Optimizes the SQLite database.
@@ -267,6 +275,14 @@
             Increments the user-specific state version (called after MarkRead/Dismiss).
             </summary>
             <param name="normalizedUserId">The normalized user identifier.</param>
+        </member>
+        <member name="M:NotifySync.NotificationManager.ResolveNotificationIds(System.String)">
+            <summary>
+            Returns the IDs of all notifications matching a given item or series ID (without cloning).
+            Used by the Dismiss endpoint to resolve group dismissals efficiently.
+            </summary>
+            <param name="itemId">The item ID or series ID to match.</param>
+            <returns>A list of matching notification IDs.</returns>
         </member>
         <member name="M:NotifySync.NotificationManager.GetRecentNotifications">
             <summary>

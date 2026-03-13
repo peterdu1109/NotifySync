@@ -63,8 +63,7 @@ namespace NotifySync
 
             _jsonPath = Path.Combine(stableDataPath, "notifications.json");
             _clearedPath = Path.Combine(stableDataPath, "users_cleared.json");
-            _logger.LogInformation("NotifySync Registry: REDIRECTING persistence to STABLE PATH: {Path}", stableDataPath);
-            _logger.LogInformation("NotifySync Registry: DataPath={Path}, ClearedPath={ClearedPath}", stableDataPath, _clearedPath);
+            _logger.LogDebug("NotifySync Registry: DataPath={Path}, ClearedPath={ClearedPath}", stableDataPath, _clearedPath);
 
             _db = new NotificationDatabase(stableDataPath, _logger);
             LoadUserCleared();
@@ -127,6 +126,33 @@ namespace NotifySync
         }
 
         /// <summary>
+        /// Returns the IDs of all notifications matching a given item or series ID (without cloning).
+        /// Used by the Dismiss endpoint to resolve group dismissals efficiently.
+        /// </summary>
+        /// <param name="itemId">The item ID or series ID to match.</param>
+        /// <returns>A list of matching notification IDs.</returns>
+        public IReadOnlyList<string> ResolveNotificationIds(string itemId)
+        {
+            try
+            {
+                _dataLock.EnterReadLock();
+                var ids = _notifications
+                    .Where(n => n.Id == itemId || n.SeriesId == itemId)
+                    .Select(n => n.Id)
+                    .Distinct()
+                    .ToList();
+                return ids.Count > 0 ? ids : new List<string> { itemId };
+            }
+            finally
+            {
+                if (_dataLock.IsReadLockHeld)
+                {
+                    _dataLock.ExitReadLock();
+                }
+            }
+        }
+
+        /// <summary>
         /// Returns all recent notifications.
         /// </summary>
         /// <returns>A collection of notification items.</returns>
@@ -168,7 +194,7 @@ namespace NotifySync
             _userClearedCache[normalized] = timestamp;
             Interlocked.Exchange(ref _isClearedDirty, 1);
             SaveUserCleared();
-            _logger.LogInformation("NotifySync: User {User} cleared until {Date} (Timestamp={Ts})", normalized, new DateTime(timestamp, DateTimeKind.Utc).ToString("O"), timestamp);
+            _logger.LogDebug("NotifySync: User {User} cleared until {Ts}.", normalized, timestamp);
         }
 
         private string NormalizeUserId(string userId)
@@ -188,7 +214,6 @@ namespace NotifySync
 
         private void LoadUserCleared()
         {
-            _logger.LogInformation("NotifySync Registry: LoadUserCleared starting. File exists: {Exists}", File.Exists(_clearedPath));
             if (!File.Exists(_clearedPath))
             {
                 return;
@@ -197,17 +222,16 @@ namespace NotifySync
             try
             {
                 var json = File.ReadAllText(_clearedPath);
-                _logger.LogInformation("NotifySync Registry: Read {Len} bytes from {Path}", json.Length, _clearedPath);
                 var data = JsonSerializer.Deserialize(json, PluginJsonContext.Default.DictionaryStringInt64);
                 if (data != null)
                 {
-                    _logger.LogInformation("NotifySync Registry: Deserialized {Count} users", data.Count);
                     foreach (var kvp in data)
                     {
                         var normalized = NormalizeUserId(kvp.Key);
                         _userClearedCache[normalized] = kvp.Value;
-                        _logger.LogInformation("NotifySync Registry: Loaded cleared state for {User} -> {Ts} ({Date})", normalized, kvp.Value, new DateTime(kvp.Value).ToString("O"));
                     }
+
+                    _logger.LogDebug("NotifySync: Loaded cleared state for {Count} users.", data.Count);
                 }
                 else
                 {
@@ -235,7 +259,7 @@ namespace NotifySync
                     var json = JsonSerializer.Serialize(snapshot, PluginJsonContext.Default.DictionaryStringInt64);
                     File.WriteAllText(_clearedPath + ".tmp", json);
                     File.Move(_clearedPath + ".tmp", _clearedPath, true);
-                    _logger.LogInformation("NotifySync Registry: Successfully saved {Count} users to {Path}", snapshot.Count, _clearedPath);
+                    _logger.LogDebug("NotifySync: Saved cleared state for {Count} users.", snapshot.Count);
                 }
                 catch (Exception ex)
                 {
@@ -335,6 +359,7 @@ namespace NotifySync
             //   - An item is marked as watched (disappears from bell)
             //   - An item is unmarked (reappears in bell)
             //   - A whole season is toggled (propagates to episodes)
+            Interlocked.Increment(ref _versionCounter);
             NotifyController.InvalidateUserCache(e.UserId.ToString("N"));
         }
 
@@ -346,7 +371,17 @@ namespace NotifySync
             }
 
             _eventBuffer.Enqueue(e.Item);
-            _bufferProcessTimer.Change(500, Timeout.Infinite);
+            if (!_disposeCts.IsCancellationRequested)
+            {
+                try
+                {
+                    _bufferProcessTimer.Change(500, Timeout.Infinite);
+                }
+                catch (ObjectDisposedException)
+                {
+                    // Timer already disposed during plugin shutdown — safe to ignore
+                }
+            }
         }
 
         private void OnItemRemoved(object? sender, ItemChangeEventArgs e)
@@ -436,7 +471,17 @@ namespace NotifySync
                 if (notifCheck != null)
                 {
                     _eventBuffer.Enqueue(e.Item);
-                    _bufferProcessTimer.Change(500, Timeout.Infinite);
+                    if (!_disposeCts.IsCancellationRequested)
+                    {
+                        try
+                        {
+                            _bufferProcessTimer.Change(500, Timeout.Infinite);
+                        }
+                        catch (ObjectDisposedException)
+                        {
+                            // Timer already disposed during plugin shutdown — safe to ignore
+                        }
+                    }
                 }
             }
 
@@ -607,7 +652,7 @@ namespace NotifySync
                 }
             }
 
-            var ancestorIdsArray = validLibraryIds.Count > 0 ? validLibraryIds.Select(g => g).ToArray() : null;
+            var ancestorIdsArray = validLibraryIds.Count > 0 ? validLibraryIds.ToArray() : null;
 
             var qMovie = new InternalItemsQuery
             {
@@ -752,8 +797,8 @@ namespace NotifySync
                 return;
             }
 
-            _db.DeleteNotifications(oldDbIds!);
-            _db.SaveNotifications(newNotifs);
+            _db.ReplaceAllNotifications(oldDbIds!, newNotifs);
+            _db.PurgeOrphanedStates();
 
             try
             {
@@ -959,8 +1004,9 @@ namespace NotifySync
 
                 return notif;
             }
-            catch
+            catch (Exception ex)
             {
+                _logger.LogWarning(ex, "NotifySync: Failed to create notification from item {ItemName}.", item?.Name);
                 return null;
             }
         }

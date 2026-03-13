@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 
 namespace NotifySync
 {
@@ -72,6 +73,13 @@ namespace NotifySync
         /// Gets or sets the parent index number (season number).
         /// </summary>
         public int? ParentIndexNumber { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether this notification has been read by the current user.
+        /// This is a transient property set during API response building, not persisted in the Notifications table.
+        /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+        public bool IsRead { get; set; }
 
         /// <summary>
         /// Creates a shallow copy of the current notification item.

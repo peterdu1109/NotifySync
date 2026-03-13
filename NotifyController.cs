@@ -29,9 +29,22 @@ namespace NotifySync
     public class NotifyController : ControllerBase
     {
         private static readonly ConcurrentDictionary<string, byte[]> UserViewCache = new ();
+        private static readonly Lazy<string?> _clientJsLazy = new (() =>
+        {
+            var assembly = typeof(NotifyController).Assembly;
+            const string ResourceName = "NotifySync.client.js";
+            using var stream = assembly.GetManifestResourceStream(ResourceName);
+            if (stream == null)
+            {
+                return null;
+            }
+
+            using var reader = new StreamReader(stream);
+            return reader.ReadToEnd();
+        });
+
         private static long _lastRefreshTime;
         private static ILogger<NotifyController>? _staticLogger;
-        private static string? _clientJsCache;
 
         private readonly IUserManager _userManager;
         private readonly ILibraryManager _libraryManager;
@@ -56,7 +69,7 @@ namespace NotifySync
             _libraryManager = libraryManager;
             _userDataManager = userDataManager;
             _logger = logger;
-            _staticLogger ??= logger;
+            Interlocked.CompareExchange(ref _staticLogger, logger, null);
         }
 
         /// <summary>
@@ -98,7 +111,17 @@ namespace NotifySync
             {
                 _logger.LogInformation("NotifySync: Starting manual history scan...");
                 UserViewCache.Clear();
-                Task.Run(() => NotificationManager.Instance.ManualHistoryScan(null!, CancellationToken.None));
+                _ = Task.Run(() =>
+                {
+                    try
+                    {
+                        NotificationManager.Instance!.ManualHistoryScan(new Progress<double>(), CancellationToken.None);
+                    }
+                    catch (Exception ex)
+                    {
+                        _staticLogger?.LogError(ex, "NotifySync: Manual history scan failed.");
+                    }
+                });
                 return Ok(new { Message = "Refresh started" });
             }
 
@@ -115,22 +138,14 @@ namespace NotifySync
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
         public ActionResult GetClientJs()
         {
-            if (_clientJsCache == null)
+            var js = _clientJsLazy.Value;
+            if (js == null)
             {
-                var assembly = GetType().Assembly;
-                const string ResourceName = "NotifySync.client.js";
-                using var stream = assembly.GetManifestResourceStream(ResourceName);
-                if (stream == null)
-                {
-                    _logger.LogError("NotifySync: client.js resource not found! Expected: {ResourceName}", ResourceName);
-                    return NotFound();
-                }
-
-                using var reader = new StreamReader(stream);
-                _clientJsCache = reader.ReadToEnd();
+                _logger.LogError("NotifySync: client.js resource not found!");
+                return NotFound();
             }
 
-            return Content(_clientJsCache, "application/javascript");
+            return Content(js, "application/javascript");
         }
 
         /// <summary>
@@ -162,7 +177,8 @@ namespace NotifySync
 
             try
             {
-                var hash = NotificationManager.Instance.GetVersionHash();
+                var normalizedId = userId.Replace("-", string.Empty, StringComparison.OrdinalIgnoreCase).ToLowerInvariant();
+                var hash = NotificationManager.Instance.GetVersionHash(normalizedId);
 
                 // ETag 304 support: if client already has this version, skip serialization
                 var ifNoneMatch = Request.Headers["If-None-Match"].ToString();
@@ -186,16 +202,34 @@ namespace NotifySync
                     return NotFound();
                 }
 
+                // Load per-user read/dismissed states
+                var userStates = NotificationManager.Instance.Db.GetUserStates(normalizedId);
+                long clearedUntil = NotificationManager.Instance.GetUserCleared(userId);
+
                 var filtered = new List<NotificationItem>();
                 int filteredNotVisible = 0;
                 int itemNotFound = 0;
 
                 foreach (var n in allNotifs)
                 {
+                    // Lookup user state once per item
+                    userStates.TryGetValue(n.Id, out var state);
+
+                    // Skip dismissed items
+                    if (state.IsDismissed)
+                    {
+                        continue;
+                    }
+
                     var item = _libraryManager.GetItemById(n.Id);
                     if (item == null)
                     {
                         itemNotFound++;
+                        if (state.IsRead)
+                        {
+                            n.IsRead = true;
+                        }
+
                         filtered.Add(n);
                         continue;
                     }
@@ -206,7 +240,6 @@ namespace NotifySync
                         continue;
                     }
 
-                    long clearedUntil = NotificationManager.Instance.GetUserCleared(userId);
                     if (n.DateCreated.ToUniversalTime().Ticks <= clearedUntil)
                     {
                         continue;
@@ -216,6 +249,12 @@ namespace NotifySync
                     if (userData != null && userData.Played)
                     {
                         continue;
+                    }
+
+                    // Inject IsRead from server state (single lookup reused)
+                    if (state.IsRead)
+                    {
+                        n.IsRead = true;
                     }
 
                     filtered.Add(n);
@@ -235,21 +274,16 @@ namespace NotifySync
 
                 byte[] serialized = JsonSerializer.SerializeToUtf8Bytes(filteredList, PluginJsonContext.Default.ListNotificationItem);
 
-                foreach (var kvp in UserViewCache)
-                {
-                    if (kvp.Key.StartsWith(userId + "_", StringComparison.Ordinal))
-                    {
-                        UserViewCache.TryRemove(kvp.Key, out _);
-                    }
-                }
+                // Store new cache entry (overwrite any previous for this user+hash)
+                UserViewCache[cacheKey] = serialized;
 
                 // Purge cache if it grows too large
                 if (UserViewCache.Count > 500)
                 {
                     UserViewCache.Clear();
+                    UserViewCache[cacheKey] = serialized;
                 }
 
-                UserViewCache.TryAdd(cacheKey, serialized);
                 Response.Headers["ETag"] = hash;
                 return new FileContentResult(serialized, "application/json");
             }
@@ -377,6 +411,109 @@ namespace NotifySync
             }
         }
 
+        /// <summary>
+        /// Marks notifications as read for a user (server-side persistent state).
+        /// </summary>
+        /// <param name="userId">The user identifier.</param>
+        /// <returns>An ActionResult indicating the status.</returns>
+        [HttpPost("MarkRead")]
+        public async Task<ActionResult> MarkRead([FromQuery] string userId)
+        {
+            if (string.IsNullOrEmpty(userId) || !Guid.TryParse(userId, out _))
+            {
+                return BadRequest("Invalid UserId");
+            }
+
+            if (!IsAuthorizedForUser(userId))
+            {
+                return Forbid();
+            }
+
+            try
+            {
+                using var reader = new StreamReader(Request.Body);
+                var body = await reader.ReadToEndAsync().ConfigureAwait(false);
+                var itemIds = JsonSerializer.Deserialize(body, PluginJsonContext.Default.ListString);
+                if (itemIds == null || itemIds.Count == 0)
+                {
+                    return BadRequest("Empty item list");
+                }
+
+                var normalizedUserId = userId.Replace("-", string.Empty, StringComparison.OrdinalIgnoreCase).ToLowerInvariant();
+                NotificationManager.Instance?.Db.BulkSetRead(normalizedUserId, itemIds);
+                NotificationManager.Instance?.IncrementUserStateVersion(normalizedUserId);
+                InvalidateUserCache(userId);
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in MarkRead for user {UserId}", userId);
+                return StatusCode(500);
+            }
+        }
+
+        /// <summary>
+        /// Dismisses a single notification for a user.
+        /// </summary>
+        /// <param name="userId">The user identifier.</param>
+        /// <param name="itemId">The notification item identifier.</param>
+        /// <returns>An ActionResult indicating the status.</returns>
+        [HttpPost("Dismiss/{userId}/{itemId}")]
+        public ActionResult Dismiss([FromRoute] string userId, [FromRoute] string itemId)
+        {
+            if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(itemId))
+            {
+                return BadRequest();
+            }
+
+            if (!IsAuthorizedForUser(userId))
+            {
+                return Forbid();
+            }
+
+            var normalizedUserId = userId.Replace("-", string.Empty, StringComparison.OrdinalIgnoreCase).ToLowerInvariant();
+            NotificationManager.Instance?.Db.SetItemDismissed(normalizedUserId, itemId);
+            NotificationManager.Instance?.IncrementUserStateVersion(normalizedUserId);
+            InvalidateUserCache(userId);
+            return Ok();
+        }
+
+        /// <summary>
+        /// Gets all read/dismissed states for a user.
+        /// </summary>
+        /// <param name="userId">The user identifier.</param>
+        /// <returns>An ActionResult containing a dictionary of notification states.</returns>
+        [HttpGet("UserStates/{userId}")]
+        public ActionResult GetUserStates([FromRoute] string userId)
+        {
+            if (string.IsNullOrEmpty(userId))
+            {
+                return BadRequest();
+            }
+
+            if (!IsAuthorizedForUser(userId))
+            {
+                return Forbid();
+            }
+
+            var normalizedUserId = userId.Replace("-", string.Empty, StringComparison.OrdinalIgnoreCase).ToLowerInvariant();
+            var states = NotificationManager.Instance?.Db.GetUserStates(normalizedUserId)
+                ?? new Dictionary<string, (bool IsRead, bool IsDismissed)>();
+
+            // Convert to serializable format
+            var result = new Dictionary<string, Dictionary<string, bool>>();
+            foreach (var kvp in states)
+            {
+                result[kvp.Key] = new Dictionary<string, bool>
+                {
+                    ["isRead"] = kvp.Value.IsRead,
+                    ["isDismissed"] = kvp.Value.IsDismissed
+                };
+            }
+
+            return Ok(result);
+        }
+
         private bool IsAuthorizedForUser(string userId)
         {
             var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -431,9 +568,10 @@ namespace NotifySync
         /// <param name="userId">The user identifier.</param>
         internal static void InvalidateUserCache(string userId)
         {
+            var prefix = userId + "_";
             foreach (var kvp in UserViewCache)
             {
-                if (kvp.Key.StartsWith(userId + "_", StringComparison.Ordinal) || kvp.Key.StartsWith(userId, StringComparison.Ordinal))
+                if (kvp.Key.StartsWith(prefix, StringComparison.Ordinal))
                 {
                     UserViewCache.TryRemove(kvp.Key, out _);
                 }

@@ -1,9 +1,0 @@
-  Identification des projets ├á restaurer...
-  Restauration effectu├®e de C:\Users\eliem\Documents\GitHub\NotifySync\NotifySync.csproj (en 118 ms).
-  NotifySync -> C:\Users\eliem\Documents\GitHub\NotifySync\bin\Release\net9.0\NotifySync.dll
-
-La g├®n├®ration a r├®ussi.
-    0 Avertissement(s)
-    0 Erreur(s)
-
-Temps ├®coul├® 00:00:00.86

@@ -8,9 +8,11 @@ namespace NotifySync
     /// </summary>
     public static class CategoryQuotaService
     {
+        private const int MaxEpisodesPerSeries = 50;
+
         /// <summary>
         /// Applies the maximum item quota per category, ensuring that items of the same Series
-        /// only consume a single quota slot.
+        /// only consume a single quota slot. Also caps episodes per series to prevent DB bloat.
         /// </summary>
         /// <param name="sourceList">The initial list of items (most recent first expected).</param>
         /// <param name="maxItems">The maximum retention or display quota per category.</param>
@@ -26,6 +28,7 @@ namespace NotifySync
                 // Ensure items are processed strictly newest first
                 var sorted = group.OrderByDescending(n => n.DateCreated).ToList();
                 var categorySeriesIds = new HashSet<string>();
+                var seriesEpisodeCounts = new Dictionary<string, int>();
                 int currentCount = 0;
 
                 foreach (var item in sorted)
@@ -38,7 +41,14 @@ namespace NotifySync
                         bool isNewSeries = !categorySeriesIds.Contains(item.SeriesId!);
                         if (!isNewSeries || currentCount < maxItems)
                         {
-                            keep = true;
+                            // Cap episodes per series to prevent DB bloat
+                            int epCount = seriesEpisodeCounts.GetValueOrDefault(item.SeriesId!, 0);
+                            if (epCount < MaxEpisodesPerSeries)
+                            {
+                                keep = true;
+                                seriesEpisodeCounts[item.SeriesId!] = epCount + 1;
+                            }
+
                             if (isNewSeries)
                             {
                                 categorySeriesIds.Add(item.SeriesId!);

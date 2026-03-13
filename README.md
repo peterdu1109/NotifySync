@@ -1,7 +1,7 @@
 <h1 align="center">🔔 NotifySync</h1>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-5.3.1.0-blue" alt="Version">
+  <img src="https://img.shields.io/badge/version-5.4.0.0-blue" alt="Version">
   <img src="https://img.shields.io/badge/.NET-9.0-purple" alt=".NET Framework">
   <img src="https://img.shields.io/badge/Jellyfin-10.11.X-blueviolet" alt="Jellyfin">
 </p>
@@ -39,6 +39,9 @@ NotifySync transforms the Jellyfin interface by adding a native notification ico
 
 ### 🎨 User Experience
 *   **Modern Design**: Seamless "Netflix-Style" integration. The red badge disappears instantly when you open the bell, just by looking at the updates.
+*   **Server-Side Read/Unread State**: Read status is persisted on the server — synced across all browsers and devices (no more localStorage dependency).
+*   **Individual Dismiss**: Remove a single notification with a × button (slide-out animation). Persisted per-user on the server.
+*   **Bell Pulse Animation**: The bell shakes when new content arrives (debounced to avoid visual spam).
 *   **Clear List (Safe)**: A simple button to clear the notification list without ever marking media as "Played" in your official Jellyfin history.
 *   **Intuitive Navigation**: "Hero Section" for latest additions and smart episode grouping.
 *   **Smart Sync**: Real-time updates. New items are highlighted and grouped automatically.
@@ -112,6 +115,9 @@ NotifySync transforme l'interface de Jellyfin en ajoutant une icône de notifica
 
 ### 🎨 Expérience Utilisateur
 *   **Design Moderne** : Intégration fluide "Netflix-Style". La pastille rouge disparait instantanément à l'ouverture de la cloche (prise de connaissance).
+*   **État lu/non-lu côté serveur** : Le statut de lecture est persisté sur le serveur — synchronisé entre tous les navigateurs et appareils (fini la dépendance au localStorage).
+*   **Suppression individuelle** : Retirez une notification avec le bouton × (animation slide-out). Persisté par utilisateur côté serveur.
+*   **Animation pulse sur la cloche** : La cloche s'anime quand un nouveau contenu arrive (anti-spam visuel intégré).
 *   **Vider la liste (Sans risque)** : Effacez les alertes en un clic sans impacter votre historique de lecture Jellyfin (les médias restent "Non vus").
 *   **Navigation Intuitive** : "Hero Section" pour les derniers ajouts et regroupement intelligent des épisodes.
 *   **Synchronisation Intelligente** : Indicateurs visuels en temps réel. Les nouveaux médias sont mis en avant et groupés automatiquement.

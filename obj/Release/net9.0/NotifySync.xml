@@ -27,7 +27,7 @@
         <member name="M:NotifySync.CategoryQuotaService.ApplyCategoryQuotas(System.Collections.Generic.IEnumerable{NotifySync.NotificationItem},System.Int32)">
             <summary>
             Applies the maximum item quota per category, ensuring that items of the same Series
-            only consume a single quota slot.
+            only consume a single quota slot. Also caps episodes per series to prevent DB bloat.
             </summary>
             <param name="sourceList">The initial list of items (most recent first expected).</param>
             <param name="maxItems">The maximum retention or display quota per category.</param>
@@ -108,6 +108,38 @@
             </summary>
             <returns>A collection of notification items.</returns>
         </member>
+        <member name="M:NotifySync.NotificationDatabase.GetUserStates(System.String)">
+            <summary>
+            Gets all user notification states for a given user.
+            </summary>
+            <param name="userId">The normalized user identifier.</param>
+            <returns>A dictionary mapping notification IDs to their read/dismissed state.</returns>
+        </member>
+        <member name="M:NotifySync.NotificationDatabase.BulkSetRead(System.String,System.Collections.Generic.IEnumerable{System.String})">
+            <summary>
+            Marks multiple notifications as read for a user (batch UPSERT).
+            </summary>
+            <param name="userId">The normalized user identifier.</param>
+            <param name="notificationIds">The notification IDs to mark as read.</param>
+        </member>
+        <member name="M:NotifySync.NotificationDatabase.SetItemDismissed(System.String,System.String)">
+            <summary>
+            Marks a single notification as dismissed for a user.
+            </summary>
+            <param name="userId">The normalized user identifier.</param>
+            <param name="notificationId">The notification ID to dismiss.</param>
+        </member>
+        <member name="M:NotifySync.NotificationDatabase.DeleteStatesForNotification(System.String)">
+            <summary>
+            Deletes all user states for a specific notification (cleanup when notification is removed globally).
+            </summary>
+            <param name="notificationId">The notification ID whose states should be purged.</param>
+        </member>
+        <member name="M:NotifySync.NotificationDatabase.PurgeOrphanedStates">
+            <summary>
+            Removes orphaned user notification states where the notification no longer exists.
+            </summary>
+        </member>
         <member name="M:NotifySync.NotificationDatabase.Dispose">
             <inheritdoc />
         </member>
@@ -181,6 +213,12 @@
             Gets or sets the parent index number (season number).
             </summary>
         </member>
+        <member name="P:NotifySync.NotificationItem.IsRead">
+            <summary>
+            Gets or sets a value indicating whether this notification has been read by the current user.
+            This is a transient property set during API response building, not persisted in the Notifications table.
+            </summary>
+        </member>
         <member name="M:NotifySync.NotificationItem.Clone">
             <summary>
             Creates a shallow copy of the current notification item.
@@ -217,11 +255,18 @@
             <param name="progress">The progress object.</param>
             <param name="cancellationToken">The cancellation token.</param>
         </member>
-        <member name="M:NotifySync.NotificationManager.GetVersionHash">
+        <member name="M:NotifySync.NotificationManager.GetVersionHash(System.String)">
             <summary>
-            Gets the current version hash.
+            Gets the current version hash, optionally including per-user state version.
             </summary>
+            <param name="normalizedUserId">The normalized user ID to include user-specific state, or null for global only.</param>
             <returns>A string representation of the version.</returns>
+        </member>
+        <member name="M:NotifySync.NotificationManager.IncrementUserStateVersion(System.String)">
+            <summary>
+            Increments the user-specific state version (called after MarkRead/Dismiss).
+            </summary>
+            <param name="normalizedUserId">The normalized user identifier.</param>
         </member>
         <member name="M:NotifySync.NotificationManager.GetRecentNotifications">
             <summary>
@@ -300,6 +345,28 @@
             </summary>
             <param name="userId">The user identifier.</param>
             <returns>An ActionResult containing a dictionary of item IDs and their played status.</returns>
+        </member>
+        <member name="M:NotifySync.NotifyController.MarkRead(System.String)">
+            <summary>
+            Marks notifications as read for a user (server-side persistent state).
+            </summary>
+            <param name="userId">The user identifier.</param>
+            <returns>An ActionResult indicating the status.</returns>
+        </member>
+        <member name="M:NotifySync.NotifyController.Dismiss(System.String,System.String)">
+            <summary>
+            Dismisses a single notification for a user.
+            </summary>
+            <param name="userId">The user identifier.</param>
+            <param name="itemId">The notification item identifier.</param>
+            <returns>An ActionResult indicating the status.</returns>
+        </member>
+        <member name="M:NotifySync.NotifyController.GetUserStates(System.String)">
+            <summary>
+            Gets all read/dismissed states for a user.
+            </summary>
+            <param name="userId">The user identifier.</param>
+            <returns>An ActionResult containing a dictionary of notification states.</returns>
         </member>
         <member name="M:NotifySync.NotifyController.InvalidateUserCache(System.String)">
             <summary>

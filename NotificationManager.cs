@@ -39,6 +39,7 @@ namespace NotifySync
         private readonly ReaderWriterLockSlim _dataLock = new ();
         private readonly CancellationTokenSource _disposeCts = new ();
 
+        private readonly ConcurrentDictionary<string, long> _userStateVersion = new ();
         private int _isClearedDirty;
         private List<NotificationItem> _notifications = new List<NotificationItem>();
         private long _versionCounter = DateTime.UtcNow.Ticks;
@@ -100,13 +101,29 @@ namespace NotifySync
         }
 
         /// <summary>
-        /// Gets the current version hash.
+        /// Gets the current version hash, optionally including per-user state version.
         /// </summary>
+        /// <param name="normalizedUserId">The normalized user ID to include user-specific state, or null for global only.</param>
         /// <returns>A string representation of the version.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public string GetVersionHash()
+        public string GetVersionHash(string? normalizedUserId = null)
         {
-            return Interlocked.Read(ref _versionCounter).ToString(CultureInfo.InvariantCulture);
+            var global = Interlocked.Read(ref _versionCounter).ToString(CultureInfo.InvariantCulture);
+            if (normalizedUserId != null && _userStateVersion.TryGetValue(normalizedUserId, out var userVer))
+            {
+                return global + "_" + userVer.ToString(CultureInfo.InvariantCulture);
+            }
+
+            return global;
+        }
+
+        /// <summary>
+        /// Increments the user-specific state version (called after MarkRead/Dismiss).
+        /// </summary>
+        /// <param name="normalizedUserId">The normalized user identifier.</param>
+        public void IncrementUserStateVersion(string normalizedUserId)
+        {
+            _userStateVersion.AddOrUpdate(normalizedUserId, 1, (_, v) => v + 1);
         }
 
         /// <summary>
@@ -294,6 +311,9 @@ namespace NotifySync
                 _db.DeleteNotifications(itemsToDelete);
             }
 
+            // Purge orphaned user states on startup
+            _db.PurgeOrphanedStates();
+
             try
             {
                 _dataLock.EnterWriteLock();
@@ -336,15 +356,16 @@ namespace NotifySync
                 return;
             }
 
+            var itemId = e.Item.Id.ToString();
             bool dbNeedsUpdate = false;
             try
             {
                 _dataLock.EnterWriteLock();
-                int removed = _notifications.RemoveAll(n => n.Id == e.Item.Id.ToString());
+                int removed = _notifications.RemoveAll(n => n.Id == itemId);
                 if (removed > 0)
                 {
                     dbNeedsUpdate = true;
-                    Interlocked.Exchange(ref _versionCounter, DateTime.UtcNow.Ticks);
+                    Interlocked.Increment(ref _versionCounter);
                 }
             }
             finally
@@ -357,7 +378,8 @@ namespace NotifySync
 
             if (dbNeedsUpdate)
             {
-                _db.DeleteNotifications(new[] { e.Item.Id.ToString() });
+                _db.DeleteNotifications(new[] { itemId });
+                _db.DeleteStatesForNotification(itemId);
             }
         }
 
@@ -385,14 +407,14 @@ namespace NotifySync
                         updatedNotif.DateCreated = _notifications[existingIndex].DateCreated;
                         _notifications[existingIndex] = updatedNotif;
                         dbNeedsUpdate = true;
-                        Interlocked.Exchange(ref _versionCounter, DateTime.UtcNow.Ticks);
+                        Interlocked.Increment(ref _versionCounter);
                     }
                     else
                     {
                         // No longer passes filters
                         _notifications.RemoveAt(existingIndex);
                         dbNeedsUpdate = true;
-                        Interlocked.Exchange(ref _versionCounter, DateTime.UtcNow.Ticks);
+                        Interlocked.Increment(ref _versionCounter);
                     }
                 }
                 else
@@ -483,7 +505,7 @@ namespace NotifySync
                             _notifications = _notifications.Take(GlobalRetentionLimit).ToList();
                         }
 
-                        Interlocked.Exchange(ref _versionCounter, DateTime.UtcNow.Ticks);
+                        Interlocked.Increment(ref _versionCounter);
                     }
                     finally
                     {
@@ -591,7 +613,7 @@ namespace NotifySync
             {
                 IncludeItemTypes = new[] { BaseItemKind.Movie },
                 Recursive = true,
-                OrderBy = new[] { (ItemSortBy.DateCreated, (Jellyfin.Database.Implementations.Enums.SortOrder)1) },
+                OrderBy = new[] { (ItemSortBy.DateCreated, Jellyfin.Database.Implementations.Enums.SortOrder.Descending) },
                 Limit = 1000, // Safe hard limit for initial history scan
                 DtoOptions = new MediaBrowser.Controller.Dto.DtoOptions(false)
             };
@@ -600,7 +622,7 @@ namespace NotifySync
             {
                 IncludeItemTypes = new[] { BaseItemKind.Episode },
                 Recursive = true,
-                OrderBy = new[] { (ItemSortBy.DateCreated, (Jellyfin.Database.Implementations.Enums.SortOrder)1) },
+                OrderBy = new[] { (ItemSortBy.DateCreated, Jellyfin.Database.Implementations.Enums.SortOrder.Descending) },
                 Limit = 2000, // Safe hard limit for initial history scan
                 DtoOptions = new MediaBrowser.Controller.Dto.DtoOptions(false)
             };
@@ -609,7 +631,7 @@ namespace NotifySync
             {
                 IncludeItemTypes = new[] { BaseItemKind.Audio },
                 Recursive = true,
-                OrderBy = new[] { (ItemSortBy.DateCreated, (Jellyfin.Database.Implementations.Enums.SortOrder)1) },
+                OrderBy = new[] { (ItemSortBy.DateCreated, Jellyfin.Database.Implementations.Enums.SortOrder.Descending) },
                 Limit = 2000, // Safe hard limit for initial history scan
                 DtoOptions = new MediaBrowser.Controller.Dto.DtoOptions(false)
             };
@@ -619,7 +641,7 @@ namespace NotifySync
                 // Uniquement requêter les éléments du Channel (VOD/IPTV) sans limiter le type,
                 // car le plugin cible (ex: XFusion) gère ses propres types virtuels.
                 Recursive = true,
-                OrderBy = new[] { (ItemSortBy.DateCreated, (Jellyfin.Database.Implementations.Enums.SortOrder)1) },
+                OrderBy = new[] { (ItemSortBy.DateCreated, Jellyfin.Database.Implementations.Enums.SortOrder.Descending) },
                 MediaTypes = new[] { MediaType.Video, MediaType.Audio },
                 Limit = 2000, // Safe hard limit for initial history scan
                 DtoOptions = new MediaBrowser.Controller.Dto.DtoOptions(false)
@@ -737,7 +759,7 @@ namespace NotifySync
             {
                 _dataLock.EnterWriteLock();
                 _notifications = newNotifs;
-                Interlocked.Exchange(ref _versionCounter, DateTime.UtcNow.Ticks);
+                Interlocked.Increment(ref _versionCounter);
                 _logger.LogInformation("Scan terminé. {Count} items indexés.", _notifications.Count);
             }
             finally

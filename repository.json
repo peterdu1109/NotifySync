@@ -9,6 +9,14 @@
     "supportUrl": "https://github.com/",
     "versions": [
       {
+        "version": "5.4.0.0",
+        "changelog": "- FEATURE: État lu/non-lu persistant côté serveur (plus de perte entre navigateurs).\\n- FEATURE: Suppression individuelle d'une notification (bouton × avec animation slide-out).\\n- FEATURE: Animation pulse sur la cloche quand un nouveau contenu arrive via WebSocket.\\n- API: Nouveaux endpoints MarkRead, Dismiss et UserStates par utilisateur.\\n- PERF: ETag per-user pour invalidation de cache précise après MarkRead/Dismiss.\\n- DB: Nouvelle table UserNotificationState + nettoyage automatique des orphelins.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/5.4.0.0/NotifySync_5.4.0.0.zip",
+        "checksum": "A40B48CDA28FD11B3AF89993CA389A62",
+        "timestamp": "2026-03-13T18:00:00Z"
+      },
+      {
         "version": "5.3.1.0",
         "changelog": "- FIX: Thread-safety du refreshLock (static) et dirty flag (Interlocked).\\n- FIX: Double-encodage JSON dans GetCleared.\\n- FIX: Crash NULL sur BackdropImageTags en base SQLite.\\n- FIX: XSS dans ConfigurationPage (innerHTML → DOM API).\\n- PERF: Support ETag/304 et cache plafonné à 500 entrées.\\n- PERF: Throttle fetch 3s et prévention accumulation event listeners côté client.\\n- CLEANUP: Logs DEBUG corrigés, Vacuum excessif supprimé, dépendance IFileSystem retirée.",
         "targetAbi": "10.11.0.0",

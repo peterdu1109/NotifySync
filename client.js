@@ -1,4 +1,4 @@
-/* NOTIFYSYNC V5.3.1.0 */
+/* NOTIFYSYNC V5.4.0.0 */
 (function () {
     let currentData = [];
     let groupedData = [];
@@ -10,14 +10,48 @@
     let pollTimeout = null;
     let lastFetchTime = 0;
     let eventsRegistered = false;
+    let lastPulseTime = 0;
+    let previousDataIds = new Set();
     let localPlayed = JSON.parse(localStorage.getItem('ns-played') || '[]');
+    let localPlayedDirty = false;
+    let localPlayedSaveTimer = null;
+
+    const flushLocalPlayed = () => {
+        if (localPlayedDirty) {
+            localStorage.setItem('ns-played', JSON.stringify(localPlayed));
+            localPlayedDirty = false;
+        }
+    };
 
     const markLocalPlayed = (id) => {
         if (id && !localPlayed.includes(id)) {
             localPlayed.push(id);
-            if (localPlayed.length > 1000) localPlayed.shift(); // keep reasonable size
-            localStorage.setItem('ns-played', JSON.stringify(localPlayed));
+            if (localPlayed.length > 500) localPlayed.shift();
+            localPlayedDirty = true;
+            clearTimeout(localPlayedSaveTimer);
+            localPlayedSaveTimer = setTimeout(flushLocalPlayed, 1000);
         }
+    };
+
+    const markReadOnServer = async (itemIds) => {
+        const userId = getUserId();
+        if (!userId || !itemIds || itemIds.length === 0) return;
+        try {
+            await fetch(`/NotifySync/MarkRead?userId=${userId}`, {
+                method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(itemIds)
+            });
+        } catch (e) { console.warn("NotifySync: MarkRead failed, localStorage fallback active."); }
+    };
+
+    const dismissOnServer = async (itemId) => {
+        const userId = getUserId();
+        if (!userId || !itemId) return false;
+        try {
+            const res = await fetch(`/NotifySync/Dismiss/${userId}/${itemId}`, {
+                method: 'POST', headers: getAuthHeaders()
+            });
+            return res.ok;
+        } catch (e) { console.warn("NotifySync: Dismiss failed."); return false; }
     };
 
     const userLang = navigator.language || 'en';
@@ -77,11 +111,11 @@
                 background: var(--ns-glass); backdrop-filter: blur(var(--ns-blur)); -webkit-backdrop-filter: blur(var(--ns-blur));
                 border: 1px solid var(--ns-border); border-radius: 12px;
                 box-shadow: 0 20px 60px rgba(0,0,0,0.6);
-                z-index: 999999; display: none; 
-                font-family: 'Noto Sans', sans-serif; 
+                z-index: 999999; display: none;
+                font-family: 'Noto Sans', sans-serif;
                 animation: slideDown 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
                 overflow: hidden;
-                display: flex; flex-direction: column; 
+                flex-direction: column;
                 max-height: 80vh; 
             }
             @media (max-width: 600px) { #notification-dropdown { top: 60px; right: 10px; left: 10px; width: auto; max-width: none; } }
@@ -94,6 +128,15 @@
             @keyframes slideDown { from { opacity:0; transform:translateY(-10px); } to { opacity:1; transform:translateY(0); } }
             @keyframes spin { 100% { transform: rotate(360deg); } }
             .spinning { animation: spin 1s linear infinite; opacity: 1!important; }
+            @keyframes bellPulse { 0%, 100% { transform: scale(1); } 15% { transform: scale(1.3) rotate(-10deg); } 30% { transform: scale(1.3) rotate(10deg); } 45% { transform: scale(1.2) rotate(-5deg); } 60% { transform: scale(1.1); } }
+            .ns-pulse { animation: bellPulse 0.8s ease-in-out; }
+            @keyframes badgeBounce { 0% { transform: scale(1.5); } 100% { transform: scale(1); } }
+            .ns-pulse .ns-badge { animation: badgeBounce 0.5s ease-out; }
+            .dismiss-btn { position:absolute; top:6px; right:6px; background:rgba(255,255,255,0.1); border:none; color:#888; cursor:pointer; width:20px; height:20px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:14px; line-height:1; opacity:0; transition:opacity 0.2s, background 0.2s; z-index:2; padding:0; }
+            .dropdown-item:hover .dismiss-btn { opacity:1; }
+            .dismiss-btn:hover { background:rgba(255,255,255,0.2); color:#fff; }
+            @keyframes dismissSlide { to { opacity:0; transform:translateX(50px); height:0; padding:0; margin:0; overflow:hidden; } }
+            .dismissing { animation: dismissSlide 0.3s ease-out forwards; }
             .dropdown-header { display:flex; justify-content:space-between; padding:16px 20px; border-bottom: 1px solid var(--ns-border); background: rgba(0,0,0,0.3); align-items:center; flex-shrink: 0; }
             .header-title { font-weight: 700; font-size: 15px; letter-spacing: 0.5px; }
             .header-tools { display:flex; gap:15px; }
@@ -213,7 +256,8 @@
 
     const recalculateNewStatus = () => {
         currentData.forEach(item => {
-            item.IsNew = !item.Played;
+            // IsNew = not read on server AND not played in Jellyfin AND not locally marked
+            item.IsNew = !item.IsRead && !item.Played && !localPlayed.includes(item.Id);
         });
         groupedData = processGrouping(currentData);
         updateBadge();
@@ -258,6 +302,11 @@
             else if (res.ok) {
                 const json = await res.json();
                 console.log("NotifySync: Data received", json.length, "items");
+
+                // Detect new items for pulse animation
+                const newIds = new Set(json.map(i => i.Id));
+                const hasNewItems = json.some(i => !previousDataIds.has(i.Id));
+
                 currentData = json;
                 const newEtag = res.headers.get('ETag');
                 if (newEtag) localStorage.setItem('ns-etag', newEtag);
@@ -270,6 +319,22 @@
                 await refreshPlayStates();
                 recalculateNewStatus();
                 retryDelay = 2000;
+
+                // Pulse animation if new items arrived and dropdown is closed
+                if (hasNewItems && previousDataIds.size > 0) {
+                    const drop = document.getElementById('notification-dropdown');
+                    const dropdownOpen = drop && drop.style.display === 'flex';
+                    const now = Date.now();
+                    if (!dropdownOpen && (now - lastPulseTime > 30000)) {
+                        lastPulseTime = now;
+                        const bell = document.getElementById('netflix-bell');
+                        if (bell) {
+                            bell.classList.add('ns-pulse');
+                            setTimeout(() => bell.classList.remove('ns-pulse'), 2000);
+                        }
+                    }
+                }
+                previousDataIds = newIds;
             } else {
                 console.error("NotifySync: Fetch failed", res.status, res.statusText);
             }
@@ -297,13 +362,10 @@
             const cached = localStorage.getItem('ns-data');
             if (cached) {
                 currentData = JSON.parse(cached);
+                previousDataIds = new Set(currentData.map(i => i.Id));
                 applyPlayStates();
-                // Recalculate IsNew with restored lastSeenDate
-                currentData.forEach(item => {
-                    item.IsNew = !item.Played;
-                });
-                groupedData = processGrouping(currentData);
-                updateBadge();
+                // Recalculate IsNew with IsRead from server + local state
+                recalculateNewStatus();
             }
         } catch (e) { }
     };
@@ -390,7 +452,7 @@
                 sub = item.IsNew ? `${item.NewCount || item.GroupCount} ${lbl}` : `${item.GroupCount} ${lbl}`;
             }
 
-            htmlParts.push(`<div class="dropdown-item ${item.IsNew ? 'style-new' : 'style-seen'}" onclick="document.dispatchEvent(new CustomEvent('ns-navigate', {detail: '${item.Id}'}))"><div class="status-dot"></div><div class="thumb-wrapper"><img data-src="${imgUrl}" decoding="async" class="dropdown-thumb ${isMusic ? 'music' : ''}" loading="lazy" onerror="this.style.display='none'"><span class="material-icons" style="color:#444;position:absolute;z-index:-1;">${isMusic ? 'album' : 'movie'}</span></div><div class="dropdown-info"><div class="dropdown-title">${title}</div><div class="dropdown-subtitle">${sub} &bull; ${timeAgo(item.DateCreated)}</div></div></div>`);
+            htmlParts.push(`<div class="dropdown-item ${item.IsNew ? 'style-new' : 'style-seen'}" data-item-id="${item.Id}" onclick="document.dispatchEvent(new CustomEvent('ns-navigate', {detail: '${item.Id}'}))"><div class="status-dot"></div><button class="dismiss-btn" title="Dismiss" onclick="event.stopPropagation(); document.dispatchEvent(new CustomEvent('ns-dismiss', {detail: '${item.Id}'}))">&times;</button><div class="thumb-wrapper"><img data-src="${imgUrl}" decoding="async" class="dropdown-thumb ${isMusic ? 'music' : ''}" loading="lazy" onerror="this.style.display='none'"><span class="material-icons" style="color:#444;position:absolute;z-index:-1;">${isMusic ? 'album' : 'movie'}</span></div><div class="dropdown-info"><div class="dropdown-title">${title}</div><div class="dropdown-subtitle">${sub} &bull; ${timeAgo(item.DateCreated)}</div></div></div>`);
         });
 
         htmlParts.push(`<div class="footer-tools" onclick="document.dispatchEvent(new Event('ns-clearall'))">${T.clearAll}</div>`);
@@ -426,6 +488,28 @@
                     closeDropdown();
                     window.location.hash = '#!/details?id=' + id;
                 });
+                document.addEventListener('ns-dismiss', async (e) => {
+                    const itemId = e.detail;
+                    // Optimistic UI: animate out immediately
+                    const el = document.querySelector(`.dropdown-item[data-item-id="${itemId}"]`);
+                    if (el) el.classList.add('dismissing');
+
+                    const success = await dismissOnServer(itemId);
+                    if (success) {
+                        // Remove from local data
+                        currentData = currentData.filter(i => i.Id !== itemId);
+                        localStorage.setItem('ns-data', JSON.stringify(currentData));
+                        localStorage.removeItem('ns-etag'); // Force fresh fetch next time
+                        recalculateNewStatus();
+                        setTimeout(() => {
+                            const d = document.getElementById('notification-dropdown');
+                            if (d) updateList(d);
+                        }, 300); // Wait for animation to finish
+                    } else {
+                        // Revert animation on failure
+                        if (el) el.classList.remove('dismissing');
+                    }
+                });
                 eventsRegistered = true;
             }
 
@@ -437,19 +521,21 @@
             fetchData().then(() => {
                 updateList(drop);
                 
-                // NOUVEAU COMPORTEMENT: Marquer tout comme vu localement lors de l'ouverture
-                let hasNewAndUnseen = false;
+                // Mark all as read: optimistic local update + server sync
+                const unreadIds = [];
                 currentData.forEach(i => {
-                    if (!i.Played && !localPlayed.includes(i.Id)) {
-                        markLocalPlayed(i.Id);
-                        i.Played = true; // Update local state directly so UI reflects this immediately
-                        hasNewAndUnseen = true;
+                    if (!i.IsRead && !i.Played && !localPlayed.includes(i.Id)) {
+                        markLocalPlayed(i.Id); // Optimistic local cache
+                        i.IsRead = true;       // Update local state immediately
+                        unreadIds.push(i.Id);
                     }
                 });
 
-                if (hasNewAndUnseen) {
-                    recalculateNewStatus(); // Recalculate to remove the red dots and the bell badge
-                    updateList(drop);       // Refresh the list to remove the 'style-new' classes
+                if (unreadIds.length > 0) {
+                    recalculateNewStatus(); // Remove red dots and badge immediately
+                    updateList(drop);       // Refresh the list UI
+                    // Sync to server in background (non-blocking)
+                    markReadOnServer(unreadIds);
                 }
             });
             document.getElementById('notify-backdrop').style.display = 'block';

@@ -83,6 +83,17 @@ namespace NotifySync
                             ParentIndexNumber INTEGER
                         );
                         CREATE INDEX IF NOT EXISTS idx_notifications_date ON Notifications(DateCreated DESC);
+
+                        CREATE TABLE IF NOT EXISTS UserNotificationState (
+                            UserId TEXT NOT NULL,
+                            NotificationId TEXT NOT NULL,
+                            IsRead INTEGER NOT NULL DEFAULT 0,
+                            IsDismissed INTEGER NOT NULL DEFAULT 0,
+                            ReadAt TEXT,
+                            DismissedAt TEXT,
+                            PRIMARY KEY (UserId, NotificationId)
+                        );
+                        CREATE INDEX IF NOT EXISTS idx_uns_user ON UserNotificationState(UserId);
                     ";
                     cmd.ExecuteNonQuery();
                 }
@@ -291,9 +302,163 @@ namespace NotifySync
             return result;
         }
 
+        /// <summary>
+        /// Gets all user notification states for a given user.
+        /// </summary>
+        /// <param name="userId">The normalized user identifier.</param>
+        /// <returns>A dictionary mapping notification IDs to their read/dismissed state.</returns>
+        public Dictionary<string, (bool IsRead, bool IsDismissed)> GetUserStates(string userId)
+        {
+            var result = new Dictionary<string, (bool, bool)>();
+            try
+            {
+                using var connection = new SqliteConnection(_connectionString);
+                connection.Open();
+                using var cmd = connection.CreateCommand();
+                cmd.CommandText = "SELECT NotificationId, IsRead, IsDismissed FROM UserNotificationState WHERE UserId = @UserId";
+                cmd.Parameters.AddWithValue("@UserId", userId);
+                using var reader = cmd.ExecuteReader();
+                while (reader.Read())
+                {
+                    result[reader.GetString(0)] = (reader.GetInt32(1) != 0, reader.GetInt32(2) != 0);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error reading user notification states for {UserId}.", userId);
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Marks multiple notifications as read for a user (batch UPSERT).
+        /// </summary>
+        /// <param name="userId">The normalized user identifier.</param>
+        /// <param name="notificationIds">The notification IDs to mark as read.</param>
+        public void BulkSetRead(string userId, IEnumerable<string> notificationIds)
+        {
+            try
+            {
+                using var connection = new SqliteConnection(_connectionString);
+                connection.Open();
+                using var transaction = connection.BeginTransaction();
+                try
+                {
+                    using var cmd = connection.CreateCommand();
+                    cmd.Transaction = transaction;
+                    cmd.CommandText = @"
+                        INSERT INTO UserNotificationState (UserId, NotificationId, IsRead, ReadAt)
+                        VALUES (@UserId, @NotifId, 1, @Now)
+                        ON CONFLICT(UserId, NotificationId)
+                        DO UPDATE SET IsRead = 1, ReadAt = @Now";
+                    var pUserId = cmd.Parameters.Add("@UserId", SqliteType.Text);
+                    var pNotifId = cmd.Parameters.Add("@NotifId", SqliteType.Text);
+                    var pNow = cmd.Parameters.Add("@Now", SqliteType.Text);
+                    pUserId.Value = userId;
+                    pNow.Value = DateTime.UtcNow.ToString("O");
+
+                    foreach (var id in notificationIds)
+                    {
+                        if (!string.IsNullOrEmpty(id))
+                        {
+                            pNotifId.Value = id;
+                            cmd.ExecuteNonQuery();
+                        }
+                    }
+
+                    transaction.Commit();
+                }
+                catch
+                {
+                    transaction.Rollback();
+                    throw;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error bulk setting read state for {UserId}.", userId);
+            }
+        }
+
+        /// <summary>
+        /// Marks a single notification as dismissed for a user.
+        /// </summary>
+        /// <param name="userId">The normalized user identifier.</param>
+        /// <param name="notificationId">The notification ID to dismiss.</param>
+        public void SetItemDismissed(string userId, string notificationId)
+        {
+            try
+            {
+                using var connection = new SqliteConnection(_connectionString);
+                connection.Open();
+                using var cmd = connection.CreateCommand();
+                cmd.CommandText = @"
+                    INSERT INTO UserNotificationState (UserId, NotificationId, IsDismissed, DismissedAt)
+                    VALUES (@UserId, @NotifId, 1, @Now)
+                    ON CONFLICT(UserId, NotificationId)
+                    DO UPDATE SET IsDismissed = 1, DismissedAt = @Now";
+                cmd.Parameters.AddWithValue("@UserId", userId);
+                cmd.Parameters.AddWithValue("@NotifId", notificationId);
+                cmd.Parameters.AddWithValue("@Now", DateTime.UtcNow.ToString("O"));
+                cmd.ExecuteNonQuery();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error dismissing notification {NotifId} for {UserId}.", notificationId, userId);
+            }
+        }
+
+        /// <summary>
+        /// Deletes all user states for a specific notification (cleanup when notification is removed globally).
+        /// </summary>
+        /// <param name="notificationId">The notification ID whose states should be purged.</param>
+        public void DeleteStatesForNotification(string notificationId)
+        {
+            try
+            {
+                using var connection = new SqliteConnection(_connectionString);
+                connection.Open();
+                using var cmd = connection.CreateCommand();
+                cmd.CommandText = "DELETE FROM UserNotificationState WHERE NotificationId = @NotifId";
+                cmd.Parameters.AddWithValue("@NotifId", notificationId);
+                cmd.ExecuteNonQuery();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting user states for notification {NotifId}.", notificationId);
+            }
+        }
+
+        /// <summary>
+        /// Removes orphaned user notification states where the notification no longer exists.
+        /// </summary>
+        public void PurgeOrphanedStates()
+        {
+            try
+            {
+                using var connection = new SqliteConnection(_connectionString);
+                connection.Open();
+                using var cmd = connection.CreateCommand();
+                cmd.CommandText = @"
+                    DELETE FROM UserNotificationState
+                    WHERE NotificationId NOT IN (SELECT Id FROM Notifications)";
+                int deleted = cmd.ExecuteNonQuery();
+                if (deleted > 0)
+                {
+                    _logger.LogInformation("Purged {Count} orphaned user notification states.", deleted);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error purging orphaned user notification states.");
+            }
+        }
+
         /// <inheritdoc />
         public void Dispose()
         {
+            SqliteConnection.ClearAllPools();
             GC.SuppressFinalize(this);
         }
     }

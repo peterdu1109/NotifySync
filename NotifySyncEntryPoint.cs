@@ -90,7 +90,7 @@ namespace NotifySync
                 // File Transformation will call NotifySyncTransformation.Transform via reflection
                 string thisAssemblyFullName = typeof(NotifySyncTransformation).Assembly.FullName!;
 
-                JObject payload = new JObject
+                var payload = new JObject
                 {
                     ["id"] = "95655672-2342-4321-8291-321312312312",
                     ["fileNamePattern"] = "index.html",

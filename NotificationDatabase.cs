@@ -101,7 +101,7 @@ namespace NotifySync
         public void SaveNotifications(IEnumerable<NotificationItem> items)
         {
             var itemList = items.ToList();
-            _logger.LogWarning("DEBUG DB: SaveNotifications called with {Count} items.", itemList.Count);
+            _logger.LogDebug("SaveNotifications called with {Count} items.", itemList.Count);
             if (itemList.Count == 0)
             {
                 return;
@@ -111,7 +111,7 @@ namespace NotifySync
             {
                 using var connection = new SqliteConnection(_connectionString);
                 connection.Open();
-                _logger.LogWarning("DEBUG DB: SQLite connection opened successfully.");
+                _logger.LogDebug("SQLite connection opened successfully.");
 
                 using var transaction = connection.BeginTransaction();
                 try
@@ -167,18 +167,18 @@ namespace NotifySync
                     }
 
                     transaction.Commit();
-                    _logger.LogWarning("DEBUG DB: Successfully committed {Count} rows to the database.", insertedCount);
+                    _logger.LogDebug("Successfully committed {Count} rows to the database.", insertedCount);
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "DEBUG DB: Error during transaction execution. Rolling back.");
+                    _logger.LogError(ex, "Error during transaction execution. Rolling back.");
                     transaction.Rollback();
                     throw;
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "DEBUG DB: FATAL Erreur lors de la sauvegarde/mise à jour des notifications en SQLite.");
+                _logger.LogError(ex, "Erreur lors de la sauvegarde/mise à jour des notifications en SQLite.");
             }
         }
 
@@ -276,7 +276,7 @@ namespace NotifySync
                         Type = reader.GetString(6),
                         RunTimeTicks = reader.IsDBNull(7) ? null : reader.GetInt64(7),
                         ProductionYear = reader.IsDBNull(8) ? null : reader.GetInt32(8),
-                        BackdropImageTags = JsonSerializer.Deserialize(reader.GetString(9), PluginJsonContext.Default.ListString) ?? new List<string>(),
+                        BackdropImageTags = reader.IsDBNull(9) ? new List<string>() : JsonSerializer.Deserialize(reader.GetString(9), PluginJsonContext.Default.ListString) ?? new List<string>(),
                         PrimaryImageTag = reader.IsDBNull(10) ? null : reader.GetString(10),
                         IndexNumber = reader.IsDBNull(11) ? null : reader.GetInt32(11),
                         ParentIndexNumber = reader.IsDBNull(12) ? null : reader.GetInt32(12)

@@ -210,7 +210,15 @@
                         div.style.alignItems = "center";
 
                         const span = document.createElement('span');
-                        span.innerHTML = 'Bibliothèque <b>' + libName + '</b> &rarr; <b style="color:#00a4dc;">' + mapping.CategoryName + '</b>';
+                        const libBold = document.createElement('b');
+                        libBold.textContent = libName;
+                        const catBold = document.createElement('b');
+                        catBold.style.color = '#00a4dc';
+                        catBold.textContent = mapping.CategoryName;
+                        span.appendChild(document.createTextNode('Bibliothèque '));
+                        span.appendChild(libBold);
+                        span.appendChild(document.createTextNode(' \u2192 '));
+                        span.appendChild(catBold);
                         div.appendChild(span);
 
                         const btn = document.createElement('button');

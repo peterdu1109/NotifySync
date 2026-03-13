@@ -1,4 +1,4 @@
-/* NOTIFYSYNC V4.7.17.5 */
+/* NOTIFYSYNC V5.3.0.0 */
 (function () {
     let currentData = [];
     let groupedData = [];
@@ -8,6 +8,8 @@
     let activeFilter = 'All';
     let observerInstance = null;
     let pollTimeout = null;
+    let lastFetchTime = 0;
+    let eventsRegistered = false;
     let localPlayed = JSON.parse(localStorage.getItem('ns-played') || '[]');
 
     const markLocalPlayed = (id) => {
@@ -20,8 +22,8 @@
 
     const userLang = navigator.language || 'en';
     const T = userLang.startsWith('fr')
-        ? { header: "Quoi de neuf ?", empty: "Vous êtes à jour !", clearAll: "Vider la liste", badgeNew: "NOUVEAU", newEps: "nouveaux épisodes", eps: "épisodes", filterAll: "Tout", filterMovie: "Films", filterSeries: "Séries", filterMusic: "Musique" }
-        : { header: "What's New?", empty: "You're all caught up!", clearAll: "Clear list", badgeNew: "NEW", newEps: "new episodes", eps: "episodes", filterAll: "All", filterMovie: "Movies", filterSeries: "Series", filterMusic: "Music" };
+        ? { header: "Quoi de neuf ?", empty: "Vous êtes à jour !", clearAll: "Vider la liste", badgeNew: "NOUVEAU", newEps: "nouveaux épisodes", eps: "épisodes", newTracks: "nouvelles pistes", tracks: "pistes", filterAll: "Tout", filterMovie: "Films", filterSeries: "Séries", filterMusic: "Musique" }
+        : { header: "What's New?", empty: "You're all caught up!", clearAll: "Clear list", badgeNew: "NEW", newEps: "new episodes", eps: "episodes", newTracks: "new tracks", tracks: "tracks", filterAll: "All", filterMovie: "Movies", filterSeries: "Series", filterMusic: "Music" };
 
     const rtf = new Intl.RelativeTimeFormat(userLang, { numeric: 'auto' });
 
@@ -164,7 +166,9 @@
                 const text = await res.text();
                 // Ensure valid date string
                 if (text && text.length > 5) {
-                    lastSeenDate = new Date(JSON.parse(text));
+                    // Support both plain ISO string and JSON-encoded string
+                    const parsed = text.startsWith('"') ? JSON.parse(text) : text;
+                    lastSeenDate = new Date(parsed);
                     localStorage.setItem('ns-cleared', lastSeenDate.toISOString());
                 }
             }
@@ -218,6 +222,10 @@
     const fetchData = async () => {
         if (isFetching) return;
 
+        // Throttle: minimum 3 seconds between successful fetches
+        const now = Date.now();
+        if (now - lastFetchTime < 3000) return;
+
         const userId = getUserId();
         if (!userId) {
             console.warn("NotifySync: No userId auth found yet. Retrying in " + retryDelay + "ms");
@@ -269,6 +277,7 @@
             const drop = document.getElementById('notification-dropdown');
             if (drop && drop.style.display === 'flex') updateList(drop);
 
+            lastFetchTime = Date.now();
         } catch (e) {
             console.error("NotifySync: Error in fetchData", e);
             if (pollTimeout) clearTimeout(pollTimeout);
@@ -362,7 +371,7 @@
             }
             if (isGroup) {
                 const isMusic = hero.Type === 'Audio';
-                const lbl = isMusic ? (hero.IsNew ? "nouvelles pistes" : "pistes") : (hero.IsNew ? T.newEps : T.eps);
+                const lbl = isMusic ? (hero.IsNew ? T.newTracks : T.tracks) : (hero.IsNew ? T.newEps : T.eps);
                 heroSub = hero.IsNew ? `${hero.NewCount || hero.GroupCount} ${lbl}` : `${hero.GroupCount} ${lbl}`;
             }
 
@@ -377,7 +386,7 @@
             let title = escapeHtml(item.Name), sub = item.ProductionYear;
             if (!isGroup && item.Type === 'Episode') { title = escapeHtml(formatEpisodeTitle(item)); sub = escapeHtml(item.SeriesName); }
             if (isGroup) {
-                const lbl = isMusic ? (item.IsNew ? "nouvelles pistes" : "pistes") : (item.IsNew ? T.newEps : T.eps);
+                const lbl = isMusic ? (item.IsNew ? T.newTracks : T.tracks) : (item.IsNew ? T.newEps : T.eps);
                 sub = item.IsNew ? `${item.NewCount || item.GroupCount} ${lbl}` : `${item.GroupCount} ${lbl}`;
             }
 
@@ -407,14 +416,18 @@
         if (!drop) {
             drop = document.createElement('div'); drop.id = 'notification-dropdown';
             document.body.appendChild(drop);
-            document.addEventListener('ns-filter', (e) => { activeFilter = e.detail; updateList(drop); });
-            document.addEventListener('ns-clearall', () => { clearAllNotifications(); });
-            document.addEventListener('ns-refresh', () => { triggerHardRefresh(); });
-            document.addEventListener('ns-navigate', (e) => {
-                const id = e.detail;
-                closeDropdown();
-                window.location.hash = '#!/details?id=' + id;
-            });
+
+            if (!eventsRegistered) {
+                document.addEventListener('ns-filter', (e) => { activeFilter = e.detail; const d = document.getElementById('notification-dropdown'); if (d) updateList(d); });
+                document.addEventListener('ns-clearall', () => { clearAllNotifications(); });
+                document.addEventListener('ns-refresh', () => { triggerHardRefresh(); });
+                document.addEventListener('ns-navigate', (e) => {
+                    const id = e.detail;
+                    closeDropdown();
+                    window.location.hash = '#!/details?id=' + id;
+                });
+                eventsRegistered = true;
+            }
 
             drop.innerHTML = `<div class="dropdown-header"><span class="header-title">${T.header}</span><div class="header-tools"><span class="material-icons tool-icon refresh-icon" onclick="document.dispatchEvent(new Event('ns-refresh'))">refresh</span></div></div><div class="filter-bar"></div><div class="list-container"></div>`;
         }

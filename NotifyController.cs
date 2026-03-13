@@ -37,7 +37,7 @@ namespace NotifySync
         private readonly ILibraryManager _libraryManager;
         private readonly IUserDataManager _userDataManager;
         private readonly ILogger<NotifyController> _logger;
-        private readonly object _refreshLock = new ();
+        private static readonly object _refreshLock = new ();
 
         /// <summary>
         /// Initializes a new instance of the <see cref="NotifyController"/> class.
@@ -163,10 +163,19 @@ namespace NotifySync
             try
             {
                 var hash = NotificationManager.Instance.GetVersionHash();
+
+                // ETag 304 support: if client already has this version, skip serialization
+                var ifNoneMatch = Request.Headers["If-None-Match"].ToString();
+                if (!string.IsNullOrEmpty(ifNoneMatch) && ifNoneMatch == hash)
+                {
+                    return StatusCode(304);
+                }
+
                 string cacheKey = userId + "_" + hash;
 
                 if (UserViewCache.TryGetValue(cacheKey, out var cachedData))
                 {
+                    Response.Headers["ETag"] = hash;
                     return new FileContentResult(cachedData, "application/json");
                 }
 
@@ -234,6 +243,12 @@ namespace NotifySync
                     }
                 }
 
+                // Purge cache if it grows too large
+                if (UserViewCache.Count > 500)
+                {
+                    UserViewCache.Clear();
+                }
+
                 UserViewCache.TryAdd(cacheKey, serialized);
                 Response.Headers["ETag"] = hash;
                 return new FileContentResult(serialized, "application/json");
@@ -264,7 +279,7 @@ namespace NotifySync
             }
 
             long cleared = NotificationManager.Instance?.GetUserCleared(userId) ?? 0;
-            return Ok(JsonSerializer.Serialize(new DateTime(cleared).ToString("O"), PluginJsonContext.Default.Object));
+            return Ok(new DateTime(cleared, DateTimeKind.Utc).ToString("O"));
         }
 
         /// <summary>
@@ -286,7 +301,9 @@ namespace NotifySync
                 return Forbid();
             }
 
-            DateTime dt = string.IsNullOrEmpty(date) ? DateTime.UtcNow : DateTime.Parse(date, System.Globalization.CultureInfo.InvariantCulture);
+            DateTime dt = string.IsNullOrEmpty(date) || !DateTime.TryParse(date, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.RoundtripKind, out var parsedDate)
+                ? DateTime.UtcNow
+                : parsedDate;
             long timestamp = dt.Ticks;
 
             NotificationManager.Instance?.SetUserCleared(userId, timestamp);
@@ -331,7 +348,6 @@ namespace NotifySync
                 }
 
                 var results = new Dictionary<string, bool>();
-#pragma warning disable CS8602
                 foreach (var id in itemIds!)
                 {
                     if (string.IsNullOrEmpty(id))
@@ -342,9 +358,8 @@ namespace NotifySync
                     var item = _libraryManager.GetItemById(id);
                     if (item != null)
                     {
-                        var userObj = user!;
-                        var userData = _userDataManager.GetUserData(userObj, item);
-                        results[id] = userData.Played;
+                        var userData = _userDataManager.GetUserData(user, item);
+                        results[id] = userData?.Played ?? false;
                     }
                     else
                     {

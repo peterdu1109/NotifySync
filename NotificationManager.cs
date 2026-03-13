@@ -14,7 +14,6 @@ using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Model.Entities;
-using MediaBrowser.Model.IO;
 using MediaBrowser.Model.Querying;
 using Microsoft.Extensions.Logging;
 
@@ -40,7 +39,7 @@ namespace NotifySync
         private readonly ReaderWriterLockSlim _dataLock = new ();
         private readonly CancellationTokenSource _disposeCts = new ();
 
-        private bool _isClearedDirty;
+        private int _isClearedDirty;
         private List<NotificationItem> _notifications = new List<NotificationItem>();
         private long _versionCounter = DateTime.UtcNow.Ticks;
         private int _isProcessingBuffer;
@@ -50,9 +49,8 @@ namespace NotifySync
         /// </summary>
         /// <param name="libraryManager">The library manager.</param>
         /// <param name="logger">The logger.</param>
-        /// <param name="fileSystem">The file system.</param>
         /// <param name="userDataManager">The user data manager.</param>
-        public NotificationManager(ILibraryManager libraryManager, ILogger<NotificationManager> logger, IFileSystem fileSystem, IUserDataManager userDataManager)
+        public NotificationManager(ILibraryManager libraryManager, ILogger<NotificationManager> logger, IUserDataManager userDataManager)
         {
             _libraryManager = libraryManager;
             _logger = logger;
@@ -151,9 +149,9 @@ namespace NotifySync
         {
             var normalized = NormalizeUserId(userId);
             _userClearedCache[normalized] = timestamp;
-            _isClearedDirty = true;
+            Interlocked.Exchange(ref _isClearedDirty, 1);
             SaveUserCleared();
-            _logger.LogInformation("NotifySync: User {User} cleared until {Date} (Timestamp={Ts})", normalized, new DateTime(timestamp).ToString("O"), timestamp);
+            _logger.LogInformation("NotifySync: User {User} cleared until {Date} (Timestamp={Ts})", normalized, new DateTime(timestamp, DateTimeKind.Utc).ToString("O"), timestamp);
         }
 
         private string NormalizeUserId(string userId)
@@ -207,8 +205,7 @@ namespace NotifySync
 
         private void SaveUserCleared()
         {
-            _logger.LogDebug("NotifySync: SaveUserCleared called, Dirty={Dirty}", _isClearedDirty);
-            if (!_isClearedDirty)
+            if (Interlocked.CompareExchange(ref _isClearedDirty, 0, 1) == 0)
             {
                 return;
             }
@@ -221,7 +218,6 @@ namespace NotifySync
                     var json = JsonSerializer.Serialize(snapshot, PluginJsonContext.Default.DictionaryStringInt64);
                     File.WriteAllText(_clearedPath + ".tmp", json);
                     File.Move(_clearedPath + ".tmp", _clearedPath, true);
-                    _isClearedDirty = false;
                     _logger.LogInformation("NotifySync Registry: Successfully saved {Count} users to {Path}", snapshot.Count, _clearedPath);
                 }
                 catch (Exception ex)
@@ -296,7 +292,6 @@ namespace NotifySync
             if (itemsToDelete.Count > 0)
             {
                 _db.DeleteNotifications(itemsToDelete);
-                _db.Vacuum(); // Optimize Db after startup trim
             }
 
             try
@@ -737,7 +732,6 @@ namespace NotifySync
 
             _db.DeleteNotifications(oldDbIds!);
             _db.SaveNotifications(newNotifs);
-            _db.Vacuum(); // Reclaim space after mass delete/insert
 
             try
             {

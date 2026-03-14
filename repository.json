@@ -9,6 +9,14 @@
     "supportUrl": "https://github.com/",
     "versions": [
       {
+        "version": "5.4.2.0",
+        "changelog": "- FIX: Memory leak — IntersectionObserver déconnecté avant recréation (évite accumulation sur sessions longues).\\n- FIX: SQLite ClearPool ciblé — ne vide plus les pools de connexion des autres plugins.\\n- SEC: IDs échappés dans les attributs HTML (prévention XSS sur les données injectées dans le DOM).\\n- REFACTOR: Extraction de NormalizeId dans une classe utilitaire partagée (IdHelper) — suppression de la duplication entre Controller et Manager.\\n- CLEANUP: Unification de tous les logs serveur en français pour cohérence diagnostique.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/5.4.2.0/NotifySync_5.4.2.0.zip",
+        "checksum": "10C9D32D4977DED2F8580D698BE05466",
+        "timestamp": "2026-03-14T12:00:00Z"
+      },
+      {
         "version": "5.4.1.0",
         "changelog": "- FEAT: i18n automatique — la langue suit les paramètres Jellyfin de l'utilisateur (FR/EN), avec fallback navigateur.\\n- FEAT: Page de configuration entièrement localisée FR/EN.\\n- FIX: Dismiss sur les groupes (séries) fonctionnel — tous les épisodes sont maintenant dismissés côté serveur.\\n- FIX: 304 périmé après Played/Unplayed — l'ETag est maintenant invalidé quand un média est marqué comme vu.\\n- FIX: Faux pulse après 'Vider tout' — previousDataIds réinitialisé.\\n- FIX: Deep clone de BackdropImageTags (plus de référence partagée entre clones).\\n- PERF: Dismiss optimisé — ResolveNotificationIds sans clonage des 2000+ notifications.\\n- PERF: Suppression du code mort client (item.Played, double isFetching check).\\n- CLEANUP: Labels config page pré-remplis immédiatement (pas de flash vide).",
         "targetAbi": "10.11.0.0",

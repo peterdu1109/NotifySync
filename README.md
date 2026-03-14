@@ -1,9 +1,10 @@
 <h1 align="center">🔔 NotifySync</h1>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-5.4.1.0-blue" alt="Version">
+  <img src="https://img.shields.io/badge/version-5.4.2.0-blue" alt="Version">
   <img src="https://img.shields.io/badge/.NET-9.0-purple" alt=".NET Framework">
   <img src="https://img.shields.io/badge/Jellyfin-10.11.X-blueviolet" alt="Jellyfin">
+  <img src="https://img.shields.io/badge/license-MIT-green" alt="License">
 </p>
 
 <p align="center">
@@ -19,7 +20,9 @@
 </p>
 
 ---
+
 ## 🖼️ Preview / Aperçu
+
 <div align="center">
   <table>
     <tr>
@@ -30,45 +33,58 @@
   </table>
 </div>
 
+---
+
 <a name="english"></a>
 # English
 
-NotifySync transforms the Jellyfin interface by adding a native notification icon (bell). It allows your users to instantly see the latest additions (Movies, Series, Music) without leaving their current page, all with a fluid design inspired by major streaming platforms.
+NotifySync transforms the Jellyfin interface by adding a native notification bell, inspired by major streaming platforms. Your users instantly see the latest additions — Movies, Series, Music — without ever leaving their current page, through a sleek glass-morphism dropdown that feels like it was always part of Jellyfin.
 
 ## ✨ Key Features
 
 ### 🎨 User Experience
-*   **Modern Design**: Seamless "Netflix-Style" integration. The red badge disappears instantly when you open the bell, just by looking at the updates.
-*   **Server-Side Read/Unread State**: Read status is persisted on the server — synced across all browsers and devices (no more localStorage dependency).
-*   **Individual Dismiss**: Remove a single notification with a × button (slide-out animation). Persisted per-user on the server.
-*   **Bell Pulse Animation**: The bell shakes when new content arrives (debounced to avoid visual spam).
-*   **Clear List (Safe)**: A simple button to clear the notification list without ever marking media as "Played" in your official Jellyfin history.
-*   **Intuitive Navigation**: "Hero Section" for latest additions and smart episode grouping.
-*   **Smart Sync**: Real-time updates. New items are highlighted and grouped automatically.
-*   **Automatic i18n**: Interface language (bell + config page) follows the user's Jellyfin language setting (French/English). Falls back to browser language.
-*   **Advanced Filtering**: Automatic exclusion of theme songs (OP/ED).
-*   **Compatibility**: PC/Mac and Mobile (via official app). *Note: Not supported on TV.*
+*   **Netflix-Style Design** — Seamless glass-morphism dropdown with backdrop blur. The red badge disappears the moment you open the bell, just by acknowledging the updates.
+*   **Hero Section** — The most recent addition is showcased with a large backdrop image, title, and relative timestamp. One click navigates directly to the item.
+*   **Smart Grouping** — Episodes of the same series are automatically grouped (e.g. *"3 new episodes"*). Music tracks are grouped by album (e.g. *"5 new tracks"*).
+*   **Category Filters** — Filter pills (All / Movies / Series / Music / custom) let you instantly focus on what matters.
+*   **Individual Dismiss** — Dismiss any notification with a single click — smooth slide-out animation, persisted per-user on the server.
+*   **Server-Side Read/Unread State** — Read status is stored on the server and synced across all browsers and devices. No more localStorage dependency.
+*   **Bell Pulse Animation** — The bell shakes when new content arrives via WebSocket. Debounced to avoid visual spam.
+*   **Clear List (Safe)** — One button to clear all notifications without ever marking media as "Played" in your Jellyfin history.
+*   **Automatic i18n** — The interface (bell + config page) follows the user's Jellyfin language setting (French / English), with browser language fallback.
+*   **Relative Timestamps** — All dates are displayed as *"2 hours ago"*, *"yesterday"*, *"3 days ago"* using the browser's locale.
+*   **Theme Song Filtering** — Automatically excludes openings, endings, NCOP/NCED, and theme songs from notifications.
+*   **Responsive** — Adapts to desktop, tablet, and mobile (via official Jellyfin app). *Note: Not supported on TV.*
 
 ### 🚀 Performance
-*   **Absolute Real-Time**: Instant updates via native Jellyfin WebSockets (no more polling).
-*   **Zero-Latency**: Smart RAM cache system for instant display.
-*   **Optimized for .NET 9**: High performance and low memory footprint.
-*   **Efficiency**: Network optimized (ETags) and database protection to prevent saturation.
+*   **Real-Time WebSockets** — Instant updates via native Jellyfin WebSockets. No polling, no delays.
+*   **ETag / 304 Caching** — Zero bandwidth when nothing has changed. The client sends its ETag, the server returns 304 Not Modified.
+*   **Per-User RAM Cache** — Serialized responses are cached in memory per user. Subsequent requests skip serialization entirely.
+*   **Lazy Image Loading** — Thumbnails are loaded on-demand via IntersectionObserver as you scroll through the list.
+*   **SQLite WAL** — Notification data is persisted in a WAL-mode SQLite database for fast concurrent reads.
+*   **Event Buffering** — Library events (ItemAdded, ItemUpdated) are debounced and batch-processed to avoid DB contention.
+*   **Optimized for .NET 9** — TieredPGO, AOT-compatible JSON serialization, aggressive inlining on hot paths.
 
 ### 🛡️ Security & Privacy
-*   **Permissions**: Strict data isolation (Tags, Rating, Libraries).
-*   **Strong Authentication**: API endpoint protection and identity verification (Anti-IDOR).
-*   **Active Security**: XSS protection, Anti-Spam, and atomic data writing.
+*   **Strict Permissions** — Each user only sees content from libraries they have access to. Tags, ratings, and folder restrictions are fully respected.
+*   **Anti-IDOR** — Every API call verifies the authenticated user matches the requested userId. Admins can access all users.
+*   **XSS Protection** — All user-generated content and item IDs are HTML-escaped before DOM injection.
+*   **Anti-Spam** — 30-second cooldown on manual history regeneration to protect server resources.
+*   **Atomic Writes** — Cleared state is written to a temp file then renamed, preventing corruption on crash.
+*   **Parameterized SQL** — All database queries use parameterized statements to prevent SQL injection.
 
 ## 📦 Installation
 
 > [!IMPORTANT]
-> **Prerequisites :**
-> * Jellyfin 10.11.X
+> **Prerequisites:**
+> * Jellyfin **10.11.X**
 
-### 2. Steps
+### Steps
 1.  Open your Jellyfin dashboard > **Plugins** > **Repositories**.
-2.  Add a new repository: `https://raw.githubusercontent.com/peterdu1109/NotifySync/refs/heads/main/repository.json`
+2.  Add a new repository:
+    ```
+    https://raw.githubusercontent.com/peterdu1109/NotifySync/refs/heads/main/repository.json
+    ```
 3.  Go to the **Catalog**, find **NotifySync** and click **Install**.
 4.  Restart your Jellyfin server.
 
@@ -76,77 +92,98 @@ NotifySync transforms the Jellyfin interface by adding a native notification ico
 
 > [!TIP]
 > **Method 1: File Transformation (Highly Recommended) ✅**
-> Install the File Transformation plugin for automatic injection (No file editing required):
+> Install the File Transformation plugin for automatic injection — no file editing required:
 > 1.  Add repository: `https://www.iamparadox.dev/jellyfin/plugins/manifest.json`
 > 2.  Install **File Transformation**.
 > 3.  Restart Jellyfin → `Ctrl+F5`.
 
 #### Method 2: Manual Injection
-If you don't want to install another plugin, manually add the script to your `index.html`:
-- **Linux**: `sudo sed -i 's|</body>|    <script src="/NotifySync/client.js"></script>\n</body>|' /usr/share/jellyfin/web/index.html`
-- **Docker**: `docker exec jellyfin sed -i 's|</body>|    <script src="/NotifySync/client.js"></script>\n</body>|' /jellyfin/jellyfin-web/index.html`
-- **Windows**: Add `<script src="/NotifySync/client.js"></script>` before `</body>` in `C:\Program Files\Jellyfin\Server\jellyfin-web\index.html`.
+If you prefer not to install another plugin, manually add the script tag to your `index.html`:
+
+| Platform | Command |
+|----------|---------|
+| **Linux** | `sudo sed -i 's\|</body>\|    <script src="/NotifySync/client.js"></script>\n</body>\|' /usr/share/jellyfin/web/index.html` |
+| **Docker** | `docker exec jellyfin sed -i 's\|</body>\|    <script src="/NotifySync/client.js"></script>\n</body>\|' /jellyfin/jellyfin-web/index.html` |
+| **Windows** | Add `<script src="/NotifySync/client.js"></script>` before `</body>` in `C:\Program Files\Jellyfin\Server\jellyfin-web\index.html` |
 
 ## ⚙️ Configuration
+
 Go to **Dashboard > Plugins > NotifySync**.
-* **Quotas**: Define how many items to display per category.
-* **Monitored Libraries**: Check the folders you want to see in notifications.
-* **Category Mapping**: Rename your libraries for display.
-* **Maintenance**: Click "Regenerate history" after changing libraries to force a scan.
+
+| Setting | Description |
+|---------|-------------|
+| **Quotas** | Maximum number of items to display per category. |
+| **Monitored Libraries** | Check the folders you want to appear in notifications. |
+| **Category Mapping** | Rename your libraries for display in the bell (e.g. *"My Movies"* → *"Movies"*). |
+| **Manual Library IDs** | Add library IDs or names manually for advanced setups (Channels, XFusion). |
+| **Regenerate History** | Force a full rescan after changing libraries or quotas. |
 
 ## ❓ Troubleshooting
+
 | Issue | Solution |
-|----------|----------|
-| **Bell doesn't appear** | Check **File Transformation** or manual script. Clear browser cache (`Ctrl+Shift+R`). |
-| **Badge count missing** | Click "Regenerate history" in config. Clear browser localStorage. |
-| **Music not synced** | Use "Regenerate history" in config to rescan audio tracks. |
+|-------|----------|
+| **Bell doesn't appear** | Check **File Transformation** is installed. Clear browser cache (`Ctrl+Shift+R`). |
+| **Badge count is wrong** | Click "Regenerate history" in config. Clear browser localStorage. |
+| **Music not synced** | Use "Regenerate history" to rescan audio tracks. |
 | **Content missing** | Ensure the library is checked in "Monitored Libraries". |
-| **Unauthorized content** | Plugin respects Jellyfin permissions. Check user restrictions. |
-| **429 Error** | Wait 1 minute between "Regenerate history" clicks (anti-spam). |
-| **Incompatible** | Ensure you are on Jellyfin 10.11.X |
+| **Unauthorized content visible** | Plugin respects Jellyfin permissions — check user restrictions in the dashboard. |
+| **429 Error** | Wait 30 seconds between "Regenerate history" clicks (anti-spam). |
+| **Incompatible** | Ensure you are running Jellyfin **10.11.X**. |
 
 ---
 
 <a name="français"></a>
 # Français
 
-NotifySync transforme l'interface de Jellyfin en ajoutant une icône de notification (cloche) native. Il permet à vos utilisateurs de voir instantanément les derniers ajouts (Films, Séries, Musique) sans quitter leur page actuelle.
+NotifySync transforme l'interface Jellyfin en y ajoutant une cloche de notifications native, inspirée des grandes plateformes de streaming. Vos utilisateurs voient instantanément les derniers ajouts — Films, Séries, Musique — sans jamais quitter leur page, via un menu déroulant en verre dépoli qui s'intègre naturellement dans Jellyfin.
 
-## ✨ Fonctionnalités Principales
+## ✨ Fonctionnalités
 
 ### 🎨 Expérience Utilisateur
-*   **Design Moderne** : Intégration fluide "Netflix-Style". La pastille rouge disparait instantanément à l'ouverture de la cloche (prise de connaissance).
-*   **État lu/non-lu côté serveur** : Le statut de lecture est persisté sur le serveur — synchronisé entre tous les navigateurs et appareils (fini la dépendance au localStorage).
-*   **Suppression individuelle** : Retirez une notification avec le bouton × (animation slide-out). Persisté par utilisateur côté serveur.
-*   **Animation pulse sur la cloche** : La cloche s'anime quand un nouveau contenu arrive (anti-spam visuel intégré).
-*   **Vider la liste (Sans risque)** : Effacez les alertes en un clic sans impacter votre historique de lecture Jellyfin (les médias restent "Non vus").
-*   **Navigation Intuitive** : "Hero Section" pour les derniers ajouts et regroupement intelligent des épisodes.
-*   **Synchronisation Intelligente** : Indicateurs visuels en temps réel. Les nouveaux médias sont mis en avant et groupés automatiquement.
-*   **i18n automatique** : La langue de l'interface (cloche + page config) suit le paramètre de langue Jellyfin de l'utilisateur (Français/Anglais). Fallback sur la langue du navigateur.
-*   **Filtrage Avancé** : Exclusion automatique des génériques (OP/ED).
-*   **Compatibilité** : PC/Mac et Mobiles. *Note : Non supporté sur TV.*
+*   **Design Netflix-Style** — Menu déroulant en glass-morphism avec flou d'arrière-plan. La pastille rouge disparait instantanément dès l'ouverture de la cloche, par simple prise de connaissance.
+*   **Section Hero** — Le dernier ajout est mis en avant avec une grande image de fond, son titre et un horodatage relatif. Un clic mène directement à la page du contenu.
+*   **Regroupement Intelligent** — Les épisodes d'une même série sont automatiquement groupés (ex. *"3 nouveaux épisodes"*). Les pistes musicales sont groupées par album (ex. *"5 nouvelles pistes"*).
+*   **Filtres par Catégorie** — Des filtres rapides (Tout / Films / Séries / Musique / personnalisé) permettent de cibler instantanément ce qui vous intéresse.
+*   **Suppression Individuelle** — Supprimez n'importe quelle notification d'un simple clic — animation fluide de glissement, persisté par utilisateur côté serveur.
+*   **État Lu/Non-lu Côté Serveur** — Le statut de lecture est stocké sur le serveur et synchronisé entre tous les navigateurs et appareils. Fini la dépendance au localStorage.
+*   **Animation Pulse** — La cloche s'anime quand un nouveau contenu arrive via WebSocket. Anti-spam visuel intégré.
+*   **Vider la Liste (Sans Risque)** — Un bouton pour effacer toutes les notifications sans jamais impacter votre historique de lecture Jellyfin (les médias restent "Non vus").
+*   **i18n Automatique** — L'interface (cloche + page config) suit le paramètre de langue Jellyfin de l'utilisateur (Français / Anglais), avec fallback sur la langue du navigateur.
+*   **Horodatage Relatif** — Toutes les dates sont affichées sous forme *"il y a 2 heures"*, *"hier"*, *"il y a 3 jours"* selon la locale du navigateur.
+*   **Filtrage des Génériques** — Exclusion automatique des openings, endings, NCOP/NCED et thèmes musicaux.
+*   **Responsive** — S'adapte au bureau, tablette et mobile (via l'app officielle Jellyfin). *Note : Non supporté sur TV.*
 
 ### 🚀 Performance
-*   **Temps Réel Absolu** : Mise à jour instantanée via WebSockets natifs Jellyfin.
-*   **Zéro-Latence** : Système de cache RAM intelligent pour un affichage instantané.
-*   **Optimisé .NET 9** : Architecture haute performance et faible consommation.
-*   **Efficacité** : Gestion optimisée du réseau (ETags) et protection de la base de données.
+*   **WebSockets Temps Réel** — Mise à jour instantanée via les WebSockets natifs Jellyfin. Aucun polling, aucun délai.
+*   **Cache ETag / 304** — Zéro bande passante quand rien n'a changé. Le client envoie son ETag, le serveur renvoie 304 Not Modified.
+*   **Cache RAM par Utilisateur** — Les réponses sérialisées sont mises en cache en mémoire par utilisateur. Les requêtes suivantes sautent entièrement la sérialisation.
+*   **Chargement Paresseux des Images** — Les miniatures sont chargées à la demande via IntersectionObserver au fil du défilement.
+*   **SQLite WAL** — Les données de notification sont persistées dans une base SQLite en mode WAL pour des lectures concurrentes rapides.
+*   **Buffer d'Événements** — Les événements de bibliothèque (ItemAdded, ItemUpdated) sont regroupés et traités par lots pour éviter la contention de la base de données.
+*   **Optimisé .NET 9** — TieredPGO, sérialisation JSON compatible AOT, inlining agressif sur les chemins critiques.
 
 ### 🛡️ Sécurité & Confidentialité
-*   **Respect des Permissions** : Isolation stricte des données (Tags, Classification, Bibliothèques).
-*   **Authentification Forte** : Protection des endpoints API et vérification d'identité (Anti-IDOR).
-*   **Sécurité Active** : Protection XSS, Anti-Spam et écriture atomique.
+*   **Permissions Strictes** — Chaque utilisateur ne voit que le contenu des bibliothèques auxquelles il a accès. Tags, classifications et restrictions sont pleinement respectés.
+*   **Anti-IDOR** — Chaque appel API vérifie que l'utilisateur authentifié correspond au userId demandé. Les administrateurs peuvent accéder à tous les utilisateurs.
+*   **Protection XSS** — Tout le contenu et les identifiants sont échappés avant injection dans le DOM.
+*   **Anti-Spam** — Cooldown de 30 secondes sur la régénération manuelle de l'historique pour protéger les ressources serveur.
+*   **Écriture Atomique** — L'état "vidé" est écrit dans un fichier temporaire puis renommé, empêchant la corruption en cas de crash.
+*   **SQL Paramétré** — Toutes les requêtes utilisent des paramètres pour prévenir l'injection SQL.
 
 ## 📦 Installation
 
 > [!IMPORTANT]
 > **Pré-requis :**
-> * Jellyfin 10.11.X
+> * Jellyfin **10.11.X**
 
-### 1. Étapes
+### Étapes
 1.  Tableau de bord Jellyfin > **Extensions** > **Dépôts**.
-2.  Ajoutez : `https://raw.githubusercontent.com/peterdu1109/NotifySync/refs/heads/main/repository.json`
-3.  Installez **NotifySync** et redémarrez Jellyfin.
+2.  Ajoutez un nouveau dépôt :
+    ```
+    https://raw.githubusercontent.com/peterdu1109/NotifySync/refs/heads/main/repository.json
+    ```
+3.  Allez dans le **Catalogue**, trouvez **NotifySync** et cliquez sur **Installer**.
+4.  Redémarrez votre serveur Jellyfin.
 
 ### 🔔 Activer la Cloche
 
@@ -157,23 +194,34 @@ NotifySync transforme l'interface de Jellyfin en ajoutant une icône de notifica
 > 2.  Installez **File Transformation** et redémarrez Jellyfin → `Ctrl+F5`.
 
 #### Méthode 2 : Injection Manuelle
-Si vous ne voulez pas d'extension tierce :
-- **Linux/Docker** : `sudo sed -i 's|</body>|    <script src="/NotifySync/client.js"></script>\n</body>|' /usr/share/jellyfin/web/index.html`
-- **Windows** : Ajoutez `<script src="/NotifySync/client.js"></script>` avant `</body>` dans `index.html`.
+Si vous préférez ne pas installer d'extension tierce :
+
+| Plateforme | Commande |
+|------------|----------|
+| **Linux** | `sudo sed -i 's\|</body>\|    <script src="/NotifySync/client.js"></script>\n</body>\|' /usr/share/jellyfin/web/index.html` |
+| **Docker** | `docker exec jellyfin sed -i 's\|</body>\|    <script src="/NotifySync/client.js"></script>\n</body>\|' /jellyfin/jellyfin-web/index.html` |
+| **Windows** | Ajoutez `<script src="/NotifySync/client.js"></script>` avant `</body>` dans `index.html` |
 
 ## ⚙️ Configuration
+
 Allez dans **Tableau de bord > Extensions > NotifySync**.
-* **Quotas** : Nombre d'éléments par catégorie.
-* **Bibliothèques Surveillées** : Dossiers à inclure dans la cloche.
-* **Maintenance** : Cliquez sur "Régénérer l'historique" après avoir changé les bibliothèques.
+
+| Paramètre | Description |
+|-----------|-------------|
+| **Quotas** | Nombre maximum d'éléments affichés par catégorie. |
+| **Bibliothèques Surveillées** | Cochez les dossiers que vous souhaitez voir apparaître dans la cloche. |
+| **Mappage des Catégories** | Renommez vos bibliothèques pour l'affichage (ex. *"Mes Films"* → *"Films"*). |
+| **IDs Manuels** | Ajoutez des IDs ou noms de bibliothèques manuellement pour les configurations avancées (Channels, XFusion). |
+| **Régénérer l'Historique** | Force un scan complet après modification des bibliothèques ou quotas. |
 
 ## ❓ Dépannage
+
 | Problème | Solution |
 |----------|----------|
-| **La cloche n'apparaît pas** | Vérifiez **File Transformation**. Videz le cache (`Ctrl+Shift+R`). |
-| **Badge absent** | Cliquez sur "Régénérer l'historique". Videz le localStorage. |
-| **Musique non synchro** | Utilisez "Régénérer l'historique" pour rescanner les pistes Audio. |
-| **Contenu manquant** | Vérifiez que la bibliothèque est cochée dans la configuration. |
-| **Contenu non autorisé** | Le plugin respecte les permissions Jellyfin. |
-| **Erreur 429** | Attendez 1 minute entre chaque clic sur "Régénérer l'historique". |
-| **Incompatible** | Vérifiez Jellyfin 10.11.X |
+| **La cloche n'apparaît pas** | Vérifiez que **File Transformation** est installé. Videz le cache (`Ctrl+Shift+R`). |
+| **Le badge est incorrect** | Cliquez sur "Régénérer l'historique". Videz le localStorage du navigateur. |
+| **Musique non synchronisée** | Utilisez "Régénérer l'historique" pour rescanner les pistes audio. |
+| **Contenu manquant** | Vérifiez que la bibliothèque est cochée dans "Bibliothèques Surveillées". |
+| **Contenu non autorisé visible** | Le plugin respecte les permissions Jellyfin — vérifiez les restrictions utilisateur. |
+| **Erreur 429** | Attendez 30 secondes entre chaque clic sur "Régénérer l'historique" (anti-spam). |
+| **Incompatible** | Vérifiez que vous utilisez Jellyfin **10.11.X**. |

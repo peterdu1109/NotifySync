@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls \"C:\\\\Users\\\\eliem\\\\Documents\\\\GitHub\\\\NotifySync\"/*.cs)",
+      "Bash(dotnet build:*)",
+      "Bash(powershell -Command \"Compress-Archive -Path NotifySync.dll -DestinationPath NotifySync.zip -Force\")",
+      "Bash(powershell -Command \"\\(Get-FileHash -Path NotifySync.zip -Algorithm MD5\\).Hash\")",
+      "Bash(if exist:*)",
+      "Bash(powershell -Command \"Compress-Archive -Path ''bin\\\\Release\\\\net9.0\\\\NotifySync.dll'' -DestinationPath ''NotifySync_5.4.2.0.zip'' -Force\")",
+      "Bash(powershell -Command \"\\(Get-FileHash -Path ''NotifySync_5.4.2.0.zip'' -Algorithm MD5\\).Hash\")",
+      "Bash(powershell -Command \"if \\(Test-Path ''NotifySync_5.4.2.0.zip''\\) { Remove-Item ''NotifySync_5.4.2.0.zip'' }; Compress-Archive -Path ''bin\\\\Release\\\\net9.0\\\\NotifySync.dll'' -DestinationPath ''NotifySync_5.4.2.0.zip'' -Force; \\(Get-FileHash -Path ''NotifySync_5.4.2.0.zip'' -Algorithm MD5\\).Hash\")"
+    ]
+  }
+}

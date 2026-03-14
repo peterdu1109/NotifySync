@@ -67,6 +67,18 @@
         <member name="M:NotifySync.HistoryScanTask.GetDefaultTriggers">
             <inheritdoc />
         </member>
+        <member name="T:NotifySync.IdHelper">
+            <summary>
+            Shared helper for normalizing user IDs across the plugin.
+            </summary>
+        </member>
+        <member name="M:NotifySync.IdHelper.NormalizeId(System.String)">
+            <summary>
+            Normalizes a user ID to a consistent lowercase format without dashes.
+            </summary>
+            <param name="userId">The user identifier to normalize.</param>
+            <returns>The normalized user identifier.</returns>
+        </member>
         <member name="T:NotifySync.NotificationDatabase">
             <summary>
             Handles SQLite database operations for notification persistence.

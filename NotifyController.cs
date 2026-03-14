@@ -79,21 +79,21 @@ namespace NotifySync
         [HttpPost("Refresh")]
         public ActionResult Refresh()
         {
-            _logger.LogInformation("NotifySync: Manual refresh requested from UI.");
+            _logger.LogInformation("NotifySync : Rafraîchissement manuel demandé depuis l'interface.");
             bool lockTaken = false;
             try
             {
                 Monitor.TryEnter(_refreshLock, TimeSpan.FromSeconds(5), ref lockTaken);
                 if (!lockTaken)
                 {
-                    _logger.LogWarning("NotifySync: Refresh ignored, lock busy.");
+                    _logger.LogWarning("NotifySync : Rafraîchissement ignoré, verrou occupé.");
                     return StatusCode(StatusCodes.Status503ServiceUnavailable, "Système occupé.");
                 }
 
                 var now = DateTime.UtcNow;
                 if ((now - new DateTime(_lastRefreshTime)).TotalSeconds < 30)
                 {
-                    _logger.LogWarning("NotifySync: Refresh rate limited.");
+                    _logger.LogWarning("NotifySync : Rafraîchissement limité (rate limit).");
                     return StatusCode(429, "Veuillez attendre 30 secondes.");
                 }
 
@@ -109,7 +109,7 @@ namespace NotifySync
 
             if (NotificationManager.Instance != null)
             {
-                _logger.LogInformation("NotifySync: Starting manual history scan...");
+                _logger.LogInformation("NotifySync : Lancement du scan manuel de l'historique...");
                 UserViewCache.Clear();
                 _ = Task.Run(() =>
                 {
@@ -119,13 +119,13 @@ namespace NotifySync
                     }
                     catch (Exception ex)
                     {
-                        _staticLogger?.LogError(ex, "NotifySync: Manual history scan failed.");
+                        _staticLogger?.LogError(ex, "NotifySync : Échec du scan manuel de l'historique.");
                     }
                 });
                 return Ok(new { Message = "Refresh started" });
             }
 
-            _logger.LogError("NotifySync: NotificationManager.Instance is null during refresh!");
+            _logger.LogError("NotifySync : NotificationManager.Instance est null lors du rafraîchissement !");
             return StatusCode(500, "Manager non initialisé.");
         }
 
@@ -141,7 +141,7 @@ namespace NotifySync
             var js = _clientJsLazy.Value;
             if (js == null)
             {
-                _logger.LogError("NotifySync: client.js resource not found!");
+                _logger.LogError("NotifySync : Ressource client.js introuvable !");
                 return NotFound();
             }
 
@@ -169,11 +169,11 @@ namespace NotifySync
 
             if (!IsAuthorizedForUser(userId))
             {
-                _logger.LogWarning("GetData denied for user {UserId}", userId);
+                _logger.LogWarning("NotifySync : Accès GetData refusé pour l'utilisateur {UserId}.", userId);
                 return Forbid();
             }
 
-            _logger.LogDebug("GetData requested for {UserId}", userId);
+            _logger.LogDebug("NotifySync : GetData demandé pour {UserId}.", userId);
 
             try
             {
@@ -266,7 +266,7 @@ namespace NotifySync
                 filteredList = quotaResult.Kept.ToList();
 
                 _logger.LogDebug(
-                    "GetData: Total={Total}, NotFound={NotFound}, NotVisible={NotVisible}, Result: {Cats}",
+                    "NotifySync GetData : Total={Total}, Introuvables={NotFound}, NonVisibles={NotVisible}, Résultat : {Cats}",
                     allNotifs.Count,
                     itemNotFound,
                     filteredNotVisible,
@@ -290,7 +290,7 @@ namespace NotifySync
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error getting data for user {UserId}", userId);
+                _logger.LogError(ex, "NotifySync : Erreur lors de la récupération des données pour l'utilisateur {UserId}.", userId);
                 return StatusCode(500);
             }
         }
@@ -407,7 +407,7 @@ namespace NotifySync
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error in BulkUserData for user {UserId}", userId);
+                _logger.LogError(ex, "NotifySync : Erreur dans BulkUserData pour l'utilisateur {UserId}.", userId);
                 return StatusCode(500);
             }
         }
@@ -453,7 +453,7 @@ namespace NotifySync
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error in MarkRead for user {UserId}", userId);
+                _logger.LogError(ex, "NotifySync : Erreur dans MarkRead pour l'utilisateur {UserId}.", userId);
                 return StatusCode(500);
             }
         }
@@ -531,20 +531,7 @@ namespace NotifySync
             return new FileContentResult(serialized, "application/json");
         }
 
-        private static string NormalizeId(string userId)
-        {
-            if (string.IsNullOrEmpty(userId))
-            {
-                return string.Empty;
-            }
-
-            if (Guid.TryParse(userId, out var guid))
-            {
-                return guid.ToString("N");
-            }
-
-            return userId.Replace("-", string.Empty, StringComparison.OrdinalIgnoreCase).ToLowerInvariant();
-        }
+        private static string NormalizeId(string userId) => IdHelper.NormalizeId(userId);
 
         private bool IsAuthorizedForUser(string userId)
         {
@@ -556,7 +543,7 @@ namespace NotifySync
 
             if (string.IsNullOrEmpty(currentUserId))
             {
-                _logger.LogWarning("NotifySync: No user identity found in request principal.");
+                _logger.LogWarning("NotifySync : Aucune identité utilisateur trouvée dans le principal de la requête.");
                 return false;
             }
 
@@ -570,7 +557,7 @@ namespace NotifySync
                 }
                 else
                 {
-                    _logger.LogWarning("NotifySync: Could not resolve username '{Username}' to a user.", currentUserId);
+                    _logger.LogWarning("NotifySync : Impossible de résoudre le nom d'utilisateur '{Username}'.", currentUserId);
                     return false;
                 }
             }
@@ -590,7 +577,7 @@ namespace NotifySync
                 return true;
             }
 
-            _logger.LogWarning("NotifySync: Authorization denied. Current: {Current}, Requested: {Requested}", currentUserId, userId);
+            _logger.LogWarning("NotifySync : Autorisation refusée. Actuel : {Current}, Demandé : {Requested}.", currentUserId, userId);
             return false;
         }
 

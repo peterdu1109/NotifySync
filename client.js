@@ -1,4 +1,4 @@
-/* NOTIFYSYNC V5.4.1.0 */
+/* NOTIFYSYNC V5.4.2.0 */
 (function () {
     let currentData = [];
     let groupedData = [];
@@ -15,6 +15,7 @@
     let localPlayed = JSON.parse(localStorage.getItem('ns-played') || '[]');
     let localPlayedDirty = false;
     let localPlayedSaveTimer = null;
+    let lazyImageObserver = null;
 
     const flushLocalPlayed = () => {
         if (localPlayedDirty) {
@@ -56,8 +57,8 @@
 
     let userLang = navigator.language || 'en';
     const strings = {
-        fr: { header: "Quoi de neuf ?", empty: "Vous êtes à jour !", clearAll: "Vider la liste", badgeNew: "NOUVEAU", newEps: "nouveaux épisodes", eps: "épisodes", newTracks: "nouvelles pistes", tracks: "pistes", filterAll: "Tout", filterMovie: "Films", filterSeries: "Séries", filterMusic: "Musique" },
-        en: { header: "What's New?", empty: "You're all caught up!", clearAll: "Clear list", badgeNew: "NEW", newEps: "new episodes", eps: "episodes", newTracks: "new tracks", tracks: "tracks", filterAll: "All", filterMovie: "Movies", filterSeries: "Series", filterMusic: "Music" }
+        fr: { header: "Quoi de neuf ?", empty: "Vous êtes à jour !", clearAll: "Vider la liste", dismiss: "Retirer", badgeNew: "NOUVEAU", newEps: "nouveaux épisodes", eps: "épisodes", newTracks: "nouvelles pistes", tracks: "pistes", filterAll: "Tout", filterMovie: "Films", filterSeries: "Séries", filterMusic: "Musique" },
+        en: { header: "What's New?", empty: "You're all caught up!", clearAll: "Clear list", dismiss: "Dismiss", badgeNew: "NEW", newEps: "new episodes", eps: "episodes", newTracks: "new tracks", tracks: "tracks", filterAll: "All", filterMovie: "Movies", filterSeries: "Series", filterMusic: "Music" }
     };
     let T = strings[userLang.startsWith('fr') ? 'fr' : 'en'];
 
@@ -428,7 +429,8 @@
                 heroSub = hero.IsNew ? `${hero.NewCount || hero.GroupCount} ${lbl}` : `${hero.GroupCount} ${lbl}`;
             }
 
-            htmlParts.push(`<div class="hero-section" onclick="document.dispatchEvent(new CustomEvent('ns-navigate', {detail: '${hero.Id}'}))"><div class="hero-bg" style="background-image:url('${heroImg}')"></div><div class="hero-overlay"></div><div class="hero-content">${hero.IsNew ? `<span class="hero-badge">${T.badgeNew}</span>` : ''}<div style="font-size:18px;font-weight:700;text-shadow:0 2px 4px #000;line-height:1.2;">${heroTitle}</div><div style="font-size:12px;opacity:0.8;margin-top:4px">${heroSub} &bull; ${timeAgo(hero.DateCreated)}</div></div></div>`);
+            const safeHeroId = escapeHtml(hero.Id);
+            htmlParts.push(`<div class="hero-section" onclick="document.dispatchEvent(new CustomEvent('ns-navigate', {detail: '${safeHeroId}'}))"><div class="hero-bg" style="background-image:url('${heroImg}')"></div><div class="hero-overlay"></div><div class="hero-content">${hero.IsNew ? `<span class="hero-badge">${T.badgeNew}</span>` : ''}<div style="font-size:18px;font-weight:700;text-shadow:0 2px 4px #000;line-height:1.2;">${heroTitle}</div><div style="font-size:12px;opacity:0.8;margin-top:4px">${heroSub} &bull; ${timeAgo(hero.DateCreated)}</div></div></div>`);
         }
 
         filtered.filter(x => x !== hero).forEach(item => {
@@ -443,15 +445,17 @@
                 sub = item.IsNew ? `${item.NewCount || item.GroupCount} ${lbl}` : `${item.GroupCount} ${lbl}`;
             }
 
-            htmlParts.push(`<div class="dropdown-item ${item.IsNew ? 'style-new' : 'style-seen'}" data-item-id="${item.Id}" onclick="document.dispatchEvent(new CustomEvent('ns-navigate', {detail: '${item.Id}'}))"><div class="status-dot"></div><button class="dismiss-btn" title="Dismiss" onclick="event.stopPropagation(); document.dispatchEvent(new CustomEvent('ns-dismiss', {detail: '${item.Id}'}))">&times;</button><div class="thumb-wrapper"><img data-src="${imgUrl}" decoding="async" class="dropdown-thumb ${isMusic ? 'music' : ''}" loading="lazy" onerror="this.style.display='none'"><span class="material-icons" style="color:#444;position:absolute;z-index:-1;">${isMusic ? 'album' : 'movie'}</span></div><div class="dropdown-info"><div class="dropdown-title">${title}</div><div class="dropdown-subtitle">${sub} &bull; ${timeAgo(item.DateCreated)}</div></div></div>`);
+            const safeId = escapeHtml(item.Id);
+            htmlParts.push(`<div class="dropdown-item ${item.IsNew ? 'style-new' : 'style-seen'}" data-item-id="${safeId}" onclick="document.dispatchEvent(new CustomEvent('ns-navigate', {detail: '${safeId}'}))"><div class="status-dot"></div><button class="dismiss-btn" title="${T.dismiss}" onclick="event.stopPropagation(); document.dispatchEvent(new CustomEvent('ns-dismiss', {detail: '${safeId}'}))">&times;</button><div class="thumb-wrapper"><img data-src="${imgUrl}" decoding="async" class="dropdown-thumb ${isMusic ? 'music' : ''}" loading="lazy" onerror="this.style.display='none'"><span class="material-icons" style="color:#444;position:absolute;z-index:-1;">${isMusic ? 'album' : 'movie'}</span></div><div class="dropdown-info"><div class="dropdown-title">${title}</div><div class="dropdown-subtitle">${sub} &bull; ${timeAgo(item.DateCreated)}</div></div></div>`);
         });
 
         htmlParts.push(`<div class="footer-tools" onclick="document.dispatchEvent(new Event('ns-clearall'))">${T.clearAll}</div>`);
         const finalHtml = htmlParts.join('');
         if (container.innerHTML !== finalHtml) {
             container.innerHTML = finalHtml;
-            const obs = new IntersectionObserver((entries, o) => { entries.forEach(e => { if (e.isIntersecting) { const i = e.target; i.src = i.dataset.src; i.classList.add('loaded'); o.unobserve(i); } }); });
-            container.querySelectorAll('img[data-src]').forEach(i => obs.observe(i));
+            if (lazyImageObserver) lazyImageObserver.disconnect();
+            lazyImageObserver = new IntersectionObserver((entries, o) => { entries.forEach(e => { if (e.isIntersecting) { const i = e.target; i.src = i.dataset.src; i.classList.add('loaded'); o.unobserve(i); } }); });
+            container.querySelectorAll('img[data-src]').forEach(i => lazyImageObserver.observe(i));
         }
     };
 

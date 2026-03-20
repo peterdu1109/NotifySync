@@ -384,7 +384,7 @@
 
                 renderDeletedItems: async function (page) {
                     const container = page.querySelector('#deletedItemsTable');
-                    container.innerHTML = CT.fetching || '...';
+                    container.textContent = CT.fetching || '...';
 
                     try {
                         const resp = await ApiClient.ajax({ type: 'GET', url: '/NotifySync/DeletedItems', dataType: 'json' });
@@ -392,36 +392,45 @@
                         container.innerHTML = '';
 
                         if (items.length === 0) {
-                            container.innerHTML = '<div style="padding:10px; color:#888; font-style:italic;">' + CT.delEmpty + '</div>';
+                            const emptyDiv = document.createElement('div');
+                            emptyDiv.style.cssText = 'padding:10px; color:#888; font-style:italic;';
+                            emptyDiv.textContent = CT.delEmpty;
+                            container.appendChild(emptyDiv);
                             return;
                         }
 
-                        let html = '<table style="width:100%; border-collapse:collapse; font-size:13px;">';
-                        html += '<thead><tr style="border-bottom:1px solid #444; text-align:left;">';
-                        html += '<th style="padding:8px;">' + CT.delColName + '</th>';
-                        html += '<th style="padding:8px;">' + CT.delColType + '</th>';
-                        html += '<th style="padding:8px;">' + CT.delColSeries + '</th>';
-                        html += '<th style="padding:8px;">' + CT.delColYear + '</th>';
-                        html += '<th style="padding:8px;">' + CT.delColDate + '</th>';
-                        html += '</tr></thead><tbody>';
+                        const table = document.createElement('table');
+                        table.style.cssText = 'width:100%; border-collapse:collapse; font-size:13px;';
+                        const thead = table.createTHead();
+                        const headerRow = thead.insertRow();
+                        [CT.delColName, CT.delColType, CT.delColSeries, CT.delColYear, CT.delColDate].forEach(text => {
+                            const th = document.createElement('th');
+                            th.style.cssText = 'padding:8px; text-align:left; border-bottom:1px solid #444;';
+                            th.textContent = text;
+                            headerRow.appendChild(th);
+                        });
 
+                        const tbody = table.createTBody();
                         for (const item of items) {
+                            const row = tbody.insertRow();
+                            row.style.borderBottom = '1px solid #333';
                             const delDate = new Date(item.DeletedAt);
                             const dateStr = delDate.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-                            html += '<tr style="border-bottom:1px solid #333;">';
-                            html += '<td style="padding:6px 8px;">' + (item.Name || '') + '</td>';
-                            html += '<td style="padding:6px 8px;">' + (item.Type || '') + '</td>';
-                            html += '<td style="padding:6px 8px;">' + (item.SeriesName || '-') + '</td>';
-                            html += '<td style="padding:6px 8px;">' + (item.ProductionYear || '-') + '</td>';
-                            html += '<td style="padding:6px 8px;">' + dateStr + '</td>';
-                            html += '</tr>';
+                            [item.Name || '', item.Type || '', item.SeriesName || '-', item.ProductionYear || '-', dateStr].forEach(text => {
+                                const td = row.insertCell();
+                                td.style.cssText = 'padding:6px 8px;';
+                                td.textContent = String(text);
+                            });
                         }
 
-                        html += '</tbody></table>';
-                        container.innerHTML = html;
+                        container.appendChild(table);
                     } catch (err) {
                         console.error('NotifySync: Failed to load deleted items', err);
-                        container.innerHTML = '<div style="padding:10px; color:#c00;">Error loading deleted items.</div>';
+                        const errDiv = document.createElement('div');
+                        errDiv.style.cssText = 'padding:10px; color:#c00;';
+                        errDiv.textContent = CT.errorMsg;
+                        container.innerHTML = '';
+                        container.appendChild(errDiv);
                     }
                 },
 
@@ -496,7 +505,7 @@
                     Dashboard.showLoadingMsg();
                     try {
                         const page = document.querySelector('.pluginConfigurationPage');
-                        this.config.MaxItems = parseInt(page.querySelector('#maxItems').value);
+                        this.config.MaxItems = parseInt(page.querySelector('#maxItems').value, 10) || 10;
 
                         const checkboxes = page.querySelectorAll('input[name="enabledLibs"]:checked');
                         this.config.EnabledLibraries = Array.from(checkboxes).map(checkbox => checkbox.value);

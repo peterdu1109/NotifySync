@@ -12,7 +12,9 @@
     let eventsRegistered = false;
     let lastPulseTime = 0;
     let previousDataIds = new Set();
-    let localPlayed = JSON.parse(localStorage.getItem('ns-played') || '[]');
+    let localPlayed;
+    try { localPlayed = JSON.parse(localStorage.getItem('ns-played') || '[]'); } catch (e) { localPlayed = []; localStorage.removeItem('ns-played'); }
+    let localPlayedSet = new Set(localPlayed);
     let localPlayedDirty = false;
     let localPlayedSaveTimer = null;
     let lazyImageObserver = null;
@@ -25,9 +27,10 @@
     };
 
     const markLocalPlayed = (id) => {
-        if (id && !localPlayed.includes(id)) {
+        if (id && !localPlayedSet.has(id)) {
             localPlayed.push(id);
-            if (localPlayed.length > 500) localPlayed.shift();
+            localPlayedSet.add(id);
+            if (localPlayed.length > 500) { const removed = localPlayed.shift(); localPlayedSet.delete(removed); }
             localPlayedDirty = true;
             clearTimeout(localPlayedSaveTimer);
             localPlayedSaveTimer = setTimeout(flushLocalPlayed, 1000);
@@ -270,11 +273,11 @@
         const userId = getUserId();
         if (!userId) return;
 
-        const idsToDissmiss = currentData.filter(i => i.Category === category).map(i => i.Id);
-        if (idsToDissmiss.length === 0) return;
+        const idsToDismiss = currentData.filter(i => i.Category === category).map(i => i.Id);
+        if (idsToDismiss.length === 0) return;
 
         // Dismiss each item server-side
-        await Promise.all(idsToDissmiss.map(id => dismissOnServer(id)));
+        await Promise.all(idsToDismiss.map(id => dismissOnServer(id)));
 
         // Remove from local data
         currentData = currentData.filter(i => i.Category !== category);
@@ -291,7 +294,7 @@
         currentData.forEach(item => {
             // IsNew = not read on server AND not locally marked
             // (Played items are already excluded server-side in GetData)
-            item.IsNew = !item.IsRead && !localPlayed.includes(item.Id);
+            item.IsNew = !item.IsRead && !localPlayedSet.has(item.Id);
         });
         groupedData = processGrouping(currentData);
         updateBadge();
@@ -465,7 +468,7 @@
             if (!isGroup && hero.Type === 'Episode') {
                 heroTitle = escapeHtml(formatEpisodeTitle(hero)); heroSub = escapeHtml(hero.SeriesName);
             } else {
-                heroSub = hero.ProductionYear;
+                heroSub = escapeHtml(String(hero.ProductionYear || ''));
             }
             if (isGroup) {
                 const isMusic = hero.Type === 'Audio';
@@ -474,7 +477,7 @@
             }
 
             const safeHeroId = escapeHtml(hero.Id);
-            htmlParts.push(`<div class="hero-section" onclick="document.dispatchEvent(new CustomEvent('ns-navigate', {detail: '${safeHeroId}'}))"><div class="hero-bg" style="background-image:url('${heroImg}')"></div><div class="hero-overlay"></div><button class="dismiss-btn" title="${T.dismiss}" onclick="event.stopPropagation(); document.dispatchEvent(new CustomEvent('ns-dismiss', {detail: '${safeHeroId}'}))">&times;</button><div class="hero-content">${hero.IsUpgrade ? `<span class="hero-badge-upgrade">${T.badgeUpgrade}</span>` : hero.IsNew ? `<span class="hero-badge">${T.badgeNew}</span>` : ''}<div style="font-size:18px;font-weight:700;text-shadow:0 2px 4px #000;line-height:1.2;">${heroTitle}</div><div style="font-size:12px;opacity:0.8;margin-top:4px">${heroSub} &bull; ${timeAgo(hero.DateCreated)}</div></div></div>`);
+            htmlParts.push(`<div class="hero-section" onclick="document.dispatchEvent(new CustomEvent('ns-navigate', {detail: '${safeHeroId}'}))"><div class="hero-bg" style="background-image:url('${escapeHtml(heroImg)}')"></div><div class="hero-overlay"></div><button class="dismiss-btn" title="${T.dismiss}" onclick="event.stopPropagation(); document.dispatchEvent(new CustomEvent('ns-dismiss', {detail: '${safeHeroId}'}))">&times;</button><div class="hero-content">${hero.IsUpgrade ? `<span class="hero-badge-upgrade">${T.badgeUpgrade}</span>` : hero.IsNew ? `<span class="hero-badge">${T.badgeNew}</span>` : ''}<div style="font-size:18px;font-weight:700;text-shadow:0 2px 4px #000;line-height:1.2;">${heroTitle}</div><div style="font-size:12px;opacity:0.8;margin-top:4px">${heroSub} &bull; ${timeAgo(hero.DateCreated)}</div></div></div>`);
         }
 
         filtered.filter(x => x !== hero).forEach(item => {
@@ -482,7 +485,7 @@
             const isGroup = !!item.IsGroup;
             const imgUrl = client.getUrl(`Items/${item.Id}/Images/Primary?tag=${item.PrimaryImageTag || ''}&${isMusic ? 'fillHeight=100&fillWidth=100' : 'fillHeight=112&fillWidth=200'}&quality=80&format=webp`);
 
-            let title = escapeHtml(item.Name), sub = item.ProductionYear;
+            let title = escapeHtml(item.Name), sub = escapeHtml(String(item.ProductionYear || ''));
             if (!isGroup && item.Type === 'Episode') { title = escapeHtml(formatEpisodeTitle(item)); sub = escapeHtml(item.SeriesName); }
             if (isGroup) {
                 const lbl = isMusic ? (item.IsNew ? T.newTracks : T.tracks) : (item.IsNew ? T.newEps : T.eps);
@@ -509,20 +512,26 @@
         }
     };
 
+    let _swipeHandlers = null;
     const initSwipeToDismiss = (container) => {
+        // Remove previous listeners to prevent accumulation
+        if (_swipeHandlers) {
+            container.removeEventListener('touchstart', _swipeHandlers.start);
+            container.removeEventListener('touchmove', _swipeHandlers.move);
+            container.removeEventListener('touchend', _swipeHandlers.end);
+        }
         let startX = 0, currentX = 0, swiping = null;
         const threshold = 70;
 
-        container.addEventListener('touchstart', (e) => {
+        const onStart = (e) => {
             const item = e.target.closest('.dropdown-item');
             if (!item || e.target.closest('.dismiss-btn')) return;
             startX = e.touches[0].clientX;
             currentX = startX;
             swiping = item;
             swiping.style.transition = 'none';
-        }, { passive: true });
-
-        container.addEventListener('touchmove', (e) => {
+        };
+        const onMove = (e) => {
             if (!swiping) return;
             currentX = e.touches[0].clientX;
             const dx = currentX - startX;
@@ -531,9 +540,8 @@
                 swiping.style.transform = `translateX(${clampedDx}px)`;
                 swiping.classList.toggle('swiping', Math.abs(dx) > 30);
             }
-        }, { passive: true });
-
-        container.addEventListener('touchend', () => {
+        };
+        const onEnd = () => {
             if (!swiping) return;
             const dx = currentX - startX;
             swiping.style.transition = 'transform 0.2s ease';
@@ -549,7 +557,12 @@
                 swiping.classList.remove('swiping');
             }
             swiping = null;
-        }, { passive: true });
+        };
+
+        container.addEventListener('touchstart', onStart, { passive: true });
+        container.addEventListener('touchmove', onMove, { passive: true });
+        container.addEventListener('touchend', onEnd, { passive: true });
+        _swipeHandlers = { start: onStart, move: onMove, end: onEnd };
     };
 
 
@@ -645,6 +658,7 @@
         const bellBtn = document.createElement('button');
         bellBtn.id = 'netflix-bell';
         bellBtn.className = 'paper-icon-button-light headerButton headerButtonRight';
+        bellBtn.setAttribute('aria-label', T === strings.fr ? 'Notifications' : 'Notifications');
         bellBtn.innerHTML = '<span class="material-icons notifications"></span>';
         bellBtn.onclick = (e) => { e.preventDefault(); e.stopPropagation(); toggleDropdown(); };
         header.prepend(bellBtn);
@@ -659,8 +673,12 @@
         obs.observe(document.body, { childList: true, subtree: true });
     };
 
+    let _installDebounce = null;
     const startMainObserver = () => {
-        observerInstance = new MutationObserver(() => installBell());
+        observerInstance = new MutationObserver(() => {
+            if (_installDebounce) clearTimeout(_installDebounce);
+            _installDebounce = setTimeout(installBell, 200);
+        });
         observerInstance.observe(document.body, { childList: true, subtree: true });
         installBell();
     };

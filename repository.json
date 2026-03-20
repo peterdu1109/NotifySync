@@ -10,11 +10,11 @@
     "versions": [
       {
         "version": "5.5.1.0",
-        "changelog": "Améliorations / Improvements:\\n- Le bouton 'Vider' en bas du menu s'adapte au filtre actif : 'Vider la liste' sur Tout, ou 'Vider Films' etc. sur une catégorie.\\n- La notification en vedette (hero) peut maintenant être supprimée individuellement (bouton × visible au survol sur PC, toujours visible sur mobile).\\n- Suppression de l'ancien système d'appui long / clic droit, remplacé par un fonctionnement plus intuitif.\\n\\nImprovements:\\n- The 'Clear' button at the bottom now adapts to the active filter: 'Clear list' on All, or 'Clear Movies' etc. on a category.\\n- The featured notification (hero) can now be individually dismissed (× button visible on hover on PC, always visible on mobile).\\n- Removed the old long press / right-click system, replaced by a more intuitive design.",
+        "changelog": "Nouveautés / New Features:\\n- Le bouton 'Vider' en bas du menu s'adapte au filtre actif : 'Vider la liste' sur Tout, ou 'Vider Films' etc. sur une catégorie.\\n- La notification hero peut être supprimée individuellement (bouton × visible au survol PC, toujours visible sur mobile).\\n\\nAméliorations / Improvements:\\n- Correction de failles XSS (hero, années, historique des suppressions).\\n- Throttle serveur atomique (plus de race condition).\\n- Fuite mémoire swipe corrigée (listeners nettoyés).\\n- MutationObserver avec debounce (performances SPA).\\n- Purge des suppressions 1x/jour au lieu de chaque événement.\\n- Validation Guid sur tous les endpoints.\\n- Cache local protégé contre JSON corrompu.\\n- Accessibilité : aria-label sur la cloche.",
         "targetAbi": "10.11.0.0",
         "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/5.5.1.0/NotifySync_5.5.1.0.zip",
-        "checksum": "05467CDF1E6DBE6DBC913AF08976E770",
-        "timestamp": "2026-03-20T18:00:00Z"
+        "checksum": "F71D05A4E540EA71A5E2AF5594F13336",
+        "timestamp": "2026-03-21T12:00:00Z"
       },
       {
         "version": "5.5.0.0",

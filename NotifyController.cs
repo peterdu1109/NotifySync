@@ -299,9 +299,9 @@ namespace NotifySync
         [HttpGet("Cleared/{userId}")]
         public ActionResult GetCleared([FromRoute] string userId)
         {
-            if (string.IsNullOrEmpty(userId))
+            if (string.IsNullOrEmpty(userId) || !Guid.TryParse(userId, out _))
             {
-                return BadRequest();
+                return BadRequest("Invalid UserId");
             }
 
             if (!IsAuthorizedForUser(userId))
@@ -322,9 +322,9 @@ namespace NotifySync
         [HttpPost("Clear/{userId}")]
         public ActionResult SetCleared([FromRoute] string userId, [FromQuery] string? date)
         {
-            if (string.IsNullOrEmpty(userId))
+            if (string.IsNullOrEmpty(userId) || !Guid.TryParse(userId, out _))
             {
-                return BadRequest();
+                return BadRequest("Invalid UserId");
             }
 
             if (!IsAuthorizedForUser(userId))
@@ -379,7 +379,7 @@ namespace NotifySync
                 }
 
                 var results = new Dictionary<string, bool>();
-                foreach (var id in itemIds!)
+                foreach (var id in itemIds)
                 {
                     if (string.IsNullOrEmpty(id))
                     {
@@ -468,9 +468,10 @@ namespace NotifySync
         [HttpPost("Dismiss/{userId}/{itemId}")]
         public ActionResult Dismiss([FromRoute] string userId, [FromRoute] string itemId)
         {
-            if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(itemId))
+            if (string.IsNullOrEmpty(userId) || !Guid.TryParse(userId, out _)
+                || string.IsNullOrEmpty(itemId) || !Guid.TryParse(itemId, out _))
             {
-                return BadRequest();
+                return BadRequest("Invalid UserId or ItemId");
             }
 
             if (!IsAuthorizedForUser(userId))
@@ -490,9 +491,9 @@ namespace NotifySync
             }
 
             // Resolve group dismiss: if itemId is a SeriesId, find all episode IDs (no clone overhead)
-            var idsToDissmiss = NotificationManager.Instance.ResolveNotificationIds(itemId);
+            var idsToDismiss = NotificationManager.Instance.ResolveNotificationIds(itemId);
 
-            foreach (var id in idsToDissmiss)
+            foreach (var id in idsToDismiss)
             {
                 NotificationManager.Instance.Db.SetItemDismissed(normalizedUserId, id);
             }
@@ -614,13 +615,21 @@ namespace NotifySync
         private static bool IsUserThrottled(string userId, int minIntervalMs = 500)
         {
             var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-            if (UserActionThrottle.TryGetValue(userId, out var last) && (now - last) < minIntervalMs)
-            {
-                return true;
-            }
+            bool throttled = false;
+            UserActionThrottle.AddOrUpdate(
+                userId,
+                now,
+                (_, last) =>
+                {
+                    if ((now - last) < minIntervalMs)
+                    {
+                        throttled = true;
+                        return last;
+                    }
 
-            UserActionThrottle[userId] = now;
-            return false;
+                    return now;
+                });
+            return throttled;
         }
 
         /// <summary>

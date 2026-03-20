@@ -27,11 +27,74 @@
         <member name="M:NotifySync.CategoryQuotaService.ApplyCategoryQuotas(System.Collections.Generic.IEnumerable{NotifySync.NotificationItem},System.Int32)">
             <summary>
             Applies the maximum item quota per category, ensuring that items of the same Series
-            only consume a single quota slot.
+            only consume a single quota slot. Also caps episodes per series to prevent DB bloat.
             </summary>
             <param name="sourceList">The initial list of items (most recent first expected).</param>
             <param name="maxItems">The maximum retention or display quota per category.</param>
             <returns>A tuple of kept items and removed item IDs.</returns>
+        </member>
+        <member name="T:NotifySync.CollectionScanTask">
+            <summary>
+            A scheduled task that periodically scans monitored collections (BoxSets) for newly added items.
+            </summary>
+        </member>
+        <member name="P:NotifySync.CollectionScanTask.Name">
+            <inheritdoc />
+        </member>
+        <member name="P:NotifySync.CollectionScanTask.Key">
+            <inheritdoc />
+        </member>
+        <member name="P:NotifySync.CollectionScanTask.Description">
+            <inheritdoc />
+        </member>
+        <member name="P:NotifySync.CollectionScanTask.Category">
+            <inheritdoc />
+        </member>
+        <member name="M:NotifySync.CollectionScanTask.ExecuteAsync(System.IProgress{System.Double},System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:NotifySync.CollectionScanTask.GetDefaultTriggers">
+            <inheritdoc />
+        </member>
+        <member name="T:NotifySync.DeletedItemRecord">
+            <summary>
+            Represents a record of a deleted media item.
+            </summary>
+        </member>
+        <member name="P:NotifySync.DeletedItemRecord.Id">
+            <summary>
+            Gets or sets the auto-increment row ID.
+            </summary>
+        </member>
+        <member name="P:NotifySync.DeletedItemRecord.ItemId">
+            <summary>
+            Gets or sets the original Jellyfin item ID.
+            </summary>
+        </member>
+        <member name="P:NotifySync.DeletedItemRecord.Name">
+            <summary>
+            Gets or sets the item name.
+            </summary>
+        </member>
+        <member name="P:NotifySync.DeletedItemRecord.Type">
+            <summary>
+            Gets or sets the item type (Movie, Episode, Audio, etc.).
+            </summary>
+        </member>
+        <member name="P:NotifySync.DeletedItemRecord.SeriesName">
+            <summary>
+            Gets or sets the series name, if applicable.
+            </summary>
+        </member>
+        <member name="P:NotifySync.DeletedItemRecord.ProductionYear">
+            <summary>
+            Gets or sets the production year, if applicable.
+            </summary>
+        </member>
+        <member name="P:NotifySync.DeletedItemRecord.DeletedAt">
+            <summary>
+            Gets or sets the UTC date when the item was deleted.
+            </summary>
         </member>
         <member name="T:NotifySync.FileTransformationPayload">
             <summary>
@@ -67,6 +130,18 @@
         <member name="M:NotifySync.HistoryScanTask.GetDefaultTriggers">
             <inheritdoc />
         </member>
+        <member name="T:NotifySync.IdHelper">
+            <summary>
+            Shared helper for normalizing user IDs across the plugin.
+            </summary>
+        </member>
+        <member name="M:NotifySync.IdHelper.NormalizeId(System.String)">
+            <summary>
+            Normalizes a user ID to a consistent lowercase format without dashes.
+            </summary>
+            <param name="userId">The user identifier to normalize.</param>
+            <returns>The normalized user identifier.</returns>
+        </member>
         <member name="T:NotifySync.NotificationDatabase">
             <summary>
             Handles SQLite database operations for notification persistence.
@@ -84,6 +159,17 @@
             Initializes the database schema and sets PRAGMAs.
             </summary>
         </member>
+        <member name="M:NotifySync.NotificationDatabase.MigrateAddColumn(Microsoft.Data.Sqlite.SqliteConnection,System.String,System.String,System.String)">
+            <summary>
+            Attempts to add a column to an existing table. Silently ignores if the column already exists.
+            </summary>
+        </member>
+        <member name="M:NotifySync.NotificationDatabase.CreateInsertCommand(Microsoft.Data.Sqlite.SqliteConnection,Microsoft.Data.Sqlite.SqliteTransaction)">
+            <summary>
+            Creates and configures a reusable INSERT OR REPLACE command for the Notifications table.
+            Returns the command and a delegate that binds a <see cref="T:NotifySync.NotificationItem"/> to its parameters.
+            </summary>
+        </member>
         <member name="M:NotifySync.NotificationDatabase.SaveNotifications(System.Collections.Generic.IEnumerable{NotifySync.NotificationItem})">
             <summary>
             Saves a collection of notifications to the database by replacing existing ones.
@@ -96,6 +182,14 @@
             Deletes multiple notifications from the database by their IDs.
             </summary>
             <param name="ids">List of notification IDs to delete.</param>
+        </member>
+        <member name="M:NotifySync.NotificationDatabase.ReplaceAllNotifications(System.Collections.Generic.IEnumerable{System.String},System.Collections.Generic.IEnumerable{NotifySync.NotificationItem})">
+            <summary>
+            Atomically replaces all notifications: deletes old IDs and inserts new items in a single transaction.
+            Prevents data loss if the process crashes between delete and insert.
+            </summary>
+            <param name="oldIds">IDs to delete.</param>
+            <param name="newItems">Items to insert.</param>
         </member>
         <member name="M:NotifySync.NotificationDatabase.Vacuum">
             <summary>
@@ -139,6 +233,51 @@
             <summary>
             Removes orphaned user notification states where the notification no longer exists.
             </summary>
+        </member>
+        <member name="M:NotifySync.NotificationDatabase.GetCollectionSnapshot(System.String)">
+            <summary>
+            Gets the set of known item IDs for a given collection snapshot.
+            </summary>
+            <param name="collectionId">The collection (BoxSet) GUID string.</param>
+            <returns>A set of item ID strings previously stored for this collection.</returns>
+        </member>
+        <member name="M:NotifySync.NotificationDatabase.UpdateCollectionSnapshot(System.String,System.Collections.Generic.IEnumerable{System.String})">
+            <summary>
+            Replaces the snapshot for a collection with the current set of item IDs.
+            </summary>
+            <param name="collectionId">The collection (BoxSet) GUID string.</param>
+            <param name="currentItemIds">The current item IDs in the collection.</param>
+        </member>
+        <member name="M:NotifySync.NotificationDatabase.RemoveStaleCollectionSnapshots(System.Collections.Generic.IReadOnlyCollection{System.String})">
+            <summary>
+            Removes snapshots for collections that are no longer in the active configuration.
+            </summary>
+            <param name="activeCollectionIds">The set of collection IDs still being monitored.</param>
+        </member>
+        <member name="M:NotifySync.NotificationDatabase.SaveDeletedItem(System.String,System.String,System.String,System.String,System.Nullable{System.Int32})">
+            <summary>
+            Records a deleted item in the DeletedItems table.
+            </summary>
+            <param name="itemId">The Jellyfin item ID.</param>
+            <param name="name">The item name.</param>
+            <param name="type">The item type (Movie, Episode, Audio, etc.).</param>
+            <param name="seriesName">The series name, if applicable.</param>
+            <param name="productionYear">The production year, if applicable.</param>
+        </member>
+        <member name="M:NotifySync.NotificationDatabase.GetDeletedItems(System.Int32,System.Int32)">
+            <summary>
+            Retrieves deleted items with pagination, ordered by most recent first.
+            </summary>
+            <param name="limit">Maximum number of records to return.</param>
+            <param name="offset">Number of records to skip.</param>
+            <returns>A list of deleted item records.</returns>
+        </member>
+        <member name="M:NotifySync.NotificationDatabase.PurgeExpiredDeletedItems(System.Int32)">
+            <summary>
+            Removes deleted item records older than the specified number of days.
+            </summary>
+            <param name="retentionDays">The number of days to retain records.</param>
+            <returns>The number of purged records.</returns>
         </member>
         <member name="M:NotifySync.NotificationDatabase.Dispose">
             <inheritdoc />
@@ -219,6 +358,17 @@
             This is a transient property set during API response building, not persisted in the Notifications table.
             </summary>
         </member>
+        <member name="P:NotifySync.NotificationItem.IsUpgrade">
+            <summary>
+            Gets or sets a value indicating whether this item is a file upgrade (replaced source file).
+            </summary>
+        </member>
+        <member name="P:NotifySync.NotificationItem.DateModifiedTicks">
+            <summary>
+            Gets or sets the file modification ticks used for upgrade detection.
+            Internal only — not exposed in the API response.
+            </summary>
+        </member>
         <member name="M:NotifySync.NotificationItem.Clone">
             <summary>
             Creates a shallow copy of the current notification item.
@@ -268,6 +418,14 @@
             </summary>
             <param name="normalizedUserId">The normalized user identifier.</param>
         </member>
+        <member name="M:NotifySync.NotificationManager.ResolveNotificationIds(System.String)">
+            <summary>
+            Returns the IDs of all notifications matching a given item or series ID (without cloning).
+            Used by the Dismiss endpoint to resolve group dismissals efficiently.
+            </summary>
+            <param name="itemId">The item ID or series ID to match.</param>
+            <returns>A list of matching notification IDs.</returns>
+        </member>
         <member name="M:NotifySync.NotificationManager.GetRecentNotifications">
             <summary>
             Returns all recent notifications.
@@ -290,6 +448,25 @@
         </member>
         <member name="M:NotifySync.NotificationManager.Dispose">
             <inheritdoc />
+        </member>
+        <member name="M:NotifySync.NotificationManager.ScanCollections(System.IProgress{System.Double},System.Threading.CancellationToken)">
+            <summary>
+            Scans all monitored collections (BoxSets) for newly added items and creates notifications.
+            Called by <see cref="T:NotifySync.CollectionScanTask"/> on a periodic schedule.
+            </summary>
+            <param name="progress">The progress reporter.</param>
+            <param name="cancellationToken">The cancellation token.</param>
+        </member>
+        <member name="M:NotifySync.NotificationManager.InjectCollectionNotifications(System.Collections.Generic.List{NotifySync.NotificationItem})">
+            <summary>
+            Injects collection-sourced notifications into the in-memory list and persists them.
+            </summary>
+        </member>
+        <member name="M:NotifySync.NotificationManager.CreateNotificationFromCollectionItem(MediaBrowser.Controller.Entities.BaseItem,System.String,System.Guid)">
+            <summary>
+            Creates a notification from an item found in a monitored collection.
+            Unlike <see cref="M:NotifySync.NotificationManager.CreateNotificationFromItem(MediaBrowser.Controller.Entities.BaseItem)"/>, this does NOT check library membership.
+            </summary>
         </member>
         <member name="T:NotifySync.NotifyController">
             <summary>
@@ -367,6 +544,14 @@
             </summary>
             <param name="userId">The user identifier.</param>
             <returns>An ActionResult containing a dictionary of notification states.</returns>
+        </member>
+        <member name="M:NotifySync.NotifyController.GetDeletedItems(System.Int32,System.Int32)">
+            <summary>
+            Gets the list of recently deleted items (admin only, shown in config page).
+            </summary>
+            <param name="limit">Maximum number of records to return.</param>
+            <param name="offset">Number of records to skip.</param>
+            <returns>An ActionResult containing the list of deleted items.</returns>
         </member>
         <member name="M:NotifySync.NotifyController.InvalidateUserCache(System.String)">
             <summary>
@@ -488,9 +673,24 @@
             Gets or sets the list of category mappings.
             </summary>
         </member>
+        <member name="P:NotifySync.PluginConfiguration.EnabledCollections">
+            <summary>
+            Gets or sets the list of enabled collection (BoxSet) IDs to monitor.
+            </summary>
+        </member>
         <member name="P:NotifySync.PluginConfiguration.MaxItems">
             <summary>
-            Gets or sets the maximum number of items per category.
+            Gets or sets the maximum number of items per category (clamped 1–50).
+            </summary>
+        </member>
+        <member name="P:NotifySync.PluginConfiguration.EnableDeletedTracking">
+            <summary>
+            Gets or sets a value indicating whether deleted item tracking is enabled.
+            </summary>
+        </member>
+        <member name="P:NotifySync.PluginConfiguration.DeletedRetentionDays">
+            <summary>
+            Gets or sets the number of days to retain deleted item records (clamped 1–365).
             </summary>
         </member>
         <member name="T:NotifySync.PluginJsonContext">
@@ -504,6 +704,11 @@
             </summary>
         </member>
         <member name="P:NotifySync.PluginJsonContext.CategoryMapping">
+            <summary>
+            Defines the source generated JSON serialization contract metadata for a given type.
+            </summary>
+        </member>
+        <member name="P:NotifySync.PluginJsonContext.DeletedItemRecord">
             <summary>
             Defines the source generated JSON serialization contract metadata for a given type.
             </summary>
@@ -534,6 +739,11 @@
             </summary>
         </member>
         <member name="P:NotifySync.PluginJsonContext.ListCategoryMapping">
+            <summary>
+            Defines the source generated JSON serialization contract metadata for a given type.
+            </summary>
+        </member>
+        <member name="P:NotifySync.PluginJsonContext.ListDeletedItemRecord">
             <summary>
             Defines the source generated JSON serialization contract metadata for a given type.
             </summary>

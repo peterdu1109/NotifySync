@@ -17,7 +17,7 @@ using System.Reflection;
     "on (cloche) native. Il permet à vos utilisateurs de voir instantanément les dern" +
     "iers ajouts (Films, Séries, Musique) sans quitter leur page actuelle."))]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("5.5.1.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("5.5.1.0+2f2db2226748eba39bd236e19d1fd4d002f2e2e6")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("5.5.1.0+eac47af486358f8a847bfe79572d3503f19f3bf1")]
 [assembly: System.Reflection.AssemblyProductAttribute("NotifySync")]
 [assembly: System.Reflection.AssemblyTitleAttribute("NotifySync")]
 [assembly: System.Reflection.AssemblyVersionAttribute("5.5.1.0")]

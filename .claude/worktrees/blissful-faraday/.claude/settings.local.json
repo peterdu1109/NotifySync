@@ -26,7 +26,10 @@
       "Bash(rm -f NotifySync_5.5.0.0.zip)",
       "Bash(powershell -Command \"Compress-Archive -Path ''bin/Release/net9.0/NotifySync.dll'' -DestinationPath ''NotifySync_5.5.0.0.zip'' -Force\")",
       "Bash(powershell -Command \"\\(Get-FileHash -Algorithm MD5 ''NotifySync_5.5.0.0.zip''\\).Hash\")",
-      "Bash(powershell -Command \"Compress-Archive -Path ''bin\\\\Release\\\\net9.0\\\\NotifySync.dll'' -DestinationPath ''NotifySync_5.5.1.0.zip'' -Force; \\(Get-FileHash ''NotifySync_5.5.1.0.zip'' -Algorithm MD5\\).Hash\")"
+      "Bash(powershell -Command \"Compress-Archive -Path ''bin\\\\Release\\\\net9.0\\\\NotifySync.dll'' -DestinationPath ''NotifySync_5.5.1.0.zip'' -Force; \\(Get-FileHash ''NotifySync_5.5.1.0.zip'' -Algorithm MD5\\).Hash\")",
+      "Bash(rm -f bin/Release/net9.0/notifysync_5.5.1.0.zip)",
+      "Bash(zip notifysync_5.5.1.0.zip NotifySync.dll)",
+      "Bash(powershell -Command \"Remove-Item -Force bin/Release/net9.0/notifysync_5.5.1.0.zip -ErrorAction SilentlyContinue; Compress-Archive -Path bin/Release/net9.0/NotifySync.dll -DestinationPath bin/Release/net9.0/notifysync_5.5.1.0.zip; \\(Get-FileHash bin/Release/net9.0/NotifySync.dll -Algorithm MD5\\).Hash\")"
     ]
   }
 }

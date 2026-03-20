@@ -44,7 +44,8 @@ namespace NotifySync
         private List<NotificationItem> _notifications = new List<NotificationItem>();
         private long _versionCounter = DateTime.UtcNow.Ticks;
         private int _isProcessingBuffer;
-        private bool _disposed;
+        private int _isDisposed;
+        private long _lastPurgeTicks;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="NotificationManager"/> class.
@@ -259,12 +260,11 @@ namespace NotifySync
         /// <inheritdoc />
         public void Dispose()
         {
-            if (_disposed)
+            if (Interlocked.Exchange(ref _isDisposed, 1) == 1)
             {
                 return;
             }
 
-            _disposed = true;
             SaveUserCleared();
             _disposeCts.Cancel();
             _bufferProcessTimer?.Dispose();
@@ -272,17 +272,10 @@ namespace NotifySync
             _disposeCts.Dispose();
             _db?.Dispose();
 
-            if (_libraryManager != null)
-            {
-                _libraryManager.ItemAdded -= OnItemAdded;
-                _libraryManager.ItemRemoved -= OnItemRemoved;
-                _libraryManager.ItemUpdated -= OnItemUpdated;
-            }
-
-            if (_userDataManager != null)
-            {
-                _userDataManager.UserDataSaved -= OnUserDataSaved;
-            }
+            _libraryManager.ItemAdded -= OnItemAdded;
+            _libraryManager.ItemRemoved -= OnItemRemoved;
+            _libraryManager.ItemUpdated -= OnItemUpdated;
+            _userDataManager.UserDataSaved -= OnUserDataSaved;
 
             GC.SuppressFinalize(this);
         }
@@ -397,7 +390,15 @@ namespace NotifySync
                     int? year = item.ProductionYear;
 
                     _db.SaveDeletedItem(item.Id.ToString(), item.Name ?? "Inconnu", type, seriesName, year);
-                    _db.PurgeExpiredDeletedItems(config.DeletedRetentionDays > 0 ? config.DeletedRetentionDays : 30);
+
+                    // Purge at most once per day to avoid unnecessary DB writes
+                    var nowTicks = DateTime.UtcNow.Ticks;
+                    var lastPurge = Interlocked.Read(ref _lastPurgeTicks);
+                    if ((nowTicks - lastPurge) > TimeSpan.TicksPerDay)
+                    {
+                        Interlocked.Exchange(ref _lastPurgeTicks, nowTicks);
+                        _db.PurgeExpiredDeletedItems(config.DeletedRetentionDays > 0 ? config.DeletedRetentionDays : 30);
+                    }
                 }
                 catch (Exception ex)
                 {

@@ -80,7 +80,9 @@ namespace NotifySync
                             BackdropImageTags TEXT,
                             PrimaryImageTag TEXT,
                             IndexNumber INTEGER,
-                            ParentIndexNumber INTEGER
+                            ParentIndexNumber INTEGER,
+                            IsUpgrade INTEGER NOT NULL DEFAULT 0,
+                            DateModifiedTicks INTEGER
                         );
                         CREATE INDEX IF NOT EXISTS idx_notifications_date ON Notifications(DateCreated DESC);
 
@@ -94,14 +96,117 @@ namespace NotifySync
                             PRIMARY KEY (UserId, NotificationId)
                         );
                         CREATE INDEX IF NOT EXISTS idx_uns_user ON UserNotificationState(UserId);
+                        CREATE INDEX IF NOT EXISTS idx_uns_notif ON UserNotificationState(NotificationId);
+
+                        CREATE TABLE IF NOT EXISTS CollectionSnapshots (
+                            CollectionId TEXT NOT NULL,
+                            ItemId TEXT NOT NULL,
+                            PRIMARY KEY (CollectionId, ItemId)
+                        );
+                        CREATE INDEX IF NOT EXISTS idx_cs_collection ON CollectionSnapshots(CollectionId);
+
+                        CREATE TABLE IF NOT EXISTS DeletedItems (
+                            Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            ItemId TEXT NOT NULL,
+                            Name TEXT NOT NULL,
+                            Type TEXT NOT NULL,
+                            SeriesName TEXT,
+                            ProductionYear INTEGER,
+                            DeletedAt TEXT NOT NULL
+                        );
+                        CREATE INDEX IF NOT EXISTS idx_deleted_date ON DeletedItems(DeletedAt DESC);
                     ";
                     cmd.ExecuteNonQuery();
                 }
+
+                // Migration: add columns for existing databases
+                MigrateAddColumn(connection, "Notifications", "IsUpgrade", "INTEGER NOT NULL DEFAULT 0");
+                MigrateAddColumn(connection, "Notifications", "DateModifiedTicks", "INTEGER");
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Erreur lors de l'initialisation de la base SQLite.");
             }
+        }
+
+        /// <summary>
+        /// Attempts to add a column to an existing table. Silently ignores if the column already exists.
+        /// </summary>
+        private static void MigrateAddColumn(SqliteConnection connection, string table, string column, string definition)
+        {
+            try
+            {
+                using var cmd = connection.CreateCommand();
+
+                // CA2100: All callers pass hardcoded string literals — no user input.
+#pragma warning disable CA2100
+                cmd.CommandText = $"ALTER TABLE {table} ADD COLUMN {column} {definition}";
+#pragma warning restore CA2100
+                cmd.ExecuteNonQuery();
+            }
+            catch (SqliteException)
+            {
+                // Column already exists — safe to ignore
+            }
+        }
+
+        /// <summary>
+        /// Creates and configures a reusable INSERT OR REPLACE command for the Notifications table.
+        /// Returns the command and a delegate that binds a <see cref="NotificationItem"/> to its parameters.
+        /// </summary>
+        private static (SqliteCommand Cmd, Action<NotificationItem> Bind) CreateInsertCommand(SqliteConnection connection, SqliteTransaction transaction)
+        {
+            var cmd = connection.CreateCommand();
+            cmd.Transaction = transaction;
+            cmd.CommandText = @"
+                INSERT OR REPLACE INTO Notifications (
+                    Id, Name, Category, SeriesName, SeriesId, DateCreated,
+                    Type, RunTimeTicks, ProductionYear, BackdropImageTags,
+                    PrimaryImageTag, IndexNumber, ParentIndexNumber,
+                    IsUpgrade, DateModifiedTicks
+                ) VALUES (
+                    @Id, @Name, @Category, @SeriesName, @SeriesId, @DateCreated,
+                    @Type, @RunTimeTicks, @ProductionYear, @Backdrop,
+                    @Primary, @Index, @ParentIndex,
+                    @IsUpgrade, @DateModifiedTicks
+                )";
+
+            var pId = cmd.Parameters.Add("@Id", SqliteType.Text);
+            var pName = cmd.Parameters.Add("@Name", SqliteType.Text);
+            var pCat = cmd.Parameters.Add("@Category", SqliteType.Text);
+            var pSName = cmd.Parameters.Add("@SeriesName", SqliteType.Text);
+            var pSId = cmd.Parameters.Add("@SeriesId", SqliteType.Text);
+            var pDate = cmd.Parameters.Add("@DateCreated", SqliteType.Text);
+            var pType = cmd.Parameters.Add("@Type", SqliteType.Text);
+            var pRun = cmd.Parameters.Add("@RunTimeTicks", SqliteType.Integer);
+            var pYear = cmd.Parameters.Add("@ProductionYear", SqliteType.Integer);
+            var pBack = cmd.Parameters.Add("@Backdrop", SqliteType.Text);
+            var pPrim = cmd.Parameters.Add("@Primary", SqliteType.Text);
+            var pIdx = cmd.Parameters.Add("@Index", SqliteType.Integer);
+            var pPIdx = cmd.Parameters.Add("@ParentIndex", SqliteType.Integer);
+            var pUpgrade = cmd.Parameters.Add("@IsUpgrade", SqliteType.Integer);
+            var pDateMod = cmd.Parameters.Add("@DateModifiedTicks", SqliteType.Integer);
+
+            void Bind(NotificationItem item)
+            {
+                pId.Value = item.Id ?? string.Empty;
+                pName.Value = item.Name ?? string.Empty;
+                pCat.Value = item.Category ?? string.Empty;
+                pSName.Value = (object?)item.SeriesName ?? DBNull.Value;
+                pSId.Value = (object?)item.SeriesId ?? DBNull.Value;
+                pDate.Value = item.DateCreated.ToString("O");
+                pType.Value = item.Type ?? string.Empty;
+                pRun.Value = (object?)item.RunTimeTicks ?? DBNull.Value;
+                pYear.Value = (object?)item.ProductionYear ?? DBNull.Value;
+                pBack.Value = JsonSerializer.Serialize(item.BackdropImageTags ?? new List<string>(), PluginJsonContext.Default.ListString);
+                pPrim.Value = (object?)item.PrimaryImageTag ?? DBNull.Value;
+                pIdx.Value = (object?)item.IndexNumber ?? DBNull.Value;
+                pPIdx.Value = (object?)item.ParentIndexNumber ?? DBNull.Value;
+                pUpgrade.Value = item.IsUpgrade ? 1 : 0;
+                pDateMod.Value = (object?)item.DateModifiedTicks ?? DBNull.Value;
+            }
+
+            return (cmd, Bind);
         }
 
         /// <summary>
@@ -128,50 +233,12 @@ namespace NotifySync
                 try
                 {
                     int insertedCount = 0;
-                    using (var insertCmd = connection.CreateCommand())
+                    var (insertCmd, bindItem) = CreateInsertCommand(connection, transaction);
+                    using (insertCmd)
                     {
-                        insertCmd.Transaction = transaction;
-                        insertCmd.CommandText = @"
-                            INSERT OR REPLACE INTO Notifications (
-                                Id, Name, Category, SeriesName, SeriesId, DateCreated, 
-                                Type, RunTimeTicks, ProductionYear, BackdropImageTags, 
-                                PrimaryImageTag, IndexNumber, ParentIndexNumber
-                            ) VALUES (
-                                @Id, @Name, @Category, @SeriesName, @SeriesId, @DateCreated, 
-                                @Type, @RunTimeTicks, @ProductionYear, @Backdrop, 
-                                @Primary, @Index, @ParentIndex
-                            )";
-
-                        var pId = insertCmd.Parameters.Add("@Id", SqliteType.Text);
-                        var pName = insertCmd.Parameters.Add("@Name", SqliteType.Text);
-                        var pCat = insertCmd.Parameters.Add("@Category", SqliteType.Text);
-                        var pSName = insertCmd.Parameters.Add("@SeriesName", SqliteType.Text);
-                        var pSId = insertCmd.Parameters.Add("@SeriesId", SqliteType.Text);
-                        var pDate = insertCmd.Parameters.Add("@DateCreated", SqliteType.Text);
-                        var pType = insertCmd.Parameters.Add("@Type", SqliteType.Text);
-                        var pRun = insertCmd.Parameters.Add("@RunTimeTicks", SqliteType.Integer);
-                        var pYear = insertCmd.Parameters.Add("@ProductionYear", SqliteType.Integer);
-                        var pBack = insertCmd.Parameters.Add("@Backdrop", SqliteType.Text);
-                        var pPrim = insertCmd.Parameters.Add("@Primary", SqliteType.Text);
-                        var pIdx = insertCmd.Parameters.Add("@Index", SqliteType.Integer);
-                        var pPIdx = insertCmd.Parameters.Add("@ParentIndex", SqliteType.Integer);
-
                         foreach (var item in itemList)
                         {
-                            pId.Value = item.Id ?? string.Empty;
-                            pName.Value = item.Name ?? string.Empty;
-                            pCat.Value = item.Category ?? string.Empty;
-                            pSName.Value = (object?)item.SeriesName ?? DBNull.Value;
-                            pSId.Value = (object?)item.SeriesId ?? DBNull.Value;
-                            pDate.Value = item.DateCreated.ToString("O");
-                            pType.Value = item.Type ?? string.Empty;
-                            pRun.Value = (object?)item.RunTimeTicks ?? DBNull.Value;
-                            pYear.Value = (object?)item.ProductionYear ?? DBNull.Value;
-                            pBack.Value = JsonSerializer.Serialize(item.BackdropImageTags ?? new List<string>(), PluginJsonContext.Default.ListString);
-                            pPrim.Value = (object?)item.PrimaryImageTag ?? DBNull.Value;
-                            pIdx.Value = (object?)item.IndexNumber ?? DBNull.Value;
-                            pPIdx.Value = (object?)item.ParentIndexNumber ?? DBNull.Value;
-
+                            bindItem(item);
                             insertCmd.ExecuteNonQuery();
                             insertedCount++;
                         }
@@ -274,49 +341,14 @@ namespace NotifySync
                     // Phase 2: Insert new entries
                     if (newList.Count > 0)
                     {
-                        using var insertCmd = connection.CreateCommand();
-                        insertCmd.Transaction = transaction;
-                        insertCmd.CommandText = @"
-                            INSERT OR REPLACE INTO Notifications (
-                                Id, Name, Category, SeriesName, SeriesId, DateCreated,
-                                Type, RunTimeTicks, ProductionYear, BackdropImageTags,
-                                PrimaryImageTag, IndexNumber, ParentIndexNumber
-                            ) VALUES (
-                                @Id, @Name, @Category, @SeriesName, @SeriesId, @DateCreated,
-                                @Type, @RunTimeTicks, @ProductionYear, @Backdrop,
-                                @Primary, @Index, @ParentIndex
-                            )";
-
-                        var pId = insertCmd.Parameters.Add("@Id", SqliteType.Text);
-                        var pName = insertCmd.Parameters.Add("@Name", SqliteType.Text);
-                        var pCat = insertCmd.Parameters.Add("@Category", SqliteType.Text);
-                        var pSName = insertCmd.Parameters.Add("@SeriesName", SqliteType.Text);
-                        var pSId = insertCmd.Parameters.Add("@SeriesId", SqliteType.Text);
-                        var pDate = insertCmd.Parameters.Add("@DateCreated", SqliteType.Text);
-                        var pType = insertCmd.Parameters.Add("@Type", SqliteType.Text);
-                        var pRun = insertCmd.Parameters.Add("@RunTimeTicks", SqliteType.Integer);
-                        var pYear = insertCmd.Parameters.Add("@ProductionYear", SqliteType.Integer);
-                        var pBack = insertCmd.Parameters.Add("@Backdrop", SqliteType.Text);
-                        var pPrim = insertCmd.Parameters.Add("@Primary", SqliteType.Text);
-                        var pIdx = insertCmd.Parameters.Add("@Index", SqliteType.Integer);
-                        var pPIdx = insertCmd.Parameters.Add("@ParentIndex", SqliteType.Integer);
-
-                        foreach (var item in newList)
+                        var (insertCmd, bindItem) = CreateInsertCommand(connection, transaction);
+                        using (insertCmd)
                         {
-                            pId.Value = item.Id ?? string.Empty;
-                            pName.Value = item.Name ?? string.Empty;
-                            pCat.Value = item.Category ?? string.Empty;
-                            pSName.Value = (object?)item.SeriesName ?? DBNull.Value;
-                            pSId.Value = (object?)item.SeriesId ?? DBNull.Value;
-                            pDate.Value = item.DateCreated.ToString("O");
-                            pType.Value = item.Type ?? string.Empty;
-                            pRun.Value = (object?)item.RunTimeTicks ?? DBNull.Value;
-                            pYear.Value = (object?)item.ProductionYear ?? DBNull.Value;
-                            pBack.Value = JsonSerializer.Serialize(item.BackdropImageTags ?? new List<string>(), PluginJsonContext.Default.ListString);
-                            pPrim.Value = (object?)item.PrimaryImageTag ?? DBNull.Value;
-                            pIdx.Value = (object?)item.IndexNumber ?? DBNull.Value;
-                            pPIdx.Value = (object?)item.ParentIndexNumber ?? DBNull.Value;
-                            insertCmd.ExecuteNonQuery();
+                            foreach (var item in newList)
+                            {
+                                bindItem(item);
+                                insertCmd.ExecuteNonQuery();
+                            }
                         }
                     }
 
@@ -385,6 +417,8 @@ namespace NotifySync
                 int oPrimary = reader.GetOrdinal("PrimaryImageTag");
                 int oIndex = reader.GetOrdinal("IndexNumber");
                 int oParentIndex = reader.GetOrdinal("ParentIndexNumber");
+                int oIsUpgrade = reader.GetOrdinal("IsUpgrade");
+                int oDateModTicks = reader.GetOrdinal("DateModifiedTicks");
 
                 while (reader.Read())
                 {
@@ -402,7 +436,9 @@ namespace NotifySync
                         BackdropImageTags = reader.IsDBNull(oBackdrop) ? new List<string>() : JsonSerializer.Deserialize(reader.GetString(oBackdrop), PluginJsonContext.Default.ListString) ?? new List<string>(),
                         PrimaryImageTag = reader.IsDBNull(oPrimary) ? null : reader.GetString(oPrimary),
                         IndexNumber = reader.IsDBNull(oIndex) ? null : reader.GetInt32(oIndex),
-                        ParentIndexNumber = reader.IsDBNull(oParentIndex) ? null : reader.GetInt32(oParentIndex)
+                        ParentIndexNumber = reader.IsDBNull(oParentIndex) ? null : reader.GetInt32(oParentIndex),
+                        IsUpgrade = !reader.IsDBNull(oIsUpgrade) && reader.GetInt32(oIsUpgrade) != 0,
+                        DateModifiedTicks = reader.IsDBNull(oDateModTicks) ? null : reader.GetInt64(oDateModTicks)
                     });
                 }
             }
@@ -565,6 +601,233 @@ namespace NotifySync
             {
                 _logger.LogError(ex, "NotifySync : Erreur lors de la purge des états utilisateur orphelins.");
             }
+        }
+
+        /// <summary>
+        /// Gets the set of known item IDs for a given collection snapshot.
+        /// </summary>
+        /// <param name="collectionId">The collection (BoxSet) GUID string.</param>
+        /// <returns>A set of item ID strings previously stored for this collection.</returns>
+        public HashSet<string> GetCollectionSnapshot(string collectionId)
+        {
+            var result = new HashSet<string>(StringComparer.Ordinal);
+            try
+            {
+                using var connection = new SqliteConnection(_connectionString);
+                connection.Open();
+                using var cmd = connection.CreateCommand();
+                cmd.CommandText = "SELECT ItemId FROM CollectionSnapshots WHERE CollectionId = @CollectionId";
+                cmd.Parameters.AddWithValue("@CollectionId", collectionId);
+                using var reader = cmd.ExecuteReader();
+                while (reader.Read())
+                {
+                    result.Add(reader.GetString(0));
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "NotifySync : Erreur lors de la lecture du snapshot pour la collection {CollectionId}.", collectionId);
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Replaces the snapshot for a collection with the current set of item IDs.
+        /// </summary>
+        /// <param name="collectionId">The collection (BoxSet) GUID string.</param>
+        /// <param name="currentItemIds">The current item IDs in the collection.</param>
+        public void UpdateCollectionSnapshot(string collectionId, IEnumerable<string> currentItemIds)
+        {
+            try
+            {
+                using var connection = new SqliteConnection(_connectionString);
+                connection.Open();
+                using var transaction = connection.BeginTransaction();
+                try
+                {
+                    using (var delCmd = connection.CreateCommand())
+                    {
+                        delCmd.Transaction = transaction;
+                        delCmd.CommandText = "DELETE FROM CollectionSnapshots WHERE CollectionId = @CollectionId";
+                        delCmd.Parameters.AddWithValue("@CollectionId", collectionId);
+                        delCmd.ExecuteNonQuery();
+                    }
+
+                    using (var insCmd = connection.CreateCommand())
+                    {
+                        insCmd.Transaction = transaction;
+                        insCmd.CommandText = "INSERT INTO CollectionSnapshots (CollectionId, ItemId) VALUES (@CollectionId, @ItemId)";
+                        var pCid = insCmd.Parameters.Add("@CollectionId", SqliteType.Text);
+                        var pIid = insCmd.Parameters.Add("@ItemId", SqliteType.Text);
+                        pCid.Value = collectionId;
+
+                        foreach (var itemId in currentItemIds)
+                        {
+                            pIid.Value = itemId;
+                            insCmd.ExecuteNonQuery();
+                        }
+                    }
+
+                    transaction.Commit();
+                }
+                catch
+                {
+                    transaction.Rollback();
+                    throw;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "NotifySync : Erreur lors de la mise à jour du snapshot pour la collection {CollectionId}.", collectionId);
+            }
+        }
+
+        /// <summary>
+        /// Removes snapshots for collections that are no longer in the active configuration.
+        /// </summary>
+        /// <param name="activeCollectionIds">The set of collection IDs still being monitored.</param>
+        public void RemoveStaleCollectionSnapshots(IReadOnlyCollection<string> activeCollectionIds)
+        {
+            try
+            {
+                using var connection = new SqliteConnection(_connectionString);
+                connection.Open();
+
+                if (activeCollectionIds.Count == 0)
+                {
+                    using var cmd = connection.CreateCommand();
+                    cmd.CommandText = "DELETE FROM CollectionSnapshots";
+                    cmd.ExecuteNonQuery();
+                    return;
+                }
+
+                using var delCmd = connection.CreateCommand();
+                var paramNames = new List<string>();
+                for (int i = 0; i < activeCollectionIds.Count; i++)
+                {
+                    paramNames.Add($"@cid{i}");
+                }
+
+                // paramNames only contains generated @cid0, @cid1, ... — no user input in the SQL text
+#pragma warning disable CA2100
+                delCmd.CommandText = $"DELETE FROM CollectionSnapshots WHERE CollectionId NOT IN ({string.Join(", ", paramNames)})";
+#pragma warning restore CA2100
+                int idx = 0;
+                foreach (var cid in activeCollectionIds)
+                {
+                    delCmd.Parameters.AddWithValue($"@cid{idx}", cid);
+                    idx++;
+                }
+
+                delCmd.ExecuteNonQuery();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "NotifySync : Erreur lors du nettoyage des snapshots de collections obsolètes.");
+            }
+        }
+
+        /// <summary>
+        /// Records a deleted item in the DeletedItems table.
+        /// </summary>
+        /// <param name="itemId">The Jellyfin item ID.</param>
+        /// <param name="name">The item name.</param>
+        /// <param name="type">The item type (Movie, Episode, Audio, etc.).</param>
+        /// <param name="seriesName">The series name, if applicable.</param>
+        /// <param name="productionYear">The production year, if applicable.</param>
+        public void SaveDeletedItem(string itemId, string name, string type, string? seriesName, int? productionYear)
+        {
+            try
+            {
+                using var connection = new SqliteConnection(_connectionString);
+                connection.Open();
+                using var cmd = connection.CreateCommand();
+                cmd.CommandText = @"
+                    INSERT INTO DeletedItems (ItemId, Name, Type, SeriesName, ProductionYear, DeletedAt)
+                    VALUES (@ItemId, @Name, @Type, @SeriesName, @ProductionYear, @DeletedAt)";
+                cmd.Parameters.AddWithValue("@ItemId", itemId);
+                cmd.Parameters.AddWithValue("@Name", name);
+                cmd.Parameters.AddWithValue("@Type", type);
+                cmd.Parameters.AddWithValue("@SeriesName", (object?)seriesName ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@ProductionYear", (object?)productionYear ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@DeletedAt", DateTime.UtcNow.ToString("O"));
+                cmd.ExecuteNonQuery();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "NotifySync : Erreur lors de l'enregistrement de l'item supprimé {Name}.", name);
+            }
+        }
+
+        /// <summary>
+        /// Retrieves deleted items with pagination, ordered by most recent first.
+        /// </summary>
+        /// <param name="limit">Maximum number of records to return.</param>
+        /// <param name="offset">Number of records to skip.</param>
+        /// <returns>A list of deleted item records.</returns>
+        public IReadOnlyList<DeletedItemRecord> GetDeletedItems(int limit = 200, int offset = 0)
+        {
+            var result = new List<DeletedItemRecord>();
+            try
+            {
+                using var connection = new SqliteConnection(_connectionString);
+                connection.Open();
+                using var cmd = connection.CreateCommand();
+                cmd.CommandText = "SELECT Id, ItemId, Name, Type, SeriesName, ProductionYear, DeletedAt FROM DeletedItems ORDER BY DeletedAt DESC LIMIT @Limit OFFSET @Offset";
+                cmd.Parameters.AddWithValue("@Limit", limit > 0 ? limit : 200);
+                cmd.Parameters.AddWithValue("@Offset", offset >= 0 ? offset : 0);
+                using var reader = cmd.ExecuteReader();
+                while (reader.Read())
+                {
+                    result.Add(new DeletedItemRecord
+                    {
+                        Id = reader.GetInt64(0),
+                        ItemId = reader.GetString(1),
+                        Name = reader.GetString(2),
+                        Type = reader.GetString(3),
+                        SeriesName = reader.IsDBNull(4) ? null : reader.GetString(4),
+                        ProductionYear = reader.IsDBNull(5) ? null : reader.GetInt32(5),
+                        DeletedAt = DateTime.Parse(reader.GetString(6), CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.RoundtripKind)
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "NotifySync : Erreur lors de la lecture des items supprimés.");
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Removes deleted item records older than the specified number of days.
+        /// </summary>
+        /// <param name="retentionDays">The number of days to retain records.</param>
+        /// <returns>The number of purged records.</returns>
+        public int PurgeExpiredDeletedItems(int retentionDays)
+        {
+            int deleted = 0;
+            try
+            {
+                using var connection = new SqliteConnection(_connectionString);
+                connection.Open();
+                using var cmd = connection.CreateCommand();
+                var cutoff = DateTime.UtcNow.AddDays(-retentionDays).ToString("O");
+                cmd.CommandText = "DELETE FROM DeletedItems WHERE DeletedAt < @Cutoff";
+                cmd.Parameters.AddWithValue("@Cutoff", cutoff);
+                deleted = cmd.ExecuteNonQuery();
+                if (deleted > 0)
+                {
+                    _logger.LogInformation("NotifySync : {Count} items supprimés expirés purgés (rétention {Days}j).", deleted, retentionDays);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "NotifySync : Erreur lors de la purge des items supprimés expirés.");
+            }
+
+            return deleted;
         }
 
         /// <inheritdoc />

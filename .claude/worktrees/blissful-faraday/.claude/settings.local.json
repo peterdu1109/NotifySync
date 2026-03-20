@@ -8,7 +8,24 @@
       "Bash(if exist:*)",
       "Bash(powershell -Command \"Compress-Archive -Path ''bin\\\\Release\\\\net9.0\\\\NotifySync.dll'' -DestinationPath ''NotifySync_5.4.2.0.zip'' -Force\")",
       "Bash(powershell -Command \"\\(Get-FileHash -Path ''NotifySync_5.4.2.0.zip'' -Algorithm MD5\\).Hash\")",
-      "Bash(powershell -Command \"if \\(Test-Path ''NotifySync_5.4.2.0.zip''\\) { Remove-Item ''NotifySync_5.4.2.0.zip'' }; Compress-Archive -Path ''bin\\\\Release\\\\net9.0\\\\NotifySync.dll'' -DestinationPath ''NotifySync_5.4.2.0.zip'' -Force; \\(Get-FileHash -Path ''NotifySync_5.4.2.0.zip'' -Algorithm MD5\\).Hash\")"
+      "Bash(powershell -Command \"if \\(Test-Path ''NotifySync_5.4.2.0.zip''\\) { Remove-Item ''NotifySync_5.4.2.0.zip'' }; Compress-Archive -Path ''bin\\\\Release\\\\net9.0\\\\NotifySync.dll'' -DestinationPath ''NotifySync_5.4.2.0.zip'' -Force; \\(Get-FileHash -Path ''NotifySync_5.4.2.0.zip'' -Algorithm MD5\\).Hash\")",
+      "Bash(ls /c/Users/eliem/Documents/GitHub/XFusion/*.cs /c/Users/eliem/Documents/GitHub/XFusion/*.csproj)",
+      "Bash(ls -la \"C:\\\\Users\\\\eliem\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-eliem-Documents-GitHub-NotifySync--claude-worktrees-blissful-faraday\\\\aeeec006-bd56-47a7-aa46-8872c0005ba1\\\\tasks\"\" 2>/dev/null || echo \"Directory not found \")",
+      "Bash(find C:UserseliemDocumentsGitHubXFusion -type f \\\\\\(-name *.md -o -name *.props -o -name Directory.Build.* \\\\\\))",
+      "Bash(grep -E \"\\\\.\\(md|props|ruleset|json\\)$\")",
+      "Bash(powershell -Command \"Compress-Archive -Path XFusion.dll,XFusion.pdb,XFusion.xml,XFusion.deps.json -DestinationPath ''C:\\\\Users\\\\eliem\\\\Documents\\\\GitHub\\\\XFusion\\\\XFusion_v0.12.0.0.zip'' -Force\")",
+      "Bash(powershell -Command \"\\(Get-FileHash ''C:\\\\Users\\\\eliem\\\\Documents\\\\GitHub\\\\XFusion\\\\XFusion_v0.12.0.0.zip'' -Algorithm MD5\\).Hash\")",
+      "Bash(grep -r \"version\\\\|Version\" \"C:\\\\Users\\\\eliem\\\\Documents\\\\GitHub\\\\XFusion\"/*.csproj)",
+      "Bash(zip -j 'C:/Users/eliem/Documents/GitHub/XFusion/XFusion_v0.14.0.0.zip' XFusion.dll XFusion.deps.json XFusion.pdb XFusion.xml)",
+      "Bash(powershell.exe -Command \"Compress-Archive -Path ''XFusion.dll'',''XFusion.deps.json'',''XFusion.pdb'',''XFusion.xml'' -DestinationPath ''C:/Users/eliem/Documents/GitHub/XFusion/XFusion_v0.14.0.0.zip'' -Force\")",
+      "Bash(unzip -l 'C:/Users/eliem/Documents/GitHub/XFusion/XFusion_v0.12.0.0.zip')",
+      "Bash(powershell.exe -Command \"Get-ChildItem \\(New-Object System.IO.Compression.ZipArchive\\([System.IO.File]::OpenRead\\(''C:/Users/eliem/Documents/GitHub/XFusion/XFusion_v0.12.0.0.zip''\\)\\)\\).Entries | Select Name,Length\")",
+      "Bash(powershell.exe -Command \"Compress-Archive -Path ''C:/Users/eliem/Documents/GitHub/XFusion/XFusion/bin/Release/net9.0/XFusion.dll'' -DestinationPath ''C:/Users/eliem/Documents/GitHub/XFusion/XFusion_v0.14.0.0.zip'' -Force\")",
+      "Bash(powershell.exe -Command \"\\(Get-FileHash -Algorithm MD5 ''C:/Users/eliem/Documents/GitHub/XFusion/XFusion_v0.14.0.0.zip''\\).Hash\")",
+      "Bash(grep -i \"movie\\\\|episode\\\\|audio\\\\|boxset\\\\|collection\" *.cs)",
+      "Bash(rm -f NotifySync_5.5.0.0.zip)",
+      "Bash(powershell -Command \"Compress-Archive -Path ''bin/Release/net9.0/NotifySync.dll'' -DestinationPath ''NotifySync_5.5.0.0.zip'' -Force\")",
+      "Bash(powershell -Command \"\\(Get-FileHash -Algorithm MD5 ''NotifySync_5.5.0.0.zip''\\).Hash\")"
     ]
   }
 }

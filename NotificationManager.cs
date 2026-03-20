@@ -44,6 +44,7 @@ namespace NotifySync
         private List<NotificationItem> _notifications = new List<NotificationItem>();
         private long _versionCounter = DateTime.UtcNow.Ticks;
         private int _isProcessingBuffer;
+        private bool _disposed;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="NotificationManager"/> class.
@@ -233,13 +234,13 @@ namespace NotifySync
 
         private void SaveUserCleared()
         {
-            if (Interlocked.CompareExchange(ref _isClearedDirty, 0, 1) == 0)
-            {
-                return;
-            }
-
             lock (_clearedLock)
             {
+                if (Interlocked.CompareExchange(ref _isClearedDirty, 0, 1) == 0)
+                {
+                    return;
+                }
+
                 try
                 {
                     var snapshot = _userClearedCache.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
@@ -258,6 +259,12 @@ namespace NotifySync
         /// <inheritdoc />
         public void Dispose()
         {
+            if (_disposed)
+            {
+                return;
+            }
+
+            _disposed = true;
             SaveUserCleared();
             _disposeCts.Cancel();
             _bufferProcessTimer?.Dispose();
@@ -378,6 +385,26 @@ namespace NotifySync
                 return;
             }
 
+            // Log deleted item if tracking is enabled
+            var config = Plugin.Instance?.Configuration;
+            if (config != null && config.EnableDeletedTracking && !e.Item.IsFolder && !(e.Item is Folder))
+            {
+                try
+                {
+                    var item = e.Item;
+                    string type = item.GetType().Name;
+                    string? seriesName = (item as Episode)?.SeriesName;
+                    int? year = item.ProductionYear;
+
+                    _db.SaveDeletedItem(item.Id.ToString(), item.Name ?? "Inconnu", type, seriesName, year);
+                    _db.PurgeExpiredDeletedItems(config.DeletedRetentionDays > 0 ? config.DeletedRetentionDays : 30);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "NotifySync : Erreur lors du suivi de la suppression de {Name}.", e.Item.Name);
+                }
+            }
+
             var itemId = e.Item.Id.ToString();
             bool dbNeedsUpdate = false;
             try
@@ -422,11 +449,24 @@ namespace NotifySync
                 var existingIndex = _notifications.FindIndex(n => n.Id == e.Item.Id.ToString());
                 if (existingIndex >= 0)
                 {
+                    var existing = _notifications[existingIndex];
                     updatedNotif = CreateNotificationFromItem(e.Item);
                     if (updatedNotif != null)
                     {
-                        // Preserve original date
-                        updatedNotif.DateCreated = _notifications[existingIndex].DateCreated;
+                        // Détecter un changement de fichier source (upgrade qualité)
+                        if (existing.DateModifiedTicks.HasValue
+                            && updatedNotif.DateModifiedTicks.HasValue
+                            && existing.DateModifiedTicks.Value != updatedNotif.DateModifiedTicks.Value)
+                        {
+                            updatedNotif.IsUpgrade = true;
+                            updatedNotif.DateCreated = DateTime.UtcNow; // Remonter en tête de liste
+                        }
+                        else
+                        {
+                            updatedNotif.DateCreated = existing.DateCreated;
+                            updatedNotif.IsUpgrade = existing.IsUpgrade;
+                        }
+
                         _notifications[existingIndex] = updatedNotif;
                         dbNeedsUpdate = true;
                         Interlocked.Increment(ref _versionCounter);
@@ -894,6 +934,195 @@ namespace NotifySync
             return false;
         }
 
+        /// <summary>
+        /// Scans all monitored collections (BoxSets) for newly added items and creates notifications.
+        /// Called by <see cref="CollectionScanTask"/> on a periodic schedule.
+        /// </summary>
+        /// <param name="progress">The progress reporter.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        public void ScanCollections(IProgress<double> progress, CancellationToken cancellationToken)
+        {
+            var config = Plugin.Instance?.Configuration;
+            if (config?.EnabledCollections == null || config.EnabledCollections.Count == 0)
+            {
+                return;
+            }
+
+            _logger.LogInformation("NotifySync : Début du scan des collections ({Count} configurées).", config.EnabledCollections.Count);
+
+            var newNotifications = new List<NotificationItem>();
+            int idx = 0;
+
+            foreach (var collectionIdStr in config.EnabledCollections)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                if (!Guid.TryParse(collectionIdStr, out var collectionGuid))
+                {
+                    continue;
+                }
+
+                var boxSet = _libraryManager.GetItemById(collectionGuid);
+                if (boxSet == null)
+                {
+                    _logger.LogWarning("NotifySync : Collection {CollectionId} introuvable, ignorée.", collectionIdStr);
+                    continue;
+                }
+
+                // Lister les enfants actuels de la collection
+                var children = _libraryManager.GetItemList(new InternalItemsQuery
+                {
+                    AncestorIds = new[] { collectionGuid },
+                    Recursive = true,
+                    IncludeItemTypes = new[] { BaseItemKind.Movie, BaseItemKind.Episode, BaseItemKind.Audio },
+                    DtoOptions = new MediaBrowser.Controller.Dto.DtoOptions(false)
+                });
+
+                var currentIds = new HashSet<string>(children.Select(c => c.Id.ToString()), StringComparer.Ordinal);
+                var snapshot = _db.GetCollectionSnapshot(collectionIdStr);
+
+                if (snapshot.Count == 0)
+                {
+                    // Premier scan : stocker le baseline sans créer de notifications
+                    _logger.LogInformation("NotifySync : Premier scan de la collection \"{Name}\" — {Count} éléments enregistrés comme baseline.", boxSet.Name, currentIds.Count);
+                    _db.UpdateCollectionSnapshot(collectionIdStr, currentIds);
+                }
+                else
+                {
+                    var newIds = currentIds.Except(snapshot).ToList();
+                    if (newIds.Count > 0)
+                    {
+                        var newIdSet = new HashSet<string>(newIds, StringComparer.Ordinal);
+                        foreach (var child in children.Where(c => newIdSet.Contains(c.Id.ToString())))
+                        {
+                            var notif = CreateNotificationFromCollectionItem(child, boxSet.Name, collectionGuid);
+                            if (notif != null)
+                            {
+                                newNotifications.Add(notif);
+                            }
+                        }
+
+                        _logger.LogInformation("NotifySync : {Count} nouveaux éléments détectés dans la collection \"{Name}\".", newIds.Count, boxSet.Name);
+                    }
+
+                    _db.UpdateCollectionSnapshot(collectionIdStr, currentIds);
+                }
+
+                idx++;
+                progress?.Report((double)idx / config.EnabledCollections.Count * 100);
+            }
+
+            // Nettoyer les snapshots des collections retirées de la configuration
+            _db.RemoveStaleCollectionSnapshots(config.EnabledCollections);
+
+            if (newNotifications.Count > 0)
+            {
+                InjectCollectionNotifications(newNotifications);
+            }
+
+            _logger.LogInformation("NotifySync : Scan des collections terminé. {Count} nouvelles notifications.", newNotifications.Count);
+        }
+
+        /// <summary>
+        /// Injects collection-sourced notifications into the in-memory list and persists them.
+        /// </summary>
+        private void InjectCollectionNotifications(List<NotificationItem> newItems)
+        {
+            var itemsToDelete = new List<string>();
+            var itemsToSave = new List<NotificationItem>(newItems);
+
+            try
+            {
+                _dataLock.EnterWriteLock();
+                foreach (var ni in itemsToSave)
+                {
+                    _notifications.RemoveAll(n => n.Id == ni.Id);
+                    _notifications.Add(ni);
+                }
+
+                var quotaResult = CategoryQuotaService.ApplyCategoryQuotas(_notifications, DatabaseCategoryLimit);
+                var finalNotifications = quotaResult.Kept;
+                itemsToDelete.AddRange(quotaResult.RemovedIds);
+
+                _notifications = finalNotifications.OrderByDescending(n => n.DateCreated).ToList();
+
+                if (_notifications.Count > GlobalRetentionLimit)
+                {
+                    var overLimit = _notifications.Skip(GlobalRetentionLimit).Select(n => n.Id).ToList();
+                    itemsToDelete.AddRange(overLimit!);
+                    _notifications = _notifications.Take(GlobalRetentionLimit).ToList();
+                }
+
+                Interlocked.Increment(ref _versionCounter);
+            }
+            finally
+            {
+                if (_dataLock.IsWriteLockHeld)
+                {
+                    _dataLock.ExitWriteLock();
+                }
+            }
+
+            _db.SaveNotifications(itemsToSave);
+            if (itemsToDelete.Count > 0)
+            {
+                _db.DeleteNotifications(itemsToDelete);
+            }
+        }
+
+        /// <summary>
+        /// Creates a notification from an item found in a monitored collection.
+        /// Unlike <see cref="CreateNotificationFromItem"/>, this does NOT check library membership.
+        /// </summary>
+        private NotificationItem? CreateNotificationFromCollectionItem(BaseItem item, string collectionName, Guid collectionId)
+        {
+            // Ignorer les dossiers
+            if (item.IsFolder || item is Folder)
+            {
+                return null;
+            }
+
+            // Ignorer les Extras
+            if (item.ExtraType.HasValue)
+            {
+                return null;
+            }
+
+            try
+            {
+                var notif = new NotificationItem
+                {
+                    Id = $"col:{collectionId:N}:{item.Id}",
+                    Name = item.Name ?? "Inconnu",
+                    Category = collectionName,
+                    SeriesName = (item as Episode)?.SeriesName,
+                    SeriesId = (item as Episode)?.SeriesId.ToString(),
+                    DateCreated = item.DateCreated.ToUniversalTime(),
+                    Type = item.GetType().Name,
+                    RunTimeTicks = item.RunTimeTicks,
+                    ProductionYear = item.ProductionYear,
+                    BackdropImageTags = item.ImageInfos.Where(i => i.Type == ImageType.Backdrop).Select(i => i.DateModified.Ticks.ToString(CultureInfo.InvariantCulture)).ToList(),
+                    PrimaryImageTag = item.ImageInfos.Where(i => i.Type == ImageType.Primary).Select(i => i.DateModified.Ticks.ToString(CultureInfo.InvariantCulture)).FirstOrDefault(),
+                    IndexNumber = item.IndexNumber,
+                    ParentIndexNumber = item.ParentIndexNumber,
+                    DateModifiedTicks = item.DateModified.Ticks
+                };
+
+                if (item.GetBaseItemKind() == BaseItemKind.Audio && item is MediaBrowser.Controller.Entities.Audio.Audio audioItem)
+                {
+                    notif.SeriesName = audioItem.Album;
+                    notif.SeriesId = audioItem.ParentId.ToString();
+                }
+
+                return notif;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "NotifySync : Échec de la création de notification collection pour l'élément {ItemName}.", item?.Name);
+                return null;
+            }
+        }
+
         private NotificationItem? CreateNotificationFromItem(BaseItem item)
         {
             if (!IsItemInEnabledLibrary(item))
@@ -980,7 +1209,8 @@ namespace NotifySync
                     BackdropImageTags = item.ImageInfos.Where(i => i.Type == ImageType.Backdrop).Select(i => i.DateModified.Ticks.ToString(System.Globalization.CultureInfo.InvariantCulture)).ToList(),
                     PrimaryImageTag = item.ImageInfos.Where(i => i.Type == ImageType.Primary).Select(i => i.DateModified.Ticks.ToString(System.Globalization.CultureInfo.InvariantCulture)).FirstOrDefault(),
                     IndexNumber = item.IndexNumber,
-                    ParentIndexNumber = item.ParentIndexNumber
+                    ParentIndexNumber = item.ParentIndexNumber,
+                    DateModifiedTicks = item.DateModified.Ticks
                 };
 
                 if (item.GetBaseItemKind() == BaseItemKind.Audio && item is MediaBrowser.Controller.Entities.Audio.Audio audioItem)

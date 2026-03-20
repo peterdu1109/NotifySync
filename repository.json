@@ -9,6 +9,14 @@
     "supportUrl": "https://github.com/",
     "versions": [
       {
+        "version": "5.5.0.0",
+        "changelog": "Nouveautés / New Features:\\n- Surveillance des collections : les collections Jellyfin (BoxSets) sont désormais surveillées. Les nouveaux ajouts génèrent une notification.\\n- Badge MAJ/UPD : quand un fichier média est remplacé (upgrade qualité), la notification remonte avec un badge bleu distinctif.\\n- Historique des suppressions : les administrateurs peuvent consulter les médias récemment supprimés dans la page de configuration (rétention paramétrable).\\n- Swipe pour supprimer : sur mobile, glissez une notification vers la gauche pour la retirer.\\n- Vider par catégorie : appui long (mobile) ou clic droit (PC) sur un filtre pour ne vider qu'une catégorie.\\n\\nAméliorations / Improvements:\\n- Vider la liste ne ferme plus le menu — mise à jour instantanée.\\n- Clic sur la cloche rafraîchit immédiatement les notifications.\\n- Bouton de suppression agrandi et plus accessible sur tactile et clavier.\\n- Performances améliorées sur les grandes bibliothèques.\\n- Cache local avec expiration automatique (1h).\\n\\nCorrections / Fixes:\\n- Correction d'un problème de synchronisation lors du vidage de la liste.\\n- Meilleure stabilité générale et protection contre les erreurs.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/5.5.0.0/NotifySync_5.5.0.0.zip",
+        "checksum": "65FC3E1F00D64FEB11770AF1DB5C1D03",
+        "timestamp": "2026-03-20T12:00:00Z"
+      },
+      {
         "version": "5.4.2.0",
         "changelog": "- FIX: Memory leak — IntersectionObserver déconnecté avant recréation (évite accumulation sur sessions longues).\\n- FIX: SQLite ClearPool ciblé — ne vide plus les pools de connexion des autres plugins.\\n- SEC: IDs échappés dans les attributs HTML (prévention XSS sur les données injectées dans le DOM).\\n- REFACTOR: Extraction de NormalizeId dans une classe utilitaire partagée (IdHelper) — suppression de la duplication entre Controller et Manager.\\n- CLEANUP: Unification de tous les logs serveur en français pour cohérence diagnostique.",
         "targetAbi": "10.11.0.0",

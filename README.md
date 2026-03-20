@@ -1,7 +1,7 @@
 <h1 align="center">🔔 NotifySync</h1>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-5.4.2.0-blue" alt="Version">
+  <img src="https://img.shields.io/badge/version-5.5.0.0-blue" alt="Version">
   <img src="https://img.shields.io/badge/.NET-9.0-purple" alt=".NET Framework">
   <img src="https://img.shields.io/badge/Jellyfin-10.11.X-blueviolet" alt="Jellyfin">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="License">
@@ -48,6 +48,11 @@ NotifySync transforms the Jellyfin interface by adding a native notification bel
 *   **Smart Grouping** — Episodes of the same series are automatically grouped (e.g. *"3 new episodes"*). Music tracks are grouped by album (e.g. *"5 new tracks"*).
 *   **Category Filters** — Filter pills (All / Movies / Series / Music / custom) let you instantly focus on what matters.
 *   **Individual Dismiss** — Dismiss any notification with a single click — smooth slide-out animation, persisted per-user on the server.
+*   **Swipe to Dismiss (Mobile)** — On touch devices, swipe a notification to the left to remove it. Natural, intuitive gesture.
+*   **Clear by Category** — Long press (mobile) or right-click (desktop) on a category filter to clear only that category.
+*   **File Upgrade Detection** — When a media file is replaced (quality upgrade, re-encode), the notification reappears at the top with a blue **UPD** badge instead of the usual **NEW** badge.
+*   **Collection Monitoring** — Track Jellyfin collections (BoxSets): when new items are added to a monitored collection, they appear as notifications.
+*   **Deletion History (Admin)** — Administrators can view a log of recently deleted media in the plugin configuration page, with configurable retention (1–365 days).
 *   **Server-Side Read/Unread State** — Read status is stored on the server and synced across all browsers and devices. No more localStorage dependency.
 *   **Bell Pulse Animation** — The bell shakes when new content arrives via WebSocket. Debounced to avoid visual spam.
 *   **Clear List (Safe)** — One button to clear all notifications without ever marking media as "Played" in your Jellyfin history.
@@ -112,10 +117,13 @@ Go to **Dashboard > Plugins > NotifySync**.
 
 | Setting | Description |
 |---------|-------------|
-| **Quotas** | Maximum number of items to display per category. |
+| **Quotas** | Maximum number of items to display per category (1–50). |
 | **Monitored Libraries** | Check the folders you want to appear in notifications. |
+| **Monitored Collections** | Select Jellyfin collections (BoxSets) to track for new additions. |
 | **Category Mapping** | Rename your libraries for display in the bell (e.g. *"My Movies"* → *"Movies"*). |
 | **Manual Library IDs** | Add library IDs or names manually for advanced setups (Channels, XFusion). |
+| **Deleted Items Tracking** | Enable/disable the deletion history log (admin only). |
+| **Deletion Retention** | Number of days to keep deleted item records (1–365, default 30). |
 | **Regenerate History** | Force a full rescan after changing libraries or quotas. |
 
 ## ❓ Troubleshooting
@@ -145,6 +153,11 @@ NotifySync transforme l'interface Jellyfin en y ajoutant une cloche de notificat
 *   **Regroupement Intelligent** — Les épisodes d'une même série sont automatiquement groupés (ex. *"3 nouveaux épisodes"*). Les pistes musicales sont groupées par album (ex. *"5 nouvelles pistes"*).
 *   **Filtres par Catégorie** — Des filtres rapides (Tout / Films / Séries / Musique / personnalisé) permettent de cibler instantanément ce qui vous intéresse.
 *   **Suppression Individuelle** — Supprimez n'importe quelle notification d'un simple clic — animation fluide de glissement, persisté par utilisateur côté serveur.
+*   **Swipe pour Supprimer (Mobile)** — Sur les appareils tactiles, glissez une notification vers la gauche pour la retirer. Geste naturel et intuitif.
+*   **Vider par Catégorie** — Appui long (mobile) ou clic droit (PC) sur un filtre de catégorie pour vider uniquement cette catégorie.
+*   **Détection de Mise à Jour de Fichier** — Quand un fichier média est remplacé (upgrade qualité, ré-encodage), la notification remonte en haut avec un badge bleu **MAJ** au lieu du badge **NOUVEAU**.
+*   **Surveillance des Collections** — Suivez les collections Jellyfin (BoxSets) : quand de nouveaux éléments sont ajoutés à une collection surveillée, ils apparaissent comme notifications.
+*   **Historique des Suppressions (Admin)** — Les administrateurs peuvent consulter un journal des médias récemment supprimés dans la page de configuration, avec rétention paramétrable (1–365 jours).
 *   **État Lu/Non-lu Côté Serveur** — Le statut de lecture est stocké sur le serveur et synchronisé entre tous les navigateurs et appareils. Fini la dépendance au localStorage.
 *   **Animation Pulse** — La cloche s'anime quand un nouveau contenu arrive via WebSocket. Anti-spam visuel intégré.
 *   **Vider la Liste (Sans Risque)** — Un bouton pour effacer toutes les notifications sans jamais impacter votre historique de lecture Jellyfin (les médias restent "Non vus").
@@ -208,10 +221,13 @@ Allez dans **Tableau de bord > Extensions > NotifySync**.
 
 | Paramètre | Description |
 |-----------|-------------|
-| **Quotas** | Nombre maximum d'éléments affichés par catégorie. |
+| **Quotas** | Nombre maximum d'éléments affichés par catégorie (1–50). |
 | **Bibliothèques Surveillées** | Cochez les dossiers que vous souhaitez voir apparaître dans la cloche. |
+| **Collections Surveillées** | Sélectionnez les collections Jellyfin (BoxSets) à surveiller pour les nouveaux ajouts. |
 | **Mappage des Catégories** | Renommez vos bibliothèques pour l'affichage (ex. *"Mes Films"* → *"Films"*). |
 | **IDs Manuels** | Ajoutez des IDs ou noms de bibliothèques manuellement pour les configurations avancées (Channels, XFusion). |
+| **Suivi des Suppressions** | Activer/désactiver le journal des suppressions (admin uniquement). |
+| **Rétention des Suppressions** | Nombre de jours de conservation des éléments supprimés (1–365, défaut 30). |
 | **Régénérer l'Historique** | Force un scan complet après modification des bibliothèques ou quotas. |
 
 ## ❓ Dépannage

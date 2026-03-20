@@ -29,6 +29,7 @@ namespace NotifySync
     public class NotifyController : ControllerBase
     {
         private static readonly ConcurrentDictionary<string, byte[]> UserViewCache = new ();
+        private static readonly ConcurrentDictionary<string, long> UserActionThrottle = new ();
         private static readonly Lazy<string?> _clientJsLazy = new (() =>
         {
             var assembly = typeof(NotifyController).Assembly;
@@ -210,26 +211,32 @@ namespace NotifySync
                 int filteredNotVisible = 0;
                 int itemNotFound = 0;
 
+                // Phase 1: cheap filters (no DB/library calls) to reduce N+1 impact
+                var candidates = new List<NotificationItem>();
                 foreach (var n in allNotifs)
                 {
-                    // Lookup user state once per item
                     userStates.TryGetValue(n.Id, out var state);
-
-                    // Skip dismissed items
                     if (state.IsDismissed)
                     {
                         continue;
                     }
 
+                    if (n.DateCreated.ToUniversalTime().Ticks <= clearedUntil)
+                    {
+                        continue;
+                    }
+
+                    n.IsRead = state.IsRead;
+                    candidates.Add(n);
+                }
+
+                // Phase 2: library lookups only on remaining candidates
+                foreach (var n in candidates)
+                {
                     var item = _libraryManager.GetItemById(n.Id);
                     if (item == null)
                     {
                         itemNotFound++;
-                        if (state.IsRead)
-                        {
-                            n.IsRead = true;
-                        }
-
                         filtered.Add(n);
                         continue;
                     }
@@ -240,21 +247,10 @@ namespace NotifySync
                         continue;
                     }
 
-                    if (n.DateCreated.ToUniversalTime().Ticks <= clearedUntil)
-                    {
-                        continue;
-                    }
-
                     var userData = _userDataManager.GetUserData(user, item);
                     if (userData != null && userData.Played)
                     {
                         continue;
-                    }
-
-                    // Inject IsRead from server state (single lookup reused)
-                    if (state.IsRead)
-                    {
-                        n.IsRead = true;
                     }
 
                     filtered.Add(n);
@@ -291,7 +287,7 @@ namespace NotifySync
             catch (Exception ex)
             {
                 _logger.LogError(ex, "NotifySync : Erreur lors de la récupération des données pour l'utilisateur {UserId}.", userId);
-                return StatusCode(500);
+                return StatusCode(500, "Internal error.");
             }
         }
 
@@ -408,7 +404,7 @@ namespace NotifySync
             catch (Exception ex)
             {
                 _logger.LogError(ex, "NotifySync : Erreur dans BulkUserData pour l'utilisateur {UserId}.", userId);
-                return StatusCode(500);
+                return StatusCode(500, "Internal error.");
             }
         }
 
@@ -446,6 +442,11 @@ namespace NotifySync
                 }
 
                 var normalizedUserId = NormalizeId(userId);
+                if (IsUserThrottled(normalizedUserId))
+                {
+                    return StatusCode(429, "Too many requests.");
+                }
+
                 NotificationManager.Instance.Db.BulkSetRead(normalizedUserId, itemIds);
                 NotificationManager.Instance.IncrementUserStateVersion(normalizedUserId);
                 InvalidateUserCache(normalizedUserId);
@@ -454,7 +455,7 @@ namespace NotifySync
             catch (Exception ex)
             {
                 _logger.LogError(ex, "NotifySync : Erreur dans MarkRead pour l'utilisateur {UserId}.", userId);
-                return StatusCode(500);
+                return StatusCode(500, "Internal error.");
             }
         }
 
@@ -483,6 +484,10 @@ namespace NotifySync
             }
 
             var normalizedUserId = NormalizeId(userId);
+            if (IsUserThrottled(normalizedUserId))
+            {
+                return StatusCode(429, "Too many requests.");
+            }
 
             // Resolve group dismiss: if itemId is a SeriesId, find all episode IDs (no clone overhead)
             var idsToDissmiss = NotificationManager.Instance.ResolveNotificationIds(itemId);
@@ -528,6 +533,31 @@ namespace NotifySync
             }
 
             byte[] serialized = JsonSerializer.SerializeToUtf8Bytes(result, PluginJsonContext.Default.DictionaryStringBoolean);
+            return new FileContentResult(serialized, "application/json");
+        }
+
+        /// <summary>
+        /// Gets the list of recently deleted items (admin only, shown in config page).
+        /// </summary>
+        /// <param name="limit">Maximum number of records to return.</param>
+        /// <param name="offset">Number of records to skip.</param>
+        /// <returns>An ActionResult containing the list of deleted items.</returns>
+        [HttpGet("DeletedItems")]
+        public ActionResult GetDeletedItems([FromQuery] int limit = 200, [FromQuery] int offset = 0)
+        {
+            if (!User.IsInRole("Administrator")
+                && !string.Equals(User.FindFirst("Jellyfin-IsApiKey")?.Value, "true", StringComparison.OrdinalIgnoreCase))
+            {
+                return Forbid();
+            }
+
+            if (NotificationManager.Instance == null)
+            {
+                return StatusCode(StatusCodes.Status503ServiceUnavailable, "Manager not initialized.");
+            }
+
+            var items = NotificationManager.Instance.Db.GetDeletedItems(limit, offset);
+            byte[] serialized = JsonSerializer.SerializeToUtf8Bytes(items, PluginJsonContext.Default.ListDeletedItemRecord);
             return new FileContentResult(serialized, "application/json");
         }
 
@@ -578,6 +608,18 @@ namespace NotifySync
             }
 
             _logger.LogWarning("NotifySync : Autorisation refusée. Actuel : {Current}, Demandé : {Requested}.", currentUserId, userId);
+            return false;
+        }
+
+        private static bool IsUserThrottled(string userId, int minIntervalMs = 500)
+        {
+            var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            if (UserActionThrottle.TryGetValue(userId, out var last) && (now - last) < minIntervalMs)
+            {
+                return true;
+            }
+
+            UserActionThrottle[userId] = now;
             return false;
         }
 

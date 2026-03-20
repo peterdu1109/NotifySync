@@ -32,6 +32,14 @@
                         </div>
 
                         <div class="inputContainer">
+                            <h3 class="sectionTitle" id="i18n-colTitle"></h3>
+                            <div class="fieldDescription" id="i18n-colDesc"></div>
+                            <div id="collectionCheckboxes"
+                                style="margin-top:10px; padding: 10px; background: rgba(0,0,0,0.2); min-height:50px;">
+                            </div>
+                        </div>
+
+                        <div class="inputContainer">
                             <h3 class="sectionTitle" id="i18n-mapTitle"></h3>
                             <div class="fieldDescription" id="i18n-mapDesc"></div>
                             <div style="display:flex; gap:10px; margin-bottom:10px; align-items:flex-end;">
@@ -68,6 +76,27 @@
                             <button is="emby-button" type="button" class="raised button-cancel block"
                                 id="i18n-refreshBtn" onclick="NotifySyncConf.refreshHistory()">
                             </button>
+                        </div>
+
+                        <div style="margin-top:30px;">
+                            <h3 class="sectionTitle" id="i18n-delTitle"></h3>
+                            <p class="fieldDescription" id="i18n-delDesc"></p>
+
+                            <div style="display:flex; gap:20px; align-items:center; margin:10px 0;">
+                                <label style="display:flex; align-items:center;">
+                                    <input type="checkbox" is="emby-checkbox" id="enableDeletedTracking" />
+                                    <span style="margin-left:8px;" id="i18n-delEnable"></span>
+                                </label>
+                                <div>
+                                    <label class="inputLabel" for="deletedRetentionDays" id="i18n-delRetLabel"></label>
+                                    <input is="emby-input" type="number" id="deletedRetentionDays" min="1" max="365"
+                                        style="width:80px;" />
+                                </div>
+                            </div>
+
+                            <div id="deletedItemsTable"
+                                style="margin-top:10px; background: rgba(0,0,0,0.2); border-radius:4px; max-height:400px; overflow-y:auto;">
+                            </div>
                         </div>
                     </div>
                 </form>
@@ -107,7 +136,20 @@
                     noLibs: "Aucune bibliothèque trouvée via API.",
                     noMappings: "Aucune catégorie personnalisée définie.",
                     libPrefix: "Bibliothèque ",
-                    deleteBtn: "Supprimer"
+                    deleteBtn: "Supprimer",
+                    colTitle: "Collections Surveillées",
+                    colDesc: "Cochez les collections pour recevoir une notification lors de nouveaux ajouts (scan toutes les 15 min).",
+                    noCollections: "Aucune collection trouvée.",
+                    delTitle: "Historique des Suppressions",
+                    delDesc: "Consultez les médias récemment supprimés de vos bibliothèques.",
+                    delEnable: "Activer le suivi des suppressions",
+                    delRetLabel: "Rétention (jours)",
+                    delEmpty: "Aucune suppression enregistrée.",
+                    delColName: "Nom",
+                    delColType: "Type",
+                    delColSeries: "Série",
+                    delColYear: "Année",
+                    delColDate: "Supprimé le"
                 },
                 en: {
                     title: "NotifySync Configuration",
@@ -140,7 +182,20 @@
                     noLibs: "No libraries found via API.",
                     noMappings: "No custom categories defined.",
                     libPrefix: "Library ",
-                    deleteBtn: "Delete"
+                    deleteBtn: "Delete",
+                    colTitle: "Monitored Collections",
+                    colDesc: "Check collections to receive notifications when items are added (scanned every 15 min).",
+                    noCollections: "No collections found.",
+                    delTitle: "Deletion History",
+                    delDesc: "View recently deleted media from your libraries.",
+                    delEnable: "Enable deletion tracking",
+                    delRetLabel: "Retention (days)",
+                    delEmpty: "No deletions recorded.",
+                    delColName: "Name",
+                    delColType: "Type",
+                    delColSeries: "Series",
+                    delColYear: "Year",
+                    delColDate: "Deleted on"
                 }
             };
 
@@ -148,8 +203,10 @@
 
             function applyTranslations(page) {
                 const ids = ['title', 'desc', 'quotaLabel', 'quotaDesc', 'libTitle', 'libDesc',
+                    'colTitle', 'colDesc',
                     'mapTitle', 'mapDesc', 'mapLibLabel', 'mapCatLabel', 'addBtn',
-                    'manualTitle', 'manualDesc', 'saveBtn', 'maintTitle', 'maintDesc', 'refreshBtn'];
+                    'manualTitle', 'manualDesc', 'saveBtn', 'maintTitle', 'maintDesc', 'refreshBtn',
+                    'delTitle', 'delDesc', 'delEnable', 'delRetLabel'];
                 ids.forEach(id => {
                     const el = page.querySelector('#i18n-' + id);
                     if (el) el.textContent = CT[id];
@@ -183,12 +240,17 @@
                         this.config.EnabledLibraries = this.config.EnabledLibraries || [];
                         this.config.CategoryMappings = this.config.CategoryMappings || [];
                         this.config.ManualLibraryIds = this.config.ManualLibraryIds || [];
+                        this.config.EnabledCollections = this.config.EnabledCollections || [];
 
                         page.querySelector('#maxItems').value = this.config.MaxItems || 5;
                         page.querySelector('#manualLibraryIds').value = this.config.ManualLibraryIds.join(', ');
+                        page.querySelector('#enableDeletedTracking').checked = this.config.EnableDeletedTracking !== false;
+                        page.querySelector('#deletedRetentionDays').value = this.config.DeletedRetentionDays || 30;
 
                         await this.renderLibs(page);
+                        await this.renderCollections(page);
                         this.renderMap(page);
+                        await this.renderDeletedItems(page);
                     } catch (err) {
                         console.error('NotifySync config load error', err);
                     } finally {
@@ -268,6 +330,101 @@
                     }
                 },
 
+                renderCollections: async function (page) {
+                    const container = page.querySelector('#collectionCheckboxes');
+                    container.innerHTML = CT.fetching;
+
+                    try {
+                        const userId = ApiClient.getCurrentUserId();
+                        const result = await ApiClient.getItems(userId, {
+                            IncludeItemTypes: 'BoxSet',
+                            Recursive: true,
+                            SortBy: 'SortName',
+                            SortOrder: 'Ascending'
+                        });
+                        const items = result.Items || [];
+                        container.innerHTML = '';
+
+                        if (items.length === 0) {
+                            container.innerHTML = CT.noCollections;
+                            return;
+                        }
+
+                        for (const item of items) {
+                            const isChecked = this.config.EnabledCollections.includes(item.Id);
+
+                            const div = document.createElement('div');
+                            div.style.marginBottom = "5px";
+
+                            const label = document.createElement('label');
+                            label.style.display = "flex";
+                            label.style.alignItems = "center";
+
+                            const checkbox = document.createElement('input');
+                            checkbox.type = 'checkbox';
+                            checkbox.setAttribute('is', 'emby-checkbox');
+                            checkbox.name = 'enabledCollections';
+                            checkbox.value = item.Id;
+                            if (isChecked) checkbox.checked = true;
+
+                            const span = document.createElement('span');
+                            span.style.marginLeft = "8px";
+                            span.innerText = item.Name;
+
+                            label.appendChild(checkbox);
+                            label.appendChild(span);
+                            div.appendChild(label);
+                            container.appendChild(div);
+                        }
+                    } catch (err) {
+                        console.error('getItems BoxSet API error', err);
+                        container.innerHTML = CT.noCollections;
+                    }
+                },
+
+                renderDeletedItems: async function (page) {
+                    const container = page.querySelector('#deletedItemsTable');
+                    container.innerHTML = CT.fetching || '...';
+
+                    try {
+                        const resp = await ApiClient.ajax({ type: 'GET', url: '/NotifySync/DeletedItems', dataType: 'json' });
+                        const items = resp || [];
+                        container.innerHTML = '';
+
+                        if (items.length === 0) {
+                            container.innerHTML = '<div style="padding:10px; color:#888; font-style:italic;">' + CT.delEmpty + '</div>';
+                            return;
+                        }
+
+                        let html = '<table style="width:100%; border-collapse:collapse; font-size:13px;">';
+                        html += '<thead><tr style="border-bottom:1px solid #444; text-align:left;">';
+                        html += '<th style="padding:8px;">' + CT.delColName + '</th>';
+                        html += '<th style="padding:8px;">' + CT.delColType + '</th>';
+                        html += '<th style="padding:8px;">' + CT.delColSeries + '</th>';
+                        html += '<th style="padding:8px;">' + CT.delColYear + '</th>';
+                        html += '<th style="padding:8px;">' + CT.delColDate + '</th>';
+                        html += '</tr></thead><tbody>';
+
+                        for (const item of items) {
+                            const delDate = new Date(item.DeletedAt);
+                            const dateStr = delDate.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+                            html += '<tr style="border-bottom:1px solid #333;">';
+                            html += '<td style="padding:6px 8px;">' + (item.Name || '') + '</td>';
+                            html += '<td style="padding:6px 8px;">' + (item.Type || '') + '</td>';
+                            html += '<td style="padding:6px 8px;">' + (item.SeriesName || '-') + '</td>';
+                            html += '<td style="padding:6px 8px;">' + (item.ProductionYear || '-') + '</td>';
+                            html += '<td style="padding:6px 8px;">' + dateStr + '</td>';
+                            html += '</tr>';
+                        }
+
+                        html += '</tbody></table>';
+                        container.innerHTML = html;
+                    } catch (err) {
+                        console.error('NotifySync: Failed to load deleted items', err);
+                        container.innerHTML = '<div style="padding:10px; color:#c00;">Error loading deleted items.</div>';
+                    }
+                },
+
                 renderMap: function (page) {
                     const list = page.querySelector('#mappingList');
                     list.innerHTML = '';
@@ -343,6 +500,12 @@
 
                         const checkboxes = page.querySelectorAll('input[name="enabledLibs"]:checked');
                         this.config.EnabledLibraries = Array.from(checkboxes).map(checkbox => checkbox.value);
+
+                        const colCheckboxes = page.querySelectorAll('input[name="enabledCollections"]:checked');
+                        this.config.EnabledCollections = Array.from(colCheckboxes).map(cb => cb.value);
+
+                        this.config.EnableDeletedTracking = page.querySelector('#enableDeletedTracking').checked;
+                        this.config.DeletedRetentionDays = parseInt(page.querySelector('#deletedRetentionDays').value) || 30;
 
                         const manualStr = page.querySelector('#manualLibraryIds').value;
                         this.config.ManualLibraryIds = manualStr

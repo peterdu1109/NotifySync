@@ -1,4 +1,4 @@
-/* NOTIFYSYNC V5.4.2.0 */
+/* NOTIFYSYNC V5.5.0.0 */
 (function () {
     let currentData = [];
     let groupedData = [];
@@ -57,8 +57,8 @@
 
     let userLang = navigator.language || 'en';
     const strings = {
-        fr: { header: "Quoi de neuf ?", empty: "Vous êtes à jour !", clearAll: "Vider la liste", dismiss: "Retirer", badgeNew: "NOUVEAU", newEps: "nouveaux épisodes", eps: "épisodes", newTracks: "nouvelles pistes", tracks: "pistes", filterAll: "Tout", filterMovie: "Films", filterSeries: "Séries", filterMusic: "Musique" },
-        en: { header: "What's New?", empty: "You're all caught up!", clearAll: "Clear list", dismiss: "Dismiss", badgeNew: "NEW", newEps: "new episodes", eps: "episodes", newTracks: "new tracks", tracks: "tracks", filterAll: "All", filterMovie: "Movies", filterSeries: "Series", filterMusic: "Music" }
+        fr: { header: "Quoi de neuf ?", empty: "Vous êtes à jour !", clearAll: "Vider la liste", clearCat: "Vider", dismiss: "Retirer", badgeNew: "NOUVEAU", badgeUpgrade: "MAJ", newEps: "nouveaux épisodes", eps: "épisodes", newTracks: "nouvelles pistes", tracks: "pistes", filterAll: "Tout", filterMovie: "Films", filterSeries: "Séries", filterMusic: "Musique" },
+        en: { header: "What's New?", empty: "You're all caught up!", clearAll: "Clear list", clearCat: "Clear", dismiss: "Dismiss", badgeNew: "NEW", badgeUpgrade: "UPD", newEps: "new episodes", eps: "episodes", newTracks: "new tracks", tracks: "tracks", filterAll: "All", filterMovie: "Movies", filterSeries: "Series", filterMusic: "Music" }
     };
     let T = strings[userLang.startsWith('fr') ? 'fr' : 'en'];
 
@@ -112,7 +112,7 @@
     const injectStyles = () => {
         if (document.getElementById('notifysync-css')) return;
         const css = `
-            :root { --ns-red: #e50914; --ns-glass: rgba(20, 20, 20, 0.98); --ns-blur: 16px; --ns-border: rgba(255,255,255,0.15); }
+            :root { --ns-red: #e50914; --ns-upgrade: #2196F3; --ns-glass: rgba(20, 20, 20, 0.98); --ns-blur: 16px; --ns-border: rgba(255,255,255,0.15); }
             #netflix-bell { background:0 0;border:none;cursor:pointer;color:inherit;position:relative; transition: transform 0.2s; width:35px;height:35px;overflow:visible;display:inline-flex!important;align-items:center;justify-content:center; }
             #netflix-bell:active { transform: scale(0.9); }
             .ns-badge {
@@ -152,25 +152,34 @@
             .ns-pulse { animation: bellPulse 0.8s ease-in-out; }
             @keyframes badgeBounce { 0% { transform: scale(1.5); } 100% { transform: scale(1); } }
             .ns-pulse .ns-badge { animation: badgeBounce 0.5s ease-out; }
-            .dismiss-btn { position:absolute; top:6px; right:6px; background:rgba(255,255,255,0.1); border:none; color:#888; cursor:pointer; width:20px; height:20px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:14px; line-height:1; opacity:0; transition:opacity 0.2s, background 0.2s; z-index:2; padding:0; }
+            .dismiss-btn { position:absolute; top:6px; right:6px; background:rgba(255,255,255,0.1); border:none; color:#888; cursor:pointer; width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:16px; line-height:1; opacity:0; transition:opacity 0.2s, background 0.2s; z-index:2; padding:0; }
             .dropdown-item:hover .dismiss-btn { opacity:1; }
             .dismiss-btn:hover { background:rgba(255,255,255,0.2); color:#fff; }
+            @media (pointer: coarse) { .dismiss-btn { opacity:0.6; } }
+            .dismiss-btn:focus-visible { opacity:1; outline:2px solid #fff; outline-offset:2px; }
             @keyframes dismissSlide { to { opacity:0; transform:translateX(50px); height:0; padding:0; margin:0; overflow:hidden; } }
             .dismissing { animation: dismissSlide 0.3s ease-out forwards; }
+            .dropdown-item { transition: transform 0.2s ease, background 0.2s; }
+            .dropdown-item .swipe-delete { position:absolute; right:0; top:0; bottom:0; width:80px; background:var(--ns-red); color:#fff; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; opacity:0; pointer-events:none; border-radius:0 0 0 0; }
+            .dropdown-item.swiping .swipe-delete { opacity:1; pointer-events:auto; }
             .dropdown-header { display:flex; justify-content:space-between; padding:16px 20px; border-bottom: 1px solid var(--ns-border); background: rgba(0,0,0,0.3); align-items:center; flex-shrink: 0; }
             .header-title { font-weight: 700; font-size: 15px; letter-spacing: 0.5px; }
             .header-tools { display:flex; gap:15px; }
             .tool-icon { cursor:pointer; opacity:0.6; transition:opacity 0.2s; font-size: 18px; }
             .tool-icon:hover { opacity:1; }
             .filter-bar { padding: 10px 20px; display: flex; gap: 8px; border-bottom: 1px solid var(--ns-border); overflow-x: auto; scrollbar-width: none; flex-shrink: 0; }
-            .filter-pill { font-size: 11px; padding: 4px 12px; border-radius: 20px; background: rgba(255,255,255,0.05); cursor: pointer; transition: all 0.2s; border: 1px solid transparent; white-space: nowrap; }
+            .filter-pill { font-size: 11px; padding: 4px 12px; border-radius: 20px; background: rgba(255,255,255,0.05); cursor: pointer; transition: all 0.2s; border: 1px solid transparent; white-space: nowrap; position: relative; user-select: none; -webkit-user-select: none; }
             .filter-pill.active { background: #fff; color: #000; font-weight: 700; box-shadow: 0 0 10px rgba(255,255,255,0.2); }
+            .ns-longpress-menu { position:absolute; top:100%; left:50%; transform:translateX(-50%); margin-top:6px; background:var(--ns-glass); border:1px solid var(--ns-border); border-radius:8px; padding:8px 16px; font-size:12px; color:#fff; cursor:pointer; white-space:nowrap; z-index:10; box-shadow:0 4px 15px rgba(0,0,0,0.5); }
+            .ns-longpress-menu:hover { background:var(--ns-red); }
             .list-container { max-height: 500px; overflow-y: auto; -webkit-overflow-scrolling: touch; content-visibility: auto; contain-intrinsic-size: 500px; flex: 1; }
             .dropdown-item { display:flex; padding:12px 20px; border-bottom:1px solid var(--ns-border); cursor:pointer; transition: background .2s; position: relative; }
             .dropdown-item:hover { background: rgba(255,255,255,0.08); }
             .status-dot { position: absolute; left: 6px; top: 50%; transform: translateY(-50%); width: 4px; height: 4px; border-radius: 50%; background: var(--ns-red); box-shadow: 0 0 5px var(--ns-red); display: none; }
             .style-new .status-dot { display: block; }
             .style-new { background: rgba(229, 9, 20, 0.05); }
+            .style-upgrade .status-dot { display: block; background: var(--ns-upgrade); box-shadow: 0 0 5px var(--ns-upgrade); }
+            .style-upgrade { background: rgba(33, 150, 243, 0.05); }
             .thumb-wrapper { width:90px; height:50px; margin-right:15px; flex-shrink:0; background:#222; border-radius:6px; overflow:hidden; display:flex; justify-content:center; align-items:center; box-shadow: 0 2px 5px rgba(0,0,0,0.3); }
             .dropdown-thumb { width:100%; height:100%; object-fit:cover; opacity:0; transition:opacity 0.3s; }
             .dropdown-thumb.music { object-fit:contain; }
@@ -183,6 +192,7 @@
             .hero-overlay { position: absolute; inset: 0; background: linear-gradient(to top, var(--ns-glass) 5%, transparent 100%); }
             .hero-content { position: relative; z-index: 2; padding: 20px; width: 100%; }
             .hero-badge { background: var(--ns-red); color: #fff; font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 3px; display: inline-block; margin-bottom: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.5); }
+            .hero-badge-upgrade { background: var(--ns-upgrade); color: #fff; font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 3px; display: inline-block; margin-bottom: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.5); }
             .footer-tools { padding: 10px; text-align: center; border-top: 1px solid var(--ns-border); font-size: 11px; color: #888; cursor: pointer; transition: color 0.2s; flex-shrink: 0; }
             .footer-tools:hover { color: #fff; text-decoration: underline; }
         `;
@@ -245,11 +255,35 @@
         await fetch(`/NotifySync/Clear/${userId}?date=${encodeURIComponent(new Date().toISOString())}`, { method: 'POST', headers: getAuthHeaders() });
         lastSeenDate = new Date();
 
-        currentData = []; // Clear local data
+        currentData = [];
         groupedData = [];
-        previousDataIds = new Set(); // Reset to avoid false pulse on next fetch
+        previousDataIds = new Set();
+        lastFetchTime = 0;
+        localStorage.removeItem('ns-etag');
         updateBadge();
-        closeDropdown();
+        const drop = document.getElementById('notification-dropdown');
+        if (drop) updateList(drop);
+    };
+
+    const clearCategoryNotifications = async (category) => {
+        const userId = getUserId();
+        if (!userId) return;
+
+        const idsToDissmiss = currentData.filter(i => i.Category === category).map(i => i.Id);
+        if (idsToDissmiss.length === 0) return;
+
+        // Dismiss each item server-side
+        await Promise.all(idsToDissmiss.map(id => dismissOnServer(id)));
+
+        // Remove from local data
+        currentData = currentData.filter(i => i.Category !== category);
+        localStorage.setItem('ns-data', JSON.stringify(currentData)); localStorage.setItem('ns-data-ts', Date.now().toString());
+        localStorage.removeItem('ns-etag');
+        lastFetchTime = 0;
+        recalculateNewStatus();
+        activeFilter = 'All';
+        const drop = document.getElementById('notification-dropdown');
+        if (drop) updateList(drop);
     };
 
     const recalculateNewStatus = () => {
@@ -307,7 +341,7 @@
                 currentData = json;
                 const newEtag = res.headers.get('ETag');
                 if (newEtag) localStorage.setItem('ns-etag', newEtag);
-                localStorage.setItem('ns-data', JSON.stringify(currentData));
+                localStorage.setItem('ns-data', JSON.stringify(currentData)); localStorage.setItem('ns-data-ts', Date.now().toString());
 
                 // Server already filters out played items in GetData(), no need for BulkUserData
                 recalculateNewStatus();
@@ -352,11 +386,19 @@
                 lastSeenDate = new Date(cachedCleared);
             }
 
+            // Check TTL (1 hour max)
+            const cachedTime = parseInt(localStorage.getItem('ns-data-ts') || '0');
+            if (Date.now() - cachedTime > 3600000) {
+                localStorage.removeItem('ns-data');
+                localStorage.removeItem('ns-etag');
+                localStorage.removeItem('ns-data-ts');
+                return;
+            }
+
             const cached = localStorage.getItem('ns-data');
             if (cached) {
                 currentData = JSON.parse(cached);
                 previousDataIds = new Set(currentData.map(i => i.Id));
-                // Recalculate IsNew with IsRead from server + local state
                 recalculateNewStatus();
             }
         } catch (e) { }
@@ -404,7 +446,9 @@
         let filtered = groupedData || [];
         if (activeFilter !== 'All') filtered = filtered.filter(i => i.Category === activeFilter);
         const cats = new Set(['All']); groupedData.forEach(i => cats.add(i.Category));
-        drop.querySelector('.filter-bar').innerHTML = Array.from(cats).map(c => `<div class="filter-pill ${activeFilter === c ? 'active' : ''}" onclick="document.dispatchEvent(new CustomEvent('ns-filter', {detail:'${escapeHtml(c)}'}))">${T['filter' + c] || escapeHtml(c)}</div>`).join('');
+        const filterBar = drop.querySelector('.filter-bar');
+        filterBar.innerHTML = Array.from(cats).map(c => `<div class="filter-pill ${activeFilter === c ? 'active' : ''}" data-category="${escapeHtml(c)}" onclick="document.dispatchEvent(new CustomEvent('ns-filter', {detail:'${escapeHtml(c)}'}))">${T['filter' + c] || escapeHtml(c)}</div>`).join('');
+        initLongPressOnPills(filterBar);
 
         if (filtered.length === 0) { container.innerHTML = `<div style="padding:60px 20px;text-align:center;color:#666;font-style:italic;">${T.empty}</div>`; return; }
 
@@ -430,7 +474,7 @@
             }
 
             const safeHeroId = escapeHtml(hero.Id);
-            htmlParts.push(`<div class="hero-section" onclick="document.dispatchEvent(new CustomEvent('ns-navigate', {detail: '${safeHeroId}'}))"><div class="hero-bg" style="background-image:url('${heroImg}')"></div><div class="hero-overlay"></div><div class="hero-content">${hero.IsNew ? `<span class="hero-badge">${T.badgeNew}</span>` : ''}<div style="font-size:18px;font-weight:700;text-shadow:0 2px 4px #000;line-height:1.2;">${heroTitle}</div><div style="font-size:12px;opacity:0.8;margin-top:4px">${heroSub} &bull; ${timeAgo(hero.DateCreated)}</div></div></div>`);
+            htmlParts.push(`<div class="hero-section" onclick="document.dispatchEvent(new CustomEvent('ns-navigate', {detail: '${safeHeroId}'}))"><div class="hero-bg" style="background-image:url('${heroImg}')"></div><div class="hero-overlay"></div><div class="hero-content">${hero.IsUpgrade ? `<span class="hero-badge-upgrade">${T.badgeUpgrade}</span>` : hero.IsNew ? `<span class="hero-badge">${T.badgeNew}</span>` : ''}<div style="font-size:18px;font-weight:700;text-shadow:0 2px 4px #000;line-height:1.2;">${heroTitle}</div><div style="font-size:12px;opacity:0.8;margin-top:4px">${heroSub} &bull; ${timeAgo(hero.DateCreated)}</div></div></div>`);
         }
 
         filtered.filter(x => x !== hero).forEach(item => {
@@ -446,7 +490,7 @@
             }
 
             const safeId = escapeHtml(item.Id);
-            htmlParts.push(`<div class="dropdown-item ${item.IsNew ? 'style-new' : 'style-seen'}" data-item-id="${safeId}" onclick="document.dispatchEvent(new CustomEvent('ns-navigate', {detail: '${safeId}'}))"><div class="status-dot"></div><button class="dismiss-btn" title="${T.dismiss}" onclick="event.stopPropagation(); document.dispatchEvent(new CustomEvent('ns-dismiss', {detail: '${safeId}'}))">&times;</button><div class="thumb-wrapper"><img data-src="${imgUrl}" decoding="async" class="dropdown-thumb ${isMusic ? 'music' : ''}" loading="lazy" onerror="this.style.display='none'"><span class="material-icons" style="color:#444;position:absolute;z-index:-1;">${isMusic ? 'album' : 'movie'}</span></div><div class="dropdown-info"><div class="dropdown-title">${title}</div><div class="dropdown-subtitle">${sub} &bull; ${timeAgo(item.DateCreated)}</div></div></div>`);
+            htmlParts.push(`<div class="dropdown-item ${item.IsUpgrade ? 'style-upgrade' : item.IsNew ? 'style-new' : 'style-seen'}" data-item-id="${safeId}" onclick="document.dispatchEvent(new CustomEvent('ns-navigate', {detail: '${safeId}'}))"><div class="status-dot"></div><button class="dismiss-btn" title="${T.dismiss}" onclick="event.stopPropagation(); document.dispatchEvent(new CustomEvent('ns-dismiss', {detail: '${safeId}'}))">&times;</button><div class="swipe-delete">${T.dismiss}</div><div class="thumb-wrapper"><img data-src="${imgUrl}" decoding="async" class="dropdown-thumb ${isMusic ? 'music' : ''}" loading="lazy" onerror="this.style.display='none'"><span class="material-icons" style="color:#444;position:absolute;z-index:-1;">${isMusic ? 'album' : 'movie'}</span></div><div class="dropdown-info"><div class="dropdown-title">${title}</div><div class="dropdown-subtitle">${sub} &bull; ${timeAgo(item.DateCreated)}</div></div></div>`);
         });
 
         htmlParts.push(`<div class="footer-tools" onclick="document.dispatchEvent(new Event('ns-clearall'))">${T.clearAll}</div>`);
@@ -456,10 +500,114 @@
             if (lazyImageObserver) lazyImageObserver.disconnect();
             lazyImageObserver = new IntersectionObserver((entries, o) => { entries.forEach(e => { if (e.isIntersecting) { const i = e.target; i.src = i.dataset.src; i.classList.add('loaded'); o.unobserve(i); } }); });
             container.querySelectorAll('img[data-src]').forEach(i => lazyImageObserver.observe(i));
+            initSwipeToDismiss(container);
         }
     };
 
+    const initSwipeToDismiss = (container) => {
+        let startX = 0, currentX = 0, swiping = null;
+        const threshold = 70;
+
+        container.addEventListener('touchstart', (e) => {
+            const item = e.target.closest('.dropdown-item');
+            if (!item || e.target.closest('.dismiss-btn')) return;
+            startX = e.touches[0].clientX;
+            currentX = startX;
+            swiping = item;
+            swiping.style.transition = 'none';
+        }, { passive: true });
+
+        container.addEventListener('touchmove', (e) => {
+            if (!swiping) return;
+            currentX = e.touches[0].clientX;
+            const dx = currentX - startX;
+            if (dx < 0) {
+                const clampedDx = Math.max(dx, -120);
+                swiping.style.transform = `translateX(${clampedDx}px)`;
+                swiping.classList.toggle('swiping', Math.abs(dx) > 30);
+            }
+        }, { passive: true });
+
+        container.addEventListener('touchend', () => {
+            if (!swiping) return;
+            const dx = currentX - startX;
+            swiping.style.transition = 'transform 0.2s ease';
+            if (dx < -threshold) {
+                const itemId = swiping.dataset.itemId;
+                swiping.style.transform = 'translateX(-100%)';
+                swiping.style.opacity = '0';
+                setTimeout(() => {
+                    document.dispatchEvent(new CustomEvent('ns-dismiss', { detail: itemId }));
+                }, 200);
+            } else {
+                swiping.style.transform = '';
+                swiping.classList.remove('swiping');
+            }
+            swiping = null;
+        }, { passive: true });
+    };
+
+    let longPressTimer = null;
+    let activeMenu = null;
+
+    const closeLongPressMenu = () => {
+        if (activeMenu) { activeMenu.remove(); activeMenu = null; }
+    };
+
+    const initLongPressOnPills = (filterBar) => {
+        filterBar.addEventListener('touchstart', (e) => {
+            const pill = e.target.closest('.filter-pill');
+            if (!pill) return;
+            const cat = pill.dataset.category;
+            if (!cat || cat === 'All') return;
+
+            longPressTimer = setTimeout(() => {
+                closeLongPressMenu();
+                const menu = document.createElement('div');
+                menu.className = 'ns-longpress-menu';
+                menu.textContent = `${T.clearCat} "${T['filter' + cat] || cat}"`;
+                menu.onclick = (ev) => {
+                    ev.stopPropagation();
+                    closeLongPressMenu();
+                    clearCategoryNotifications(cat);
+                };
+                pill.appendChild(menu);
+                activeMenu = menu;
+
+                // Auto-close after 4s
+                setTimeout(closeLongPressMenu, 4000);
+            }, 600);
+        }, { passive: true });
+
+        filterBar.addEventListener('touchend', () => { clearTimeout(longPressTimer); }, { passive: true });
+        filterBar.addEventListener('touchmove', () => { clearTimeout(longPressTimer); }, { passive: true });
+
+        // Also support right-click on desktop
+        filterBar.addEventListener('contextmenu', (e) => {
+            const pill = e.target.closest('.filter-pill');
+            if (!pill) return;
+            const cat = pill.dataset.category;
+            if (!cat || cat === 'All') return;
+            e.preventDefault();
+
+            closeLongPressMenu();
+            const menu = document.createElement('div');
+            menu.className = 'ns-longpress-menu';
+            menu.textContent = `${T.clearCat} "${T['filter' + cat] || cat}"`;
+            menu.onclick = (ev) => {
+                ev.stopPropagation();
+                closeLongPressMenu();
+                clearCategoryNotifications(cat);
+            };
+            pill.appendChild(menu);
+            activeMenu = menu;
+            setTimeout(closeLongPressMenu, 4000);
+        });
+    };
+
     const closeDropdown = () => {
+        closeLongPressMenu();
+        if (lazyImageObserver) { lazyImageObserver.disconnect(); }
         const drop = document.getElementById('notification-dropdown');
         const back = document.getElementById('notify-backdrop');
         if (drop) drop.style.display = 'none';
@@ -493,7 +641,7 @@
                     if (success) {
                         // Remove from local data (by Id AND by SeriesId for group dismiss)
                         currentData = currentData.filter(i => i.Id !== itemId && i.SeriesId !== itemId);
-                        localStorage.setItem('ns-data', JSON.stringify(currentData));
+                        localStorage.setItem('ns-data', JSON.stringify(currentData)); localStorage.setItem('ns-data-ts', Date.now().toString());
                         localStorage.removeItem('ns-etag'); // Force fresh fetch next time
                         recalculateNewStatus();
                         setTimeout(() => {
@@ -513,6 +661,7 @@
         if (!backdrop) { const b = document.createElement('div'); b.id = 'notify-backdrop'; b.onclick = closeDropdown; document.body.appendChild(b); }
 
         if (drop.style.display !== 'flex') {
+            lastFetchTime = 0; // Bypass throttle on explicit user click
             fetchData().then(() => {
                 updateList(drop);
                 

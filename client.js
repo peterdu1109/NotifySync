@@ -1,4 +1,4 @@
-/* NOTIFYSYNC V5.5.0.0 */
+/* NOTIFYSYNC V5.5.1.0 */
 (function () {
     let currentData = [];
     let groupedData = [];
@@ -170,8 +170,6 @@
             .filter-bar { padding: 10px 20px; display: flex; gap: 8px; border-bottom: 1px solid var(--ns-border); overflow-x: auto; scrollbar-width: none; flex-shrink: 0; }
             .filter-pill { font-size: 11px; padding: 4px 12px; border-radius: 20px; background: rgba(255,255,255,0.05); cursor: pointer; transition: all 0.2s; border: 1px solid transparent; white-space: nowrap; position: relative; user-select: none; -webkit-user-select: none; }
             .filter-pill.active { background: #fff; color: #000; font-weight: 700; box-shadow: 0 0 10px rgba(255,255,255,0.2); }
-            .ns-longpress-menu { position:absolute; top:100%; left:50%; transform:translateX(-50%); margin-top:6px; background:var(--ns-glass); border:1px solid var(--ns-border); border-radius:8px; padding:8px 16px; font-size:12px; color:#fff; cursor:pointer; white-space:nowrap; z-index:10; box-shadow:0 4px 15px rgba(0,0,0,0.5); }
-            .ns-longpress-menu:hover { background:var(--ns-red); }
             .list-container { max-height: 500px; overflow-y: auto; -webkit-overflow-scrolling: touch; content-visibility: auto; contain-intrinsic-size: 500px; flex: 1; }
             .dropdown-item { display:flex; padding:12px 20px; border-bottom:1px solid var(--ns-border); cursor:pointer; transition: background .2s; position: relative; }
             .dropdown-item:hover { background: rgba(255,255,255,0.08); }
@@ -188,6 +186,9 @@
             .dropdown-title { font-weight:600; font-size:13px; margin-bottom:4px; white-space: normal; line-height: 1.2; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
             .dropdown-subtitle { font-size:11px; color:#aaa; white-space: normal; line-height: 1.3; }
             .hero-section { height: 160px; position: relative; cursor: pointer; display: flex; align-items: flex-end; margin-bottom: -1px; flex-shrink: 0; }
+            .hero-section .dismiss-btn { top:10px; right:10px; background:rgba(0,0,0,0.5); color:#fff; z-index:3; }
+            .hero-section:hover .dismiss-btn { opacity:1; }
+            .hero-section .dismiss-btn:hover { background:rgba(229,9,20,0.8); }
             .hero-bg { position: absolute; inset: 0; background-size: cover; background-position: center top; transition: transform 5s ease; }
             .hero-overlay { position: absolute; inset: 0; background: linear-gradient(to top, var(--ns-glass) 5%, transparent 100%); }
             .hero-content { position: relative; z-index: 2; padding: 20px; width: 100%; }
@@ -448,7 +449,6 @@
         const cats = new Set(['All']); groupedData.forEach(i => cats.add(i.Category));
         const filterBar = drop.querySelector('.filter-bar');
         filterBar.innerHTML = Array.from(cats).map(c => `<div class="filter-pill ${activeFilter === c ? 'active' : ''}" data-category="${escapeHtml(c)}" onclick="document.dispatchEvent(new CustomEvent('ns-filter', {detail:'${escapeHtml(c)}'}))">${T['filter' + c] || escapeHtml(c)}</div>`).join('');
-        initLongPressOnPills(filterBar);
 
         if (filtered.length === 0) { container.innerHTML = `<div style="padding:60px 20px;text-align:center;color:#666;font-style:italic;">${T.empty}</div>`; return; }
 
@@ -474,7 +474,7 @@
             }
 
             const safeHeroId = escapeHtml(hero.Id);
-            htmlParts.push(`<div class="hero-section" onclick="document.dispatchEvent(new CustomEvent('ns-navigate', {detail: '${safeHeroId}'}))"><div class="hero-bg" style="background-image:url('${heroImg}')"></div><div class="hero-overlay"></div><div class="hero-content">${hero.IsUpgrade ? `<span class="hero-badge-upgrade">${T.badgeUpgrade}</span>` : hero.IsNew ? `<span class="hero-badge">${T.badgeNew}</span>` : ''}<div style="font-size:18px;font-weight:700;text-shadow:0 2px 4px #000;line-height:1.2;">${heroTitle}</div><div style="font-size:12px;opacity:0.8;margin-top:4px">${heroSub} &bull; ${timeAgo(hero.DateCreated)}</div></div></div>`);
+            htmlParts.push(`<div class="hero-section" onclick="document.dispatchEvent(new CustomEvent('ns-navigate', {detail: '${safeHeroId}'}))"><div class="hero-bg" style="background-image:url('${heroImg}')"></div><div class="hero-overlay"></div><button class="dismiss-btn" title="${T.dismiss}" onclick="event.stopPropagation(); document.dispatchEvent(new CustomEvent('ns-dismiss', {detail: '${safeHeroId}'}))">&times;</button><div class="hero-content">${hero.IsUpgrade ? `<span class="hero-badge-upgrade">${T.badgeUpgrade}</span>` : hero.IsNew ? `<span class="hero-badge">${T.badgeNew}</span>` : ''}<div style="font-size:18px;font-weight:700;text-shadow:0 2px 4px #000;line-height:1.2;">${heroTitle}</div><div style="font-size:12px;opacity:0.8;margin-top:4px">${heroSub} &bull; ${timeAgo(hero.DateCreated)}</div></div></div>`);
         }
 
         filtered.filter(x => x !== hero).forEach(item => {
@@ -493,7 +493,12 @@
             htmlParts.push(`<div class="dropdown-item ${item.IsUpgrade ? 'style-upgrade' : item.IsNew ? 'style-new' : 'style-seen'}" data-item-id="${safeId}" onclick="document.dispatchEvent(new CustomEvent('ns-navigate', {detail: '${safeId}'}))"><div class="status-dot"></div><button class="dismiss-btn" title="${T.dismiss}" onclick="event.stopPropagation(); document.dispatchEvent(new CustomEvent('ns-dismiss', {detail: '${safeId}'}))">&times;</button><div class="swipe-delete">${T.dismiss}</div><div class="thumb-wrapper"><img data-src="${imgUrl}" decoding="async" class="dropdown-thumb ${isMusic ? 'music' : ''}" loading="lazy" onerror="this.style.display='none'"><span class="material-icons" style="color:#444;position:absolute;z-index:-1;">${isMusic ? 'album' : 'movie'}</span></div><div class="dropdown-info"><div class="dropdown-title">${title}</div><div class="dropdown-subtitle">${sub} &bull; ${timeAgo(item.DateCreated)}</div></div></div>`);
         });
 
-        htmlParts.push(`<div class="footer-tools" onclick="document.dispatchEvent(new Event('ns-clearall'))">${T.clearAll}</div>`);
+        if (activeFilter === 'All') {
+            htmlParts.push(`<div class="footer-tools" onclick="document.dispatchEvent(new Event('ns-clearall'))">${T.clearAll}</div>`);
+        } else {
+            const catLabel = T['filter' + activeFilter] || escapeHtml(activeFilter);
+            htmlParts.push(`<div class="footer-tools" onclick="document.dispatchEvent(new CustomEvent('ns-clearcat', {detail:'${escapeHtml(activeFilter)}'}))">${T.clearCat} ${catLabel}</div>`);
+        }
         const finalHtml = htmlParts.join('');
         if (container.innerHTML !== finalHtml) {
             container.innerHTML = finalHtml;
@@ -547,66 +552,8 @@
         }, { passive: true });
     };
 
-    let longPressTimer = null;
-    let activeMenu = null;
-
-    const closeLongPressMenu = () => {
-        if (activeMenu) { activeMenu.remove(); activeMenu = null; }
-    };
-
-    const initLongPressOnPills = (filterBar) => {
-        filterBar.addEventListener('touchstart', (e) => {
-            const pill = e.target.closest('.filter-pill');
-            if (!pill) return;
-            const cat = pill.dataset.category;
-            if (!cat || cat === 'All') return;
-
-            longPressTimer = setTimeout(() => {
-                closeLongPressMenu();
-                const menu = document.createElement('div');
-                menu.className = 'ns-longpress-menu';
-                menu.textContent = `${T.clearCat} "${T['filter' + cat] || cat}"`;
-                menu.onclick = (ev) => {
-                    ev.stopPropagation();
-                    closeLongPressMenu();
-                    clearCategoryNotifications(cat);
-                };
-                pill.appendChild(menu);
-                activeMenu = menu;
-
-                // Auto-close after 4s
-                setTimeout(closeLongPressMenu, 4000);
-            }, 600);
-        }, { passive: true });
-
-        filterBar.addEventListener('touchend', () => { clearTimeout(longPressTimer); }, { passive: true });
-        filterBar.addEventListener('touchmove', () => { clearTimeout(longPressTimer); }, { passive: true });
-
-        // Also support right-click on desktop
-        filterBar.addEventListener('contextmenu', (e) => {
-            const pill = e.target.closest('.filter-pill');
-            if (!pill) return;
-            const cat = pill.dataset.category;
-            if (!cat || cat === 'All') return;
-            e.preventDefault();
-
-            closeLongPressMenu();
-            const menu = document.createElement('div');
-            menu.className = 'ns-longpress-menu';
-            menu.textContent = `${T.clearCat} "${T['filter' + cat] || cat}"`;
-            menu.onclick = (ev) => {
-                ev.stopPropagation();
-                closeLongPressMenu();
-                clearCategoryNotifications(cat);
-            };
-            pill.appendChild(menu);
-            activeMenu = menu;
-            setTimeout(closeLongPressMenu, 4000);
-        });
-    };
 
     const closeDropdown = () => {
-        closeLongPressMenu();
         if (lazyImageObserver) { lazyImageObserver.disconnect(); }
         const drop = document.getElementById('notification-dropdown');
         const back = document.getElementById('notify-backdrop');
@@ -625,6 +572,7 @@
             if (!eventsRegistered) {
                 document.addEventListener('ns-filter', (e) => { activeFilter = e.detail; const d = document.getElementById('notification-dropdown'); if (d) updateList(d); });
                 document.addEventListener('ns-clearall', () => { clearAllNotifications(); });
+                document.addEventListener('ns-clearcat', (e) => { clearCategoryNotifications(e.detail); });
                 document.addEventListener('ns-refresh', () => { triggerHardRefresh(); });
                 document.addEventListener('ns-navigate', (e) => {
                     const id = e.detail;

@@ -1,7 +1,7 @@
 <h1 align="center">🔔 NotifySync</h1>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-5.5.0.0-blue" alt="Version">
+  <img src="https://img.shields.io/badge/version-5.5.1.0-blue" alt="Version">
   <img src="https://img.shields.io/badge/.NET-9.0-purple" alt=".NET Framework">
   <img src="https://img.shields.io/badge/Jellyfin-10.11.X-blueviolet" alt="Jellyfin">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="License">
@@ -44,10 +44,10 @@ NotifySync transforms the Jellyfin interface by adding a native notification bel
 
 ### 🎨 User Experience
 *   **Netflix-Style Design** — A sleek dropdown with a frosted glass look. The red badge disappears as soon as you open the bell.
-*   **Hero Section** — The latest addition is displayed large with its backdrop image. One click takes you straight to the content.
+*   **Hero Section** — The latest addition is displayed large with its backdrop image. One click takes you straight to the content. You can also dismiss it directly.
 *   **Smart Grouping** — Episodes of the same series are grouped together (e.g. *"3 new episodes"*). Music tracks are grouped by album.
 *   **Category Filters** — Quick filters (All / Movies / Series / Music / custom) to focus on what matters to you.
-*   **Dismiss Notifications** — Remove any notification with a click, or swipe it left on mobile. Clear an entire category with a long press (mobile) or right-click (desktop) on its filter.
+*   **Dismiss Notifications** — Remove any notification with a click, or swipe it left on mobile. The button at the bottom adapts to your filter: clear everything, or just the selected category.
 *   **File Upgrade Badge** — When you replace a media file (quality upgrade, re-encode), the notification comes back to the top with a blue **UPD** badge instead of **NEW**.
 *   **Collection Monitoring** — Track your Jellyfin collections (BoxSets): new additions to a monitored collection trigger a notification.
 *   **Deletion History** — Administrators can see a log of recently deleted media in the configuration page, with configurable retention.
@@ -144,10 +144,10 @@ NotifySync transforme l'interface Jellyfin en y ajoutant une cloche de notificat
 
 ### 🎨 Expérience Utilisateur
 *   **Design Netflix-Style** — Un menu déroulant élégant avec effet de verre dépoli. La pastille rouge disparaît dès l'ouverture de la cloche.
-*   **Section Hero** — Le dernier ajout s'affiche en grand avec son image de fond. Un clic mène directement au contenu.
+*   **Section Hero** — Le dernier ajout s'affiche en grand avec son image de fond. Un clic mène directement au contenu. Vous pouvez aussi le supprimer directement.
 *   **Regroupement Intelligent** — Les épisodes d'une même série sont groupés (ex. *"3 nouveaux épisodes"*). Les musiques sont groupées par album.
 *   **Filtres par Catégorie** — Des filtres rapides (Tout / Films / Séries / Musique / personnalisé) pour cibler ce qui vous intéresse.
-*   **Supprimer des Notifications** — Retirez une notification d'un clic, ou glissez-la vers la gauche sur mobile. Videz une catégorie entière par appui long (mobile) ou clic droit (PC) sur son filtre.
+*   **Supprimer des Notifications** — Retirez une notification d'un clic, ou glissez-la vers la gauche sur mobile. Le bouton en bas s'adapte à votre filtre : vider tout, ou seulement la catégorie sélectionnée.
 *   **Badge MAJ (Mise à Jour de Fichier)** — Quand vous remplacez un fichier média (upgrade qualité, ré-encodage), la notification remonte en haut avec un badge bleu **MAJ** au lieu de **NOUVEAU**.
 *   **Surveillance des Collections** — Suivez vos collections Jellyfin (BoxSets) : les nouveaux ajouts dans une collection surveillée déclenchent une notification.
 *   **Historique des Suppressions** — Les administrateurs peuvent consulter les médias récemment supprimés dans la page de configuration, avec rétention paramétrable.

@@ -25,7 +25,8 @@
       "Bash(grep -i \"movie\\\\|episode\\\\|audio\\\\|boxset\\\\|collection\" *.cs)",
       "Bash(rm -f NotifySync_5.5.0.0.zip)",
       "Bash(powershell -Command \"Compress-Archive -Path ''bin/Release/net9.0/NotifySync.dll'' -DestinationPath ''NotifySync_5.5.0.0.zip'' -Force\")",
-      "Bash(powershell -Command \"\\(Get-FileHash -Algorithm MD5 ''NotifySync_5.5.0.0.zip''\\).Hash\")"
+      "Bash(powershell -Command \"\\(Get-FileHash -Algorithm MD5 ''NotifySync_5.5.0.0.zip''\\).Hash\")",
+      "Bash(powershell -Command \"Compress-Archive -Path ''bin\\\\Release\\\\net9.0\\\\NotifySync.dll'' -DestinationPath ''NotifySync_5.5.1.0.zip'' -Force; \\(Get-FileHash ''NotifySync_5.5.1.0.zip'' -Algorithm MD5\\).Hash\")"
     ]
   }
 }

@@ -9,6 +9,14 @@
     "supportUrl": "https://github.com/",
     "versions": [
       {
+        "version": "5.5.1.0",
+        "changelog": "Améliorations / Improvements:\\n- Le bouton 'Vider' en bas du menu s'adapte au filtre actif : 'Vider la liste' sur Tout, ou 'Vider Films' etc. sur une catégorie.\\n- La notification en vedette (hero) peut maintenant être supprimée individuellement (bouton × visible au survol sur PC, toujours visible sur mobile).\\n- Suppression de l'ancien système d'appui long / clic droit, remplacé par un fonctionnement plus intuitif.\\n\\nImprovements:\\n- The 'Clear' button at the bottom now adapts to the active filter: 'Clear list' on All, or 'Clear Movies' etc. on a category.\\n- The featured notification (hero) can now be individually dismissed (× button visible on hover on PC, always visible on mobile).\\n- Removed the old long press / right-click system, replaced by a more intuitive design.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/5.5.1.0/NotifySync_5.5.1.0.zip",
+        "checksum": "05467CDF1E6DBE6DBC913AF08976E770",
+        "timestamp": "2026-03-20T18:00:00Z"
+      },
+      {
         "version": "5.5.0.0",
         "changelog": "Nouveautés / New Features:\\n- Surveillance des collections : les collections Jellyfin (BoxSets) sont désormais surveillées. Les nouveaux ajouts génèrent une notification.\\n- Badge MAJ/UPD : quand un fichier média est remplacé (upgrade qualité), la notification remonte avec un badge bleu distinctif.\\n- Historique des suppressions : les administrateurs peuvent consulter les médias récemment supprimés dans la page de configuration (rétention paramétrable).\\n- Swipe pour supprimer : sur mobile, glissez une notification vers la gauche pour la retirer.\\n- Vider par catégorie : appui long (mobile) ou clic droit (PC) sur un filtre pour ne vider qu'une catégorie.\\n\\nAméliorations / Improvements:\\n- Vider la liste ne ferme plus le menu — mise à jour instantanée.\\n- Clic sur la cloche rafraîchit immédiatement les notifications.\\n- Bouton de suppression agrandi et plus accessible sur tactile et clavier.\\n- Performances améliorées sur les grandes bibliothèques.\\n- Cache local avec expiration automatique (1h).\\n\\nCorrections / Fixes:\\n- Correction d'un problème de synchronisation lors du vidage de la liste.\\n- Meilleure stabilité générale et protection contre les erreurs.",
         "targetAbi": "10.11.0.0",

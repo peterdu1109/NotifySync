@@ -43,40 +43,35 @@ NotifySync transforms the Jellyfin interface by adding a native notification bel
 ## ✨ Key Features
 
 ### 🎨 User Experience
-*   **Netflix-Style Design** — Seamless glass-morphism dropdown with backdrop blur. The red badge disappears the moment you open the bell, just by acknowledging the updates.
-*   **Hero Section** — The most recent addition is showcased with a large backdrop image, title, and relative timestamp. One click navigates directly to the item.
-*   **Smart Grouping** — Episodes of the same series are automatically grouped (e.g. *"3 new episodes"*). Music tracks are grouped by album (e.g. *"5 new tracks"*).
-*   **Category Filters** — Filter pills (All / Movies / Series / Music / custom) let you instantly focus on what matters.
-*   **Individual Dismiss** — Dismiss any notification with a single click — smooth slide-out animation, persisted per-user on the server.
-*   **Swipe to Dismiss (Mobile)** — On touch devices, swipe a notification to the left to remove it. Natural, intuitive gesture.
-*   **Clear by Category** — Long press (mobile) or right-click (desktop) on a category filter to clear only that category.
-*   **File Upgrade Detection** — When a media file is replaced (quality upgrade, re-encode), the notification reappears at the top with a blue **UPD** badge instead of the usual **NEW** badge.
-*   **Collection Monitoring** — Track Jellyfin collections (BoxSets): when new items are added to a monitored collection, they appear as notifications.
-*   **Deletion History (Admin)** — Administrators can view a log of recently deleted media in the plugin configuration page, with configurable retention (1–365 days).
-*   **Server-Side Read/Unread State** — Read status is stored on the server and synced across all browsers and devices. No more localStorage dependency.
-*   **Bell Pulse Animation** — The bell shakes when new content arrives via WebSocket. Debounced to avoid visual spam.
-*   **Clear List (Safe)** — One button to clear all notifications without ever marking media as "Played" in your Jellyfin history.
-*   **Automatic i18n** — The interface (bell + config page) follows the user's Jellyfin language setting (French / English), with browser language fallback.
-*   **Relative Timestamps** — All dates are displayed as *"2 hours ago"*, *"yesterday"*, *"3 days ago"* using the browser's locale.
-*   **Theme Song Filtering** — Automatically excludes openings, endings, NCOP/NCED, and theme songs from notifications.
-*   **Responsive** — Adapts to desktop, tablet, and mobile (via official Jellyfin app). *Note: Not supported on TV.*
+*   **Netflix-Style Design** — A sleek dropdown with a frosted glass look. The red badge disappears as soon as you open the bell.
+*   **Hero Section** — The latest addition is displayed large with its backdrop image. One click takes you straight to the content.
+*   **Smart Grouping** — Episodes of the same series are grouped together (e.g. *"3 new episodes"*). Music tracks are grouped by album.
+*   **Category Filters** — Quick filters (All / Movies / Series / Music / custom) to focus on what matters to you.
+*   **Dismiss Notifications** — Remove any notification with a click, or swipe it left on mobile. Clear an entire category with a long press (mobile) or right-click (desktop) on its filter.
+*   **File Upgrade Badge** — When you replace a media file (quality upgrade, re-encode), the notification comes back to the top with a blue **UPD** badge instead of **NEW**.
+*   **Collection Monitoring** — Track your Jellyfin collections (BoxSets): new additions to a monitored collection trigger a notification.
+*   **Deletion History** — Administrators can see a log of recently deleted media in the configuration page, with configurable retention.
+*   **Synced Across Devices** — Read/unread status is saved on the server and stays in sync across all your browsers and devices.
+*   **Bell Animation** — The bell shakes when new content arrives, so you never miss an update.
+*   **Clear List (Safe)** — Clear all notifications without affecting your Jellyfin watch history — nothing gets marked as "Played".
+*   **Bilingual Interface** — The bell and config page follow your Jellyfin language (French / English).
+*   **Relative Timestamps** — Dates show as *"2 hours ago"*, *"yesterday"*, *"3 days ago"*.
+*   **Theme Song Filtering** — Openings, endings, and NCOP/NCED are automatically excluded.
+*   **Responsive** — Works on desktop, tablet, and mobile (via the official Jellyfin app). *Note: Not supported on TV.*
 
 ### 🚀 Performance
-*   **Real-Time WebSockets** — Instant updates via native Jellyfin WebSockets. No polling, no delays.
-*   **ETag / 304 Caching** — Zero bandwidth when nothing has changed. The client sends its ETag, the server returns 304 Not Modified.
-*   **Per-User RAM Cache** — Serialized responses are cached in memory per user. Subsequent requests skip serialization entirely.
-*   **Lazy Image Loading** — Thumbnails are loaded on-demand via IntersectionObserver as you scroll through the list.
-*   **SQLite WAL** — Notification data is persisted in a WAL-mode SQLite database for fast concurrent reads.
-*   **Event Buffering** — Library events (ItemAdded, ItemUpdated) are debounced and batch-processed to avoid DB contention.
-*   **Optimized for .NET 9** — TieredPGO, AOT-compatible JSON serialization, aggressive inlining on hot paths.
+*   **Real-Time Updates** — Notifications appear instantly thanks to Jellyfin's built-in WebSockets. No page refresh needed.
+*   **Smart Caching** — The plugin only transfers data when something has actually changed, saving bandwidth and keeping things fast.
+*   **Lazy Image Loading** — Thumbnails load as you scroll, keeping the interface snappy even with many notifications.
+*   **Lightweight Storage** — All data is stored in a fast SQLite database optimized for concurrent access.
+*   **Optimized for .NET 9** — Built for the latest Jellyfin runtime for maximum performance.
 
 ### 🛡️ Security & Privacy
-*   **Strict Permissions** — Each user only sees content from libraries they have access to. Tags, ratings, and folder restrictions are fully respected.
-*   **Anti-IDOR** — Every API call verifies the authenticated user matches the requested userId. Admins can access all users.
-*   **XSS Protection** — All user-generated content and item IDs are HTML-escaped before DOM injection.
+*   **Respects Jellyfin Permissions** — Each user only sees content from the libraries they have access to. All restrictions (tags, ratings, folders) are enforced.
+*   **User Isolation** — No user can access another user's notifications or data. Admins can manage all users.
+*   **Safe Against Attacks** — All content is sanitized before display, and all database queries are protected against injection.
 *   **Anti-Spam** — 30-second cooldown on manual history regeneration to protect server resources.
-*   **Atomic Writes** — Cleared state is written to a temp file then renamed, preventing corruption on crash.
-*   **Parameterized SQL** — All database queries use parameterized statements to prevent SQL injection.
+*   **Crash-Safe** — Data is written safely to prevent corruption even if the server stops unexpectedly.
 
 ## 📦 Installation
 
@@ -148,40 +143,35 @@ NotifySync transforme l'interface Jellyfin en y ajoutant une cloche de notificat
 ## ✨ Fonctionnalités
 
 ### 🎨 Expérience Utilisateur
-*   **Design Netflix-Style** — Menu déroulant en glass-morphism avec flou d'arrière-plan. La pastille rouge disparait instantanément dès l'ouverture de la cloche, par simple prise de connaissance.
-*   **Section Hero** — Le dernier ajout est mis en avant avec une grande image de fond, son titre et un horodatage relatif. Un clic mène directement à la page du contenu.
-*   **Regroupement Intelligent** — Les épisodes d'une même série sont automatiquement groupés (ex. *"3 nouveaux épisodes"*). Les pistes musicales sont groupées par album (ex. *"5 nouvelles pistes"*).
-*   **Filtres par Catégorie** — Des filtres rapides (Tout / Films / Séries / Musique / personnalisé) permettent de cibler instantanément ce qui vous intéresse.
-*   **Suppression Individuelle** — Supprimez n'importe quelle notification d'un simple clic — animation fluide de glissement, persisté par utilisateur côté serveur.
-*   **Swipe pour Supprimer (Mobile)** — Sur les appareils tactiles, glissez une notification vers la gauche pour la retirer. Geste naturel et intuitif.
-*   **Vider par Catégorie** — Appui long (mobile) ou clic droit (PC) sur un filtre de catégorie pour vider uniquement cette catégorie.
-*   **Détection de Mise à Jour de Fichier** — Quand un fichier média est remplacé (upgrade qualité, ré-encodage), la notification remonte en haut avec un badge bleu **MAJ** au lieu du badge **NOUVEAU**.
-*   **Surveillance des Collections** — Suivez les collections Jellyfin (BoxSets) : quand de nouveaux éléments sont ajoutés à une collection surveillée, ils apparaissent comme notifications.
-*   **Historique des Suppressions (Admin)** — Les administrateurs peuvent consulter un journal des médias récemment supprimés dans la page de configuration, avec rétention paramétrable (1–365 jours).
-*   **État Lu/Non-lu Côté Serveur** — Le statut de lecture est stocké sur le serveur et synchronisé entre tous les navigateurs et appareils. Fini la dépendance au localStorage.
-*   **Animation Pulse** — La cloche s'anime quand un nouveau contenu arrive via WebSocket. Anti-spam visuel intégré.
-*   **Vider la Liste (Sans Risque)** — Un bouton pour effacer toutes les notifications sans jamais impacter votre historique de lecture Jellyfin (les médias restent "Non vus").
-*   **i18n Automatique** — L'interface (cloche + page config) suit le paramètre de langue Jellyfin de l'utilisateur (Français / Anglais), avec fallback sur la langue du navigateur.
-*   **Horodatage Relatif** — Toutes les dates sont affichées sous forme *"il y a 2 heures"*, *"hier"*, *"il y a 3 jours"* selon la locale du navigateur.
-*   **Filtrage des Génériques** — Exclusion automatique des openings, endings, NCOP/NCED et thèmes musicaux.
-*   **Responsive** — S'adapte au bureau, tablette et mobile (via l'app officielle Jellyfin). *Note : Non supporté sur TV.*
+*   **Design Netflix-Style** — Un menu déroulant élégant avec effet de verre dépoli. La pastille rouge disparaît dès l'ouverture de la cloche.
+*   **Section Hero** — Le dernier ajout s'affiche en grand avec son image de fond. Un clic mène directement au contenu.
+*   **Regroupement Intelligent** — Les épisodes d'une même série sont groupés (ex. *"3 nouveaux épisodes"*). Les musiques sont groupées par album.
+*   **Filtres par Catégorie** — Des filtres rapides (Tout / Films / Séries / Musique / personnalisé) pour cibler ce qui vous intéresse.
+*   **Supprimer des Notifications** — Retirez une notification d'un clic, ou glissez-la vers la gauche sur mobile. Videz une catégorie entière par appui long (mobile) ou clic droit (PC) sur son filtre.
+*   **Badge MAJ (Mise à Jour de Fichier)** — Quand vous remplacez un fichier média (upgrade qualité, ré-encodage), la notification remonte en haut avec un badge bleu **MAJ** au lieu de **NOUVEAU**.
+*   **Surveillance des Collections** — Suivez vos collections Jellyfin (BoxSets) : les nouveaux ajouts dans une collection surveillée déclenchent une notification.
+*   **Historique des Suppressions** — Les administrateurs peuvent consulter les médias récemment supprimés dans la page de configuration, avec rétention paramétrable.
+*   **Synchronisé entre Appareils** — L'état lu/non-lu est sauvegardé sur le serveur et reste synchronisé sur tous vos navigateurs et appareils.
+*   **Animation de la Cloche** — La cloche s'anime quand un nouveau contenu arrive, pour ne rien manquer.
+*   **Vider la Liste (Sans Risque)** — Effacez toutes les notifications sans toucher à votre historique Jellyfin — rien n'est marqué comme "Vu".
+*   **Interface Bilingue** — La cloche et la page de configuration suivent la langue de votre Jellyfin (Français / Anglais).
+*   **Horodatage Relatif** — Les dates s'affichent sous forme *"il y a 2 heures"*, *"hier"*, *"il y a 3 jours"*.
+*   **Filtrage des Génériques** — Les openings, endings et NCOP/NCED sont automatiquement exclus.
+*   **Responsive** — Fonctionne sur bureau, tablette et mobile (via l'app officielle Jellyfin). *Note : Non supporté sur TV.*
 
 ### 🚀 Performance
-*   **WebSockets Temps Réel** — Mise à jour instantanée via les WebSockets natifs Jellyfin. Aucun polling, aucun délai.
-*   **Cache ETag / 304** — Zéro bande passante quand rien n'a changé. Le client envoie son ETag, le serveur renvoie 304 Not Modified.
-*   **Cache RAM par Utilisateur** — Les réponses sérialisées sont mises en cache en mémoire par utilisateur. Les requêtes suivantes sautent entièrement la sérialisation.
-*   **Chargement Paresseux des Images** — Les miniatures sont chargées à la demande via IntersectionObserver au fil du défilement.
-*   **SQLite WAL** — Les données de notification sont persistées dans une base SQLite en mode WAL pour des lectures concurrentes rapides.
-*   **Buffer d'Événements** — Les événements de bibliothèque (ItemAdded, ItemUpdated) sont regroupés et traités par lots pour éviter la contention de la base de données.
-*   **Optimisé .NET 9** — TieredPGO, sérialisation JSON compatible AOT, inlining agressif sur les chemins critiques.
+*   **Mises à Jour en Temps Réel** — Les notifications apparaissent instantanément grâce aux WebSockets intégrés de Jellyfin. Aucun rafraîchissement nécessaire.
+*   **Cache Intelligent** — Le plugin ne transfère des données que lorsqu'il y a un réel changement, économisant la bande passante.
+*   **Chargement Progressif des Images** — Les miniatures se chargent au fil du défilement pour garder l'interface fluide.
+*   **Stockage Léger** — Toutes les données sont stockées dans une base rapide optimisée pour les accès simultanés.
+*   **Optimisé pour .NET 9** — Conçu pour la dernière version de Jellyfin, pour des performances maximales.
 
 ### 🛡️ Sécurité & Confidentialité
-*   **Permissions Strictes** — Chaque utilisateur ne voit que le contenu des bibliothèques auxquelles il a accès. Tags, classifications et restrictions sont pleinement respectés.
-*   **Anti-IDOR** — Chaque appel API vérifie que l'utilisateur authentifié correspond au userId demandé. Les administrateurs peuvent accéder à tous les utilisateurs.
-*   **Protection XSS** — Tout le contenu et les identifiants sont échappés avant injection dans le DOM.
-*   **Anti-Spam** — Cooldown de 30 secondes sur la régénération manuelle de l'historique pour protéger les ressources serveur.
-*   **Écriture Atomique** — L'état "vidé" est écrit dans un fichier temporaire puis renommé, empêchant la corruption en cas de crash.
-*   **SQL Paramétré** — Toutes les requêtes utilisent des paramètres pour prévenir l'injection SQL.
+*   **Respecte les Permissions Jellyfin** — Chaque utilisateur ne voit que le contenu des bibliothèques auxquelles il a accès. Toutes les restrictions (tags, classifications, dossiers) sont respectées.
+*   **Isolation des Utilisateurs** — Aucun utilisateur ne peut accéder aux notifications d'un autre. Les administrateurs peuvent gérer tous les utilisateurs.
+*   **Protection Contre les Attaques** — Tout le contenu est nettoyé avant affichage, et toutes les requêtes sont protégées contre les injections.
+*   **Anti-Spam** — Cooldown de 30 secondes sur la régénération manuelle pour protéger les ressources serveur.
+*   **Résistant aux Crashs** — Les données sont écrites de manière sécurisée pour éviter toute corruption même en cas d'arrêt inattendu.
 
 ## 📦 Installation
 

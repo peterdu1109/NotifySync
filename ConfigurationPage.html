@@ -505,7 +505,8 @@
                     Dashboard.showLoadingMsg();
                     try {
                         const page = document.querySelector('.pluginConfigurationPage');
-                        this.config.MaxItems = parseInt(page.querySelector('#maxItems').value, 10) || 10;
+                        const rawMax = parseInt(page.querySelector('#maxItems').value, 10);
+                        this.config.MaxItems = (isNaN(rawMax) || rawMax < 1) ? 10 : rawMax;
 
                         const checkboxes = page.querySelectorAll('input[name="enabledLibs"]:checked');
                         this.config.EnabledLibraries = Array.from(checkboxes).map(checkbox => checkbox.value);
@@ -514,7 +515,8 @@
                         this.config.EnabledCollections = Array.from(colCheckboxes).map(cb => cb.value);
 
                         this.config.EnableDeletedTracking = page.querySelector('#enableDeletedTracking').checked;
-                        this.config.DeletedRetentionDays = parseInt(page.querySelector('#deletedRetentionDays').value) || 30;
+                        const rawRet = parseInt(page.querySelector('#deletedRetentionDays').value, 10);
+                        this.config.DeletedRetentionDays = (isNaN(rawRet) || rawRet < 1) ? 30 : rawRet;
 
                         const manualStr = page.querySelector('#manualLibraryIds').value;
                         this.config.ManualLibraryIds = manualStr

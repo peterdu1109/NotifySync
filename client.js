@@ -1,4 +1,4 @@
-/* NOTIFYSYNC V5.5.1.0 */
+/* NOTIFYSYNC V5.5.2.0 */
 (function () {
     let currentData = [];
     let groupedData = [];
@@ -401,9 +401,11 @@
 
             const cached = localStorage.getItem('ns-data');
             if (cached) {
-                currentData = JSON.parse(cached);
-                previousDataIds = new Set(currentData.map(i => i.Id));
-                recalculateNewStatus();
+                try {
+                    currentData = JSON.parse(cached);
+                    previousDataIds = new Set(currentData.map(i => i.Id));
+                    recalculateNewStatus();
+                } catch (pe) { localStorage.removeItem('ns-data'); localStorage.removeItem('ns-etag'); localStorage.removeItem('ns-data-ts'); }
             }
         } catch (e) { }
     };
@@ -461,14 +463,14 @@
 
         if (hero) {
             const isGroup = !!hero.IsGroup;
-            let heroImg = (hero.BackdropImageTags && hero.BackdropImageTags[0]) ? client.getUrl(`Items/${hero.Id}/Images/Backdrop/0?tag=${hero.BackdropImageTags[0]}&quality=70&maxWidth=600&format=webp`) : client.getUrl(`Items/${hero.SeriesId || hero.Id}/Images/Primary?quality=70&maxWidth=400&format=webp`);
-            if (isGroup && hero.SeriesId) heroImg = client.getUrl(`Items/${hero.Id}/Images/Backdrop/0?quality=70&maxWidth=600&format=webp`);
+            let heroImg = (hero.BackdropImageTags && hero.BackdropImageTags[0]) ? client.getUrl(`Items/${encodeURIComponent(hero.Id)}/Images/Backdrop/0?tag=${encodeURIComponent(hero.BackdropImageTags[0])}&quality=70&maxWidth=600&format=webp`) : client.getUrl(`Items/${encodeURIComponent(hero.SeriesId || hero.Id)}/Images/Primary?quality=70&maxWidth=400&format=webp`);
+            if (isGroup && hero.SeriesId) heroImg = client.getUrl(`Items/${encodeURIComponent(hero.Id)}/Images/Backdrop/0?quality=70&maxWidth=600&format=webp`);
 
             let heroTitle = escapeHtml(hero.Name), heroSub = '';
             if (!isGroup && hero.Type === 'Episode') {
                 heroTitle = escapeHtml(formatEpisodeTitle(hero)); heroSub = escapeHtml(hero.SeriesName);
             } else {
-                heroSub = escapeHtml(String(hero.ProductionYear || ''));
+                heroSub = escapeHtml(String(hero.ProductionYear ?? ''));
             }
             if (isGroup) {
                 const isMusic = hero.Type === 'Audio';
@@ -477,15 +479,15 @@
             }
 
             const safeHeroId = escapeHtml(hero.Id);
-            htmlParts.push(`<div class="hero-section" onclick="document.dispatchEvent(new CustomEvent('ns-navigate', {detail: '${safeHeroId}'}))"><div class="hero-bg" style="background-image:url('${escapeHtml(heroImg)}')"></div><div class="hero-overlay"></div><button class="dismiss-btn" title="${T.dismiss}" onclick="event.stopPropagation(); document.dispatchEvent(new CustomEvent('ns-dismiss', {detail: '${safeHeroId}'}))">&times;</button><div class="hero-content">${hero.IsUpgrade ? `<span class="hero-badge-upgrade">${T.badgeUpgrade}</span>` : hero.IsNew ? `<span class="hero-badge">${T.badgeNew}</span>` : ''}<div style="font-size:18px;font-weight:700;text-shadow:0 2px 4px #000;line-height:1.2;">${heroTitle}</div><div style="font-size:12px;opacity:0.8;margin-top:4px">${heroSub} &bull; ${timeAgo(hero.DateCreated)}</div></div></div>`);
+            htmlParts.push(`<div class="hero-section" onclick="document.dispatchEvent(new CustomEvent('ns-navigate', {detail: '${safeHeroId}'}))"><div class="hero-bg" style="background-image:url('${escapeHtml(heroImg)}')"></div><div class="hero-overlay"></div><button class="dismiss-btn" title="${T.dismiss}" aria-label="${T.dismiss}" onclick="event.stopPropagation(); document.dispatchEvent(new CustomEvent('ns-dismiss', {detail: '${safeHeroId}'}))">&times;</button><div class="hero-content">${hero.IsUpgrade ? `<span class="hero-badge-upgrade">${T.badgeUpgrade}</span>` : hero.IsNew ? `<span class="hero-badge">${T.badgeNew}</span>` : ''}<div style="font-size:18px;font-weight:700;text-shadow:0 2px 4px #000;line-height:1.2;">${heroTitle}</div><div style="font-size:12px;opacity:0.8;margin-top:4px">${heroSub} &bull; ${timeAgo(hero.DateCreated)}</div></div></div>`);
         }
 
         filtered.filter(x => x !== hero).forEach(item => {
             const isMusic = item.Type === 'Audio';
             const isGroup = !!item.IsGroup;
-            const imgUrl = client.getUrl(`Items/${item.Id}/Images/Primary?tag=${item.PrimaryImageTag || ''}&${isMusic ? 'fillHeight=100&fillWidth=100' : 'fillHeight=112&fillWidth=200'}&quality=80&format=webp`);
+            const imgUrl = client.getUrl(`Items/${encodeURIComponent(item.Id)}/Images/Primary?tag=${encodeURIComponent(item.PrimaryImageTag || '')}&${isMusic ? 'fillHeight=100&fillWidth=100' : 'fillHeight=112&fillWidth=200'}&quality=80&format=webp`);
 
-            let title = escapeHtml(item.Name), sub = escapeHtml(String(item.ProductionYear || ''));
+            let title = escapeHtml(item.Name), sub = escapeHtml(String(item.ProductionYear ?? ''));
             if (!isGroup && item.Type === 'Episode') { title = escapeHtml(formatEpisodeTitle(item)); sub = escapeHtml(item.SeriesName); }
             if (isGroup) {
                 const lbl = isMusic ? (item.IsNew ? T.newTracks : T.tracks) : (item.IsNew ? T.newEps : T.eps);
@@ -493,7 +495,7 @@
             }
 
             const safeId = escapeHtml(item.Id);
-            htmlParts.push(`<div class="dropdown-item ${item.IsUpgrade ? 'style-upgrade' : item.IsNew ? 'style-new' : 'style-seen'}" data-item-id="${safeId}" onclick="document.dispatchEvent(new CustomEvent('ns-navigate', {detail: '${safeId}'}))"><div class="status-dot"></div><button class="dismiss-btn" title="${T.dismiss}" onclick="event.stopPropagation(); document.dispatchEvent(new CustomEvent('ns-dismiss', {detail: '${safeId}'}))">&times;</button><div class="swipe-delete">${T.dismiss}</div><div class="thumb-wrapper"><img data-src="${imgUrl}" decoding="async" class="dropdown-thumb ${isMusic ? 'music' : ''}" loading="lazy" onerror="this.style.display='none'"><span class="material-icons" style="color:#444;position:absolute;z-index:-1;">${isMusic ? 'album' : 'movie'}</span></div><div class="dropdown-info"><div class="dropdown-title">${title}</div><div class="dropdown-subtitle">${sub} &bull; ${timeAgo(item.DateCreated)}</div></div></div>`);
+            htmlParts.push(`<div class="dropdown-item ${item.IsUpgrade ? 'style-upgrade' : item.IsNew ? 'style-new' : 'style-seen'}" data-item-id="${safeId}" onclick="document.dispatchEvent(new CustomEvent('ns-navigate', {detail: '${safeId}'}))"><div class="status-dot"></div><button class="dismiss-btn" title="${T.dismiss}" aria-label="${T.dismiss}" onclick="event.stopPropagation(); document.dispatchEvent(new CustomEvent('ns-dismiss', {detail: '${safeId}'}))">&times;</button><div class="swipe-delete">${T.dismiss}</div><div class="thumb-wrapper"><img data-src="${imgUrl}" decoding="async" class="dropdown-thumb ${isMusic ? 'music' : ''}" loading="lazy" onerror="this.style.display='none'"><span class="material-icons" style="color:#444;position:absolute;z-index:-1;">${isMusic ? 'album' : 'movie'}</span></div><div class="dropdown-info"><div class="dropdown-title">${title}</div><div class="dropdown-subtitle">${sub} &bull; ${timeAgo(item.DateCreated)}</div></div></div>`);
         });
 
         if (activeFilter === 'All') {

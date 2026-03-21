@@ -629,6 +629,19 @@ namespace NotifySync
 
                     return now;
                 });
+
+            // Periodic purge: remove stale entries older than 60 seconds
+            if (UserActionThrottle.Count > 100)
+            {
+                foreach (var kvp in UserActionThrottle)
+                {
+                    if ((now - kvp.Value) > 60_000)
+                    {
+                        UserActionThrottle.TryRemove(kvp.Key, out _);
+                    }
+                }
+            }
+
             return throttled;
         }
 

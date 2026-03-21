@@ -9,6 +9,14 @@
     "supportUrl": "https://github.com/",
     "versions": [
       {
+        "version": "5.5.2.0",
+        "changelog": "Améliorations / Improvements:\\n- Protection renforcée contre les injections XSS sur les URLs d'images (hero et liste).\\n- Le cache local ne crashe plus si les données sont corrompues (reset automatique).\\n- Les champs de configuration acceptent désormais des valeurs sûres même si le champ est vide.\\n- Accessibilité améliorée : les boutons de suppression sont lisibles par les lecteurs d'écran.\\n- Le serveur nettoie automatiquement les données temporaires de throttle en mémoire.\\n\\nCorrections / Fixes:\\n- Correction d'un cas où le plugin pouvait envoyer NaN au serveur depuis la page de configuration.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/5.5.2.0/notifysync_5.5.2.0.zip",
+        "checksum": "FD2BC492E261E23F1CA36BDD6CC5D007",
+        "timestamp": "2026-03-21T14:00:00Z"
+      },
+      {
         "version": "5.5.1.0",
         "changelog": "Nouveautés / New Features:\\n- Le bouton 'Vider' en bas du menu s'adapte au filtre actif : 'Vider la liste' sur Tout, ou 'Vider Films' etc. sur une catégorie.\\n- La notification hero peut être supprimée individuellement (bouton × visible au survol PC, toujours visible sur mobile).\\n\\nAméliorations / Improvements:\\n- Correction de failles XSS (hero, années, historique des suppressions).\\n- Throttle serveur atomique (plus de race condition).\\n- Fuite mémoire swipe corrigée (listeners nettoyés).\\n- MutationObserver avec debounce (performances SPA).\\n- Purge des suppressions 1x/jour au lieu de chaque événement.\\n- Validation Guid sur tous les endpoints.\\n- Cache local protégé contre JSON corrompu.\\n- Accessibilité : aria-label sur la cloche.",
         "targetAbi": "10.11.0.0",

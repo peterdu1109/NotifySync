@@ -30,7 +30,12 @@
       "Bash(rm -f bin/Release/net9.0/notifysync_5.5.1.0.zip)",
       "Bash(zip notifysync_5.5.1.0.zip NotifySync.dll)",
       "Bash(powershell -Command \"Remove-Item -Force bin/Release/net9.0/notifysync_5.5.1.0.zip -ErrorAction SilentlyContinue; Compress-Archive -Path bin/Release/net9.0/NotifySync.dll -DestinationPath bin/Release/net9.0/notifysync_5.5.1.0.zip; \\(Get-FileHash bin/Release/net9.0/NotifySync.dll -Algorithm MD5\\).Hash\")",
-      "Bash(powershell -Command \"\\(Get-FileHash ''C:\\\\Users\\\\eliem\\\\Documents\\\\GitHub\\\\NotifySync\\\\bin\\\\Release\\\\net9.0\\\\notifysync_5.5.1.0.zip'' -Algorithm MD5\\).Hash\")"
+      "Bash(powershell -Command \"\\(Get-FileHash ''C:\\\\Users\\\\eliem\\\\Documents\\\\GitHub\\\\NotifySync\\\\bin\\\\Release\\\\net9.0\\\\notifysync_5.5.1.0.zip'' -Algorithm MD5\\).Hash\")",
+      "Bash(curl -sL \"https://github.com/peterdu1109/NotifySync/releases/download/5.5.1.0/NotifySync_5.5.1.0.zip\" -o /tmp/notifysync_github.zip)",
+      "Bash(powershell -Command \"\\(Get-FileHash ''/tmp/notifysync_github.zip'' -Algorithm MD5\\).Hash; \\(Get-Item ''/tmp/notifysync_github.zip''\\).Length\")",
+      "Bash(curl -sL \"https://github.com/peterdu1109/NotifySync/releases/download/5.5.1.0/NotifySync_5.5.1.0.zip\" -o \"C:\\\\Users\\\\eliem\\\\Documents\\\\GitHub\\\\NotifySync\\\\bin\\\\Release\\\\net9.0\\\\notifysync_github.zip\")",
+      "Bash(powershell -Command \"\\(Get-FileHash ''C:\\\\Users\\\\eliem\\\\Documents\\\\GitHub\\\\NotifySync\\\\bin\\\\Release\\\\net9.0\\\\notifysync_github.zip'' -Algorithm MD5\\).Hash; \\(Get-Item ''C:\\\\Users\\\\eliem\\\\Documents\\\\GitHub\\\\NotifySync\\\\bin\\\\Release\\\\net9.0\\\\notifysync_github.zip''\\).Length\")",
+      "Bash(powershell -Command \"Remove-Item -Force ''bin\\\\Release\\\\net9.0\\\\notifysync_5.5.2.0.zip'' -ErrorAction SilentlyContinue; Compress-Archive -Path ''bin\\\\Release\\\\net9.0\\\\NotifySync.dll'' -DestinationPath ''bin\\\\Release\\\\net9.0\\\\notifysync_5.5.2.0.zip''; Write-Host ''ZIP checksum:''; \\(Get-FileHash ''bin\\\\Release\\\\net9.0\\\\notifysync_5.5.2.0.zip'' -Algorithm MD5\\).Hash; Write-Host ''DLL checksum:''; \\(Get-FileHash ''bin\\\\Release\\\\net9.0\\\\NotifySync.dll'' -Algorithm MD5\\).Hash\")"
     ]
   }
 }

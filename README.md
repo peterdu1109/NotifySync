@@ -43,7 +43,7 @@ NotifySync transforms the Jellyfin interface by adding a native notification bel
 ## ✨ Key Features
 
 ### 🎨 User Experience
-*   **Netflix-Style Design** — A sleek dropdown with a frosted glass look. The red badge disappears as soon as you open the bell.
+*   **Netflix-Style Design** — A sleek dropdown with a frosted glass look. The red counter disappears as soon as you open the bell, but NEW/UPD badges stay visible for 72 hours so you can always spot recent additions.
 *   **Hero Section** — The latest addition is displayed large with its backdrop image. One click takes you straight to the content. You can also dismiss it directly.
 *   **Smart Grouping** — Episodes of the same series are grouped together (e.g. *"3 new episodes"*). Music tracks are grouped by album.
 *   **Category Filters** — Quick filters (All / Movies / Series / Music / custom) to focus on what matters to you.
@@ -143,7 +143,7 @@ NotifySync transforme l'interface Jellyfin en y ajoutant une cloche de notificat
 ## ✨ Fonctionnalités
 
 ### 🎨 Expérience Utilisateur
-*   **Design Netflix-Style** — Un menu déroulant élégant avec effet de verre dépoli. La pastille rouge disparaît dès l'ouverture de la cloche.
+*   **Design Netflix-Style** — Un menu déroulant élégant avec effet de verre dépoli. Le compteur rouge disparaît dès l'ouverture de la cloche, mais les badges NOUVEAU/MAJ restent visibles pendant 72 heures pour repérer facilement les nouveautés.
 *   **Section Hero** — Le dernier ajout s'affiche en grand avec son image de fond. Un clic mène directement au contenu. Vous pouvez aussi le supprimer directement.
 *   **Regroupement Intelligent** — Les épisodes d'une même série sont groupés (ex. *"3 nouveaux épisodes"*). Les musiques sont groupées par album.
 *   **Filtres par Catégorie** — Des filtres rapides (Tout / Films / Séries / Musique / personnalisé) pour cibler ce qui vous intéresse.

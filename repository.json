@@ -13,7 +13,7 @@
         "changelog": "Nouveautés / New Features:\\n- Le bouton 'Vider' en bas du menu s'adapte au filtre actif : 'Vider la liste' sur Tout, ou 'Vider Films' etc. sur une catégorie.\\n- La notification hero peut être supprimée individuellement (bouton × visible au survol PC, toujours visible sur mobile).\\n\\nAméliorations / Improvements:\\n- Correction de failles XSS (hero, années, historique des suppressions).\\n- Throttle serveur atomique (plus de race condition).\\n- Fuite mémoire swipe corrigée (listeners nettoyés).\\n- MutationObserver avec debounce (performances SPA).\\n- Purge des suppressions 1x/jour au lieu de chaque événement.\\n- Validation Guid sur tous les endpoints.\\n- Cache local protégé contre JSON corrompu.\\n- Accessibilité : aria-label sur la cloche.",
         "targetAbi": "10.11.0.0",
         "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/5.5.1.0/NotifySync_5.5.1.0.zip",
-        "checksum": "F71D05A4E540EA71A5E2AF5594F13336",
+        "checksum": "34B16BC2E46A34CEC3E2D59087D7DBEE",
         "timestamp": "2026-03-21T12:00:00Z"
       },
       {

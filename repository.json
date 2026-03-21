@@ -9,6 +9,14 @@
     "supportUrl": "https://github.com/peterdu1109/NotifySync",
     "versions": [
       {
+        "version": "5.5.4.0",
+        "changelog": "<b>🇬🇧 Improvements:</b><br>• NEW and UPD badges now stay visible for 72 hours, just like Netflix — even after opening the bell.<br>• The bell counter disappears when you open the menu, but badges remain on each item so you can see what's new at a glance.<br><br><b>🇫🇷 Améliorations :</b><br>• Les badges NOUVEAU et MAJ restent visibles pendant 72 heures, comme Netflix — même après avoir ouvert la cloche.<br>• Le compteur de la cloche disparaît à l'ouverture du menu, mais les badges restent sur chaque élément pour voir d'un coup d'œil les nouveautés.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/5.5.4.0/NotifySync_5.5.4.0.zip",
+        "checksum": "70CE25612DE7D664259C8D819442A256",
+        "timestamp": "2026-03-21T22:00:00Z"
+      },
+      {
         "version": "5.5.3.0",
         "changelog": "<b>🇬🇧 Fixes:</b><br>• Dismissing a grouped series now correctly removes all its episodes from the list.<br>• Fixed a server crash that could occur when multiple users interact simultaneously.<br>• Improved reliability of read/unread status tracking.<br><br><b>🇫🇷 Corrections :</b><br>• Supprimer une série groupée retire maintenant correctement tous ses épisodes de la liste.<br>• Correction d'un crash serveur pouvant survenir lors d'interactions simultanées de plusieurs utilisateurs.<br>• Amélioration de la fiabilité du suivi lu/non-lu.",
         "targetAbi": "10.11.0.0",

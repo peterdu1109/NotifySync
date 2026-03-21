@@ -1,4 +1,4 @@
-/* NOTIFYSYNC V5.5.3.0 */
+/* NOTIFYSYNC V5.5.4.0 */
 (function () {
     let currentData = [];
     let groupedData = [];
@@ -57,6 +57,8 @@
             return res.ok;
         } catch (e) { console.warn("NotifySync: Dismiss failed."); return false; }
     };
+
+    const BADGE_DURATION_MS = 72 * 60 * 60 * 1000; // 72h — badges stay visible like Netflix
 
     let userLang = navigator.language || 'en';
     const strings = {
@@ -225,9 +227,10 @@
             if (eps.length === 0) return;
             const latest = eps[0];
             const hasNew = eps.some(e => e.IsNew);
-            const newCount = eps.filter(e => e.IsNew).length;
+            const hasBadge = eps.some(e => e.ShowBadge);
+            const newCount = eps.filter(e => e.ShowBadge).length;
             if (eps.length > 1) {
-                result.push({ ...latest, IsGroup: true, GroupCount: eps.length, NewCount: newCount, Name: latest.SeriesName || latest.Name, Id: latest.SeriesId || latest.Id, IsNew: hasNew });
+                result.push({ ...latest, IsGroup: true, GroupCount: eps.length, NewCount: newCount, Name: latest.SeriesName || latest.Name, Id: latest.SeriesId || latest.Id, IsNew: hasNew, ShowBadge: hasBadge });
             } else { result.push(latest); }
         });
         return result.sort((a, b) => new Date(b.DateCreated) - new Date(a.DateCreated));
@@ -299,10 +302,13 @@
     };
 
     const recalculateNewStatus = () => {
+        const now = Date.now();
         currentData.forEach(item => {
-            // IsNew = not read on server AND not locally marked
-            // (Played items are already excluded server-side in GetData)
+            // IsNew = unread (for bell counter)
             item.IsNew = !item.IsRead && !localPlayedSet.has(item.Id);
+            // ShowBadge = recent item (for visual NEW/UPD badges, Netflix-style persistence)
+            const age = now - new Date(item.DateCreated).getTime();
+            item.ShowBadge = age < BADGE_DURATION_MS;
         });
         groupedData = processGrouping(currentData);
         updateBadge();
@@ -467,7 +473,7 @@
 
         const htmlParts = [];
         const client = window.ApiClient;
-        const hero = filtered.find(i => i.IsNew) || filtered[0];
+        const hero = filtered.find(i => i.ShowBadge) || filtered[0];
 
         if (hero) {
             const isGroup = !!hero.IsGroup;
@@ -482,12 +488,12 @@
             }
             if (isGroup) {
                 const isMusic = hero.Type === 'Audio';
-                const lbl = isMusic ? (hero.IsNew ? T.newTracks : T.tracks) : (hero.IsNew ? T.newEps : T.eps);
-                heroSub = hero.IsNew ? `${hero.NewCount || hero.GroupCount} ${lbl}` : `${hero.GroupCount} ${lbl}`;
+                const lbl = isMusic ? (hero.ShowBadge ? T.newTracks : T.tracks) : (hero.ShowBadge ? T.newEps : T.eps);
+                heroSub = hero.ShowBadge ? `${hero.NewCount || hero.GroupCount} ${lbl}` : `${hero.GroupCount} ${lbl}`;
             }
 
             const safeHeroId = escapeHtml(hero.Id);
-            htmlParts.push(`<div class="hero-section" onclick="document.dispatchEvent(new CustomEvent('ns-navigate', {detail: '${safeHeroId}'}))"><div class="hero-bg" style="background-image:url('${escapeHtml(heroImg)}')"></div><div class="hero-overlay"></div><button class="dismiss-btn" title="${T.dismiss}" aria-label="${T.dismiss}" onclick="event.stopPropagation(); document.dispatchEvent(new CustomEvent('ns-dismiss', {detail: '${safeHeroId}'}))">&times;</button><div class="hero-content">${hero.IsUpgrade ? `<span class="hero-badge-upgrade">${T.badgeUpgrade}</span>` : hero.IsNew ? `<span class="hero-badge">${T.badgeNew}</span>` : ''}<div style="font-size:18px;font-weight:700;text-shadow:0 2px 4px #000;line-height:1.2;">${heroTitle}</div><div style="font-size:12px;opacity:0.8;margin-top:4px">${heroSub} &bull; ${timeAgo(hero.DateCreated)}</div></div></div>`);
+            htmlParts.push(`<div class="hero-section" onclick="document.dispatchEvent(new CustomEvent('ns-navigate', {detail: '${safeHeroId}'}))"><div class="hero-bg" style="background-image:url('${escapeHtml(heroImg)}')"></div><div class="hero-overlay"></div><button class="dismiss-btn" title="${T.dismiss}" aria-label="${T.dismiss}" onclick="event.stopPropagation(); document.dispatchEvent(new CustomEvent('ns-dismiss', {detail: '${safeHeroId}'}))">&times;</button><div class="hero-content">${hero.IsUpgrade && hero.ShowBadge ? `<span class="hero-badge-upgrade">${T.badgeUpgrade}</span>` : hero.ShowBadge ? `<span class="hero-badge">${T.badgeNew}</span>` : ''}<div style="font-size:18px;font-weight:700;text-shadow:0 2px 4px #000;line-height:1.2;">${heroTitle}</div><div style="font-size:12px;opacity:0.8;margin-top:4px">${heroSub} &bull; ${timeAgo(hero.DateCreated)}</div></div></div>`);
         }
 
         filtered.filter(x => x !== hero).forEach(item => {
@@ -498,12 +504,12 @@
             let title = escapeHtml(item.Name), sub = escapeHtml(String(item.ProductionYear ?? ''));
             if (!isGroup && item.Type === 'Episode') { title = escapeHtml(formatEpisodeTitle(item)); sub = escapeHtml(item.SeriesName); }
             if (isGroup) {
-                const lbl = isMusic ? (item.IsNew ? T.newTracks : T.tracks) : (item.IsNew ? T.newEps : T.eps);
-                sub = item.IsNew ? `${item.NewCount || item.GroupCount} ${lbl}` : `${item.GroupCount} ${lbl}`;
+                const lbl = isMusic ? (item.ShowBadge ? T.newTracks : T.tracks) : (item.ShowBadge ? T.newEps : T.eps);
+                sub = item.ShowBadge ? `${item.NewCount || item.GroupCount} ${lbl}` : `${item.GroupCount} ${lbl}`;
             }
 
             const safeId = escapeHtml(item.Id);
-            htmlParts.push(`<div class="dropdown-item ${item.IsUpgrade ? 'style-upgrade' : item.IsNew ? 'style-new' : 'style-seen'}" data-item-id="${safeId}" onclick="document.dispatchEvent(new CustomEvent('ns-navigate', {detail: '${safeId}'}))"><div class="status-dot"></div><button class="dismiss-btn" title="${T.dismiss}" aria-label="${T.dismiss}" onclick="event.stopPropagation(); document.dispatchEvent(new CustomEvent('ns-dismiss', {detail: '${safeId}'}))">&times;</button><div class="swipe-delete">${T.dismiss}</div><div class="thumb-wrapper"><img data-src="${imgUrl}" decoding="async" class="dropdown-thumb ${isMusic ? 'music' : ''}" loading="lazy" onerror="this.style.display='none'"><span class="material-icons" style="color:#444;position:absolute;z-index:-1;">${isMusic ? 'album' : 'movie'}</span></div><div class="dropdown-info"><div class="dropdown-title">${title}</div><div class="dropdown-subtitle">${sub} &bull; ${timeAgo(item.DateCreated)}</div></div></div>`);
+            htmlParts.push(`<div class="dropdown-item ${item.IsUpgrade && item.ShowBadge ? 'style-upgrade' : item.ShowBadge ? 'style-new' : 'style-seen'}" data-item-id="${safeId}" onclick="document.dispatchEvent(new CustomEvent('ns-navigate', {detail: '${safeId}'}))"><div class="status-dot"></div><button class="dismiss-btn" title="${T.dismiss}" aria-label="${T.dismiss}" onclick="event.stopPropagation(); document.dispatchEvent(new CustomEvent('ns-dismiss', {detail: '${safeId}'}))">&times;</button><div class="swipe-delete">${T.dismiss}</div><div class="thumb-wrapper"><img data-src="${imgUrl}" decoding="async" class="dropdown-thumb ${isMusic ? 'music' : ''}" loading="lazy" onerror="this.style.display='none'"><span class="material-icons" style="color:#444;position:absolute;z-index:-1;">${isMusic ? 'album' : 'movie'}</span></div><div class="dropdown-info"><div class="dropdown-title">${title}</div><div class="dropdown-subtitle">${sub} &bull; ${timeAgo(item.DateCreated)}</div></div></div>`);
         });
 
         if (activeFilter === 'All') {
@@ -582,6 +588,7 @@
         const back = document.getElementById('notify-backdrop');
         if (drop) drop.style.display = 'none';
         if (back) back.style.display = 'none';
+        recalculateNewStatus(); // Clear badges for next open
     };
 
     const toggleDropdown = () => {
@@ -636,20 +643,20 @@
             fetchData().then(() => {
                 updateList(drop);
                 
-                // Mark all as read: optimistic local update + server sync
+                // Mark as read on server but keep visual badges in the dropdown
                 const unreadIds = [];
                 currentData.forEach(i => {
                     if (!i.IsRead && !localPlayedSet.has(i.Id)) {
-                        markLocalPlayed(i.Id); // Optimistic local cache
-                        i.IsRead = true;       // Update local state immediately
+                        markLocalPlayed(i.Id);
+                        i.IsRead = true;
                         unreadIds.push(i.Id);
                     }
                 });
 
                 if (unreadIds.length > 0) {
-                    recalculateNewStatus(); // Remove red dots and badge immediately
-                    updateList(drop);       // Refresh the list UI
-                    // Sync to server in background (non-blocking)
+                    // Hide bell counter only — list badges (NEW/UPD) stay visible
+                    const badge = document.querySelector('.ns-badge');
+                    if (badge) badge.classList.remove('visible');
                     markReadOnServer(unreadIds);
                 }
             });

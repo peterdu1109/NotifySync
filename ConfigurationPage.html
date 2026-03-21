@@ -415,7 +415,7 @@
                             const row = tbody.insertRow();
                             row.style.borderBottom = '1px solid #333';
                             const delDate = new Date(item.DeletedAt);
-                            const dateStr = delDate.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+                            const dateStr = delDate.toLocaleString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
                             [item.Name || '', item.Type || '', item.SeriesName || '-', item.ProductionYear || '-', dateStr].forEach(text => {
                                 const td = row.insertCell();
                                 td.style.cssText = 'padding:6px 8px;';
@@ -506,7 +506,7 @@
                     try {
                         const page = document.querySelector('.pluginConfigurationPage');
                         const rawMax = parseInt(page.querySelector('#maxItems').value, 10);
-                        this.config.MaxItems = (isNaN(rawMax) || rawMax < 1) ? 10 : rawMax;
+                        this.config.MaxItems = (isNaN(rawMax) || rawMax < 1) ? 10 : Math.min(rawMax, 50);
 
                         const checkboxes = page.querySelectorAll('input[name="enabledLibs"]:checked');
                         this.config.EnabledLibraries = Array.from(checkboxes).map(checkbox => checkbox.value);
@@ -516,7 +516,7 @@
 
                         this.config.EnableDeletedTracking = page.querySelector('#enableDeletedTracking').checked;
                         const rawRet = parseInt(page.querySelector('#deletedRetentionDays').value, 10);
-                        this.config.DeletedRetentionDays = (isNaN(rawRet) || rawRet < 1) ? 30 : rawRet;
+                        this.config.DeletedRetentionDays = (isNaN(rawRet) || rawRet < 1) ? 30 : Math.min(rawRet, 365);
 
                         const manualStr = page.querySelector('#manualLibraryIds').value;
                         this.config.ManualLibraryIds = manualStr

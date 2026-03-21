@@ -1,4 +1,4 @@
-/* NOTIFYSYNC V5.5.2.0 */
+/* NOTIFYSYNC V5.5.3.0 */
 (function () {
     let currentData = [];
     let groupedData = [];
@@ -256,9 +256,12 @@
         const userId = getUserId();
         if (!userId) return;
 
-        await fetch(`/NotifySync/Clear/${userId}?date=${encodeURIComponent(new Date().toISOString())}`, { method: 'POST', headers: getAuthHeaders() });
-        lastSeenDate = new Date();
+        try {
+            const res = await fetch(`/NotifySync/Clear/${userId}?date=${encodeURIComponent(new Date().toISOString())}`, { method: 'POST', headers: getAuthHeaders() });
+            if (!res.ok) { console.warn('NotifySync: Clear failed', res.status); return; }
+        } catch (e) { console.warn('NotifySync: Clear failed', e); return; }
 
+        lastSeenDate = new Date();
         currentData = [];
         groupedData = [];
         previousDataIds = new Set();
@@ -277,7 +280,12 @@
         if (idsToDismiss.length === 0) return;
 
         // Dismiss each item server-side
-        await Promise.all(idsToDismiss.map(id => dismissOnServer(id)));
+        try {
+            const results = await Promise.allSettled(idsToDismiss.map(id => dismissOnServer(id)));
+            if (results.every(r => r.status === 'rejected' || (r.status === 'fulfilled' && !r.value))) {
+                console.warn('NotifySync: Category clear failed'); return;
+            }
+        } catch (e) { console.warn('NotifySync: Category clear failed', e); return; }
 
         // Remove from local data
         currentData = currentData.filter(i => i.Category !== category);
@@ -602,8 +610,8 @@
 
                     const success = await dismissOnServer(itemId);
                     if (success) {
-                        // Remove from local data (by Id AND by SeriesId for group dismiss)
-                        currentData = currentData.filter(i => i.Id !== itemId && i.SeriesId !== itemId);
+                        // Remove from local data (by Id OR by SeriesId for group dismiss)
+                        currentData = currentData.filter(i => !(i.Id === itemId || i.SeriesId === itemId));
                         localStorage.setItem('ns-data', JSON.stringify(currentData)); localStorage.setItem('ns-data-ts', Date.now().toString());
                         localStorage.removeItem('ns-etag'); // Force fresh fetch next time
                         recalculateNewStatus();
@@ -631,7 +639,7 @@
                 // Mark all as read: optimistic local update + server sync
                 const unreadIds = [];
                 currentData.forEach(i => {
-                    if (!i.IsRead && !localPlayed.includes(i.Id)) {
+                    if (!i.IsRead && !localPlayedSet.has(i.Id)) {
                         markLocalPlayed(i.Id); // Optimistic local cache
                         i.IsRead = true;       // Update local state immediately
                         unreadIds.push(i.Id);

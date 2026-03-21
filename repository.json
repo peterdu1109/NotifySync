@@ -9,10 +9,18 @@
     "supportUrl": "https://github.com/peterdu1109/NotifySync",
     "versions": [
       {
+        "version": "5.5.3.0",
+        "changelog": "<b>🇬🇧 Fixes:</b><br>• Dismissing a grouped series now correctly removes all its episodes from the list.<br>• Fixed a server crash that could occur when multiple users interact simultaneously.<br>• Improved reliability of read/unread status tracking.<br><br><b>🇫🇷 Corrections :</b><br>• Supprimer une série groupée retire maintenant correctement tous ses épisodes de la liste.<br>• Correction d'un crash serveur pouvant survenir lors d'interactions simultanées de plusieurs utilisateurs.<br>• Amélioration de la fiabilité du suivi lu/non-lu.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/5.5.3.0/NotifySync_5.5.3.0.zip",
+        "checksum": "DC42C0A51466D5B2D9D3E917DEB065F0",
+        "timestamp": "2026-03-21T16:00:00Z"
+      },
+      {
         "version": "5.5.2.0",
         "changelog": "<b>🇬🇧 Fixes:</b><br>• Fixed a bug where the bell could stop displaying if the browser cache was corrupted (automatic reset).<br>• Minor internal robustness improvements.<br><br><b>🇫🇷 Corrections :</b><br>• Correction d'un bug où la cloche pouvait ne plus s'afficher si le cache du navigateur était corrompu (reset automatique).<br>• Petites améliorations internes de robustesse.",
         "targetAbi": "10.11.0.0",
-        "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/5.5.2.0/notifysync_5.5.2.0.zip",
+        "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/5.5.2.0/NotifySync_5.5.2.0.zip",
         "checksum": "FD2BC492E261E23F1CA36BDD6CC5D007",
         "timestamp": "2026-03-21T14:00:00Z"
       },

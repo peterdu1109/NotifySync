@@ -552,6 +552,10 @@ namespace NotifySync
                 return Forbid();
             }
 
+            // Cap parameters to safe bounds
+            limit = Math.Clamp(limit, 1, 500);
+            offset = Math.Max(offset, 0);
+
             if (NotificationManager.Instance == null)
             {
                 return StatusCode(StatusCodes.Status503ServiceUnavailable, "Manager not initialized.");
@@ -633,7 +637,7 @@ namespace NotifySync
             // Periodic purge: remove stale entries older than 60 seconds
             if (UserActionThrottle.Count > 100)
             {
-                foreach (var kvp in UserActionThrottle)
+                foreach (var kvp in UserActionThrottle.ToList())
                 {
                     if ((now - kvp.Value) > 60_000)
                     {
@@ -652,7 +656,7 @@ namespace NotifySync
         internal static void InvalidateUserCache(string userId)
         {
             var prefix = userId + "_";
-            foreach (var kvp in UserViewCache)
+            foreach (var kvp in UserViewCache.ToList())
             {
                 if (kvp.Key.StartsWith(prefix, StringComparison.Ordinal))
                 {

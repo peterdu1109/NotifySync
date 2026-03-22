@@ -9,6 +9,14 @@
     "supportUrl": "https://github.com/peterdu1109/NotifySync",
     "versions": [
       {
+        "version": "5.5.7.1",
+        "changelog": "<b>🇬🇧 Fixes:</b><br>• Badge size and dismiss button icon refined.<br>• Dismiss button now uses a properly centered icon.<br>• Image loading improved — only shows loaded images, no more blank flashes.<br><br><b>🇫🇷 Corrections :</b><br>• Taille du badge et icône du bouton de suppression affinés.<br>• Le bouton de suppression utilise maintenant une icône parfaitement centrée.<br>• Chargement des images amélioré — seules les images chargées sont affichées.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/5.5.7.1/NotifySync_5.5.7.1.zip",
+        "checksum": "E5057514A6DEC2F010760612ED917261",
+        "timestamp": "2026-03-22T16:00:00Z"
+      },
+      {
         "version": "5.5.7.0",
         "changelog": "<b>🇬🇧 Improvements:</b><br>• NEW/UPD badge is now displayed above the title on each notification, aligned with the thumbnail — cleaner layout.<br>• Titles and subtitles are now truncated with ellipsis instead of wrapping to multiple lines.<br><br><b>🇫🇷 Améliorations :</b><br>• Le badge NOUVEAU/MAJ est maintenant affiché au-dessus du titre sur chaque notification, aligné avec la vignette — mise en page plus propre.<br>• Les titres et sous-titres sont tronqués avec des points de suspension au lieu de passer sur plusieurs lignes.",
         "targetAbi": "10.11.0.0",

@@ -254,7 +254,7 @@ namespace NotifySync
                     }
 
                     var userData = _userDataManager.GetUserData(user, item);
-                    if (userData != null && userData.Played)
+                    if (userData != null && userData.Played && !n.IsUpgrade)
                     {
                         continue;
                     }

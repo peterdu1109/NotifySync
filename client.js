@@ -1,4 +1,4 @@
-/* NOTIFYSYNC V5.5.8.1 */
+/* NOTIFYSYNC V5.5.8.2 */
 (function () {
     let currentData = [];
     let groupedData = [];
@@ -50,8 +50,8 @@
 
     let userLang = navigator.language || 'en';
     const strings = {
-        fr: { header: "Quoi de neuf ?", empty: "Vous êtes à jour !", clearAll: "Vider la liste", clearCat: "Vider", dismiss: "Retirer", badgeNew: "NOUVEAU", badgeUpgrade: "MAJ", newEps: "nouveaux épisodes", eps: "épisodes", newTracks: "nouvelles pistes", tracks: "pistes", filterAll: "Tout", filterMovie: "Films", filterSeries: "Séries", filterMusic: "Musique" },
-        en: { header: "What's New?", empty: "You're all caught up!", clearAll: "Clear list", clearCat: "Clear", dismiss: "Dismiss", badgeNew: "NEW", badgeUpgrade: "UPD", newEps: "new episodes", eps: "episodes", newTracks: "new tracks", tracks: "tracks", filterAll: "All", filterMovie: "Movies", filterSeries: "Series", filterMusic: "Music" }
+        fr: { header: "Quoi de neuf ?", empty: "Vous êtes à jour !", clearAll: "Vider la liste", clearCat: "Vider", dismiss: "Retirer", badgeNew: "NOUVEAU", badgeUpgrade: "MAJ", newEps: "nouveaux épisodes", eps: "épisodes", updEps: "épisodes mis à jour", newTracks: "nouvelles pistes", tracks: "pistes", updTracks: "pistes mises à jour", filterAll: "Tout", filterMovie: "Films", filterSeries: "Séries", filterMusic: "Musique" },
+        en: { header: "What's New?", empty: "You're all caught up!", clearAll: "Clear list", clearCat: "Clear", dismiss: "Dismiss", badgeNew: "NEW", badgeUpgrade: "UPD", newEps: "new episodes", eps: "episodes", updEps: "updated episodes", newTracks: "new tracks", tracks: "tracks", updTracks: "updated tracks", filterAll: "All", filterMovie: "Movies", filterSeries: "Series", filterMusic: "Music" }
     };
     let T = strings[userLang.startsWith('fr') ? 'fr' : 'en'];
 
@@ -219,13 +219,19 @@
         seriesMap.forEach((eps) => {
             eps.sort((a, b) => new Date(b.DateCreated) - new Date(a.DateCreated));
             if (eps.length === 0) return;
-            const latest = eps[0];
-            const hasNew = eps.some(e => e.IsNew);
-            const hasBadge = eps.some(e => e.ShowBadge);
-            const newCount = eps.filter(e => e.ShowBadge).length;
-            if (eps.length > 1) {
-                result.push({ ...latest, IsGroup: true, GroupCount: eps.length, NewCount: newCount, Name: latest.SeriesName || latest.Name, Id: latest.SeriesId || latest.Id, IsNew: hasNew, ShowBadge: hasBadge });
-            } else { result.push(latest); }
+            // Separate upgrades from new episodes so they don't merge
+            const upgrades = eps.filter(e => e.IsUpgrade);
+            const newEps = eps.filter(e => !e.IsUpgrade);
+            [newEps, upgrades].forEach(subset => {
+                if (subset.length === 0) return;
+                const latest = subset[0];
+                const hasNew = subset.some(e => e.IsNew);
+                const hasBadge = subset.some(e => e.ShowBadge);
+                const newCount = subset.filter(e => e.ShowBadge).length;
+                if (subset.length > 1) {
+                    result.push({ ...latest, IsGroup: true, GroupCount: subset.length, NewCount: newCount, Name: latest.SeriesName || latest.Name, Id: latest.SeriesId || latest.Id, IsNew: hasNew, ShowBadge: hasBadge });
+                } else { result.push(latest); }
+            });
         });
         return result.sort((a, b) => new Date(b.DateCreated) - new Date(a.DateCreated));
     };
@@ -488,7 +494,7 @@
             }
             if (isGroup) {
                 const isMusic = hero.Type === 'Audio';
-                const lbl = isMusic ? (hero.ShowBadge ? T.newTracks : T.tracks) : (hero.ShowBadge ? T.newEps : T.eps);
+                const lbl = hero.IsUpgrade ? (isMusic ? T.updTracks : T.updEps) : isMusic ? (hero.ShowBadge ? T.newTracks : T.tracks) : (hero.ShowBadge ? T.newEps : T.eps);
                 heroSub = hero.ShowBadge ? `${hero.NewCount || hero.GroupCount} ${lbl}` : `${hero.GroupCount} ${lbl}`;
             }
 
@@ -507,7 +513,7 @@
             let title = escapeHtml(item.Name), sub = escapeHtml(String(item.ProductionYear ?? ''));
             if (!isGroup && item.Type === 'Episode') { title = escapeHtml(formatEpisodeTitle(item)); sub = escapeHtml(item.SeriesName); }
             if (isGroup) {
-                const lbl = isMusic ? (item.ShowBadge ? T.newTracks : T.tracks) : (item.ShowBadge ? T.newEps : T.eps);
+                const lbl = item.IsUpgrade ? (isMusic ? T.updTracks : T.updEps) : isMusic ? (item.ShowBadge ? T.newTracks : T.tracks) : (item.ShowBadge ? T.newEps : T.eps);
                 sub = item.ShowBadge ? `${item.NewCount || item.GroupCount} ${lbl}` : `${item.GroupCount} ${lbl}`;
             }
 

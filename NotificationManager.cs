@@ -812,7 +812,10 @@ namespace NotifySync
                 }
 
                 count++;
-                progress?.Report((double)count / items.Count * 100);
+                if (items.Count > 0)
+                {
+                    progress?.Report((double)count / items.Count * 100);
+                }
             }
 
             // Log diagnostics

@@ -9,12 +9,12 @@
     "supportUrl": "https://github.com/peterdu1109/NotifySync",
     "versions": [
       {
-        "version": "5.5.8.0",
-        "changelog": "<b>🇬🇧 Improvements:</b><br>• Collection items now navigate to the correct Jellyfin page (uses real item ID).<br>• localStorage is now scoped per user — multiple users on the same browser no longer share notification state.<br>• Filter pills are keyboard-accessible (Tab + Enter/Space).<br>• Scheduled task names are now in English for international consistency.<br>• client.js is cached for 5 minutes (was no-cache) — reduces unnecessary re-downloads.<br>• Config page quota range aligned with server limit (1–50).<br>• Fixed CSS selector escaping for collection IDs with special characters.<br><br><b>🇫🇷 Améliorations :</b><br>• Les éléments de collection redirigent maintenant vers la bonne page Jellyfin (utilise le vrai ID).<br>• Le localStorage est isolé par utilisateur — plusieurs utilisateurs sur le même navigateur ne partagent plus l'état des notifications.<br>• Les filtres par catégorie sont accessibles au clavier (Tab + Entrée/Espace).<br>• Les noms des tâches planifiées sont maintenant en anglais pour la cohérence internationale.<br>• client.js est mis en cache 5 minutes (était sans cache) — réduit les re-téléchargements inutiles.<br>• Plage de quota alignée avec la limite serveur (1–50).<br>• Correction de l'échappement CSS pour les IDs de collection avec caractères spéciaux.",
+        "version": "5.5.8.1",
+        "changelog": "<b>🇬🇧 Fixes:</b><br>• Fixed localStorage cache migration — upgrading from 5.5.7.x no longer loses cached data.<br>• Hero image now falls back to Primary poster if backdrop fails to load (no more black hero).<br>• Fixed potential division by zero in scan progress reporting.<br>• Dates now handle invalid values gracefully instead of showing NaN.<br><br><b>🇫🇷 Corrections :</b><br>• Correction de la migration du cache localStorage — la mise à jour depuis 5.5.7.x ne perd plus les données en cache.<br>• L'image hero utilise maintenant le poster Primary si le backdrop échoue (plus de hero noir).<br>• Correction d'une division par zéro possible dans le rapport de progression du scan.<br>• Les dates gèrent maintenant les valeurs invalides sans afficher NaN.",
         "targetAbi": "10.11.0.0",
-        "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/5.5.8.0/NotifySync_5.5.8.0.zip",
-        "checksum": "F2E2DE179FA34F5CF6CE6B8FC677C309",
-        "timestamp": "2026-03-22T23:00:00Z"
+        "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/5.5.8.1/NotifySync_5.5.8.1.zip",
+        "checksum": "580000232A31F4B4F7D4D0EC97483B2A",
+        "timestamp": "2026-03-22T23:30:00Z"
       },
       {
         "version": "5.5.7.5",

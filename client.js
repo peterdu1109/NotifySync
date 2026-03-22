@@ -1,4 +1,4 @@
-/* NOTIFYSYNC V5.5.8.0 */
+/* NOTIFYSYNC V5.5.8.1 */
 (function () {
     let currentData = [];
     let groupedData = [];
@@ -75,7 +75,9 @@
     };
 
     const timeAgo = (date) => {
-        const diff = (new Date(date) - new Date()) / 1000;
+        const d = new Date(date);
+        if (isNaN(d.getTime())) return '';
+        const diff = (d - new Date()) / 1000;
         if (Math.abs(diff) < 60) return rtf.format(Math.round(diff), 'second');
         if (Math.abs(diff) < 3600) return rtf.format(Math.round(diff / 60), 'minute');
         if (Math.abs(diff) < 86400) return rtf.format(Math.round(diff / 3600), 'hour');
@@ -184,7 +186,7 @@
             .hero-section .dismiss-btn { top:10px; right:10px; background:rgba(0,0,0,0.5); color:#fff; z-index:3; }
             .hero-section:hover .dismiss-btn { opacity:1; }
             .hero-section .dismiss-btn:hover { background:rgba(229,9,20,0.8); }
-            .hero-bg { position: absolute; inset: 0; background-size: cover; background-position: center center; transition: transform 5s ease; }
+            .hero-bg { position: absolute; inset: 0; background-size: cover; background-position: center center; transition: transform 5s ease; background-color: #1a1a2e; }
             .hero-overlay { position: absolute; inset: 0; background: linear-gradient(to top, var(--ns-glass) 5%, transparent 100%); }
             .hero-content { position: relative; z-index: 2; padding: 20px; width: 100%; }
             .hero-badge { background: var(--ns-red); color: #fff; font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 3px; display: inline-block; margin-bottom: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.5); }
@@ -381,14 +383,27 @@
 
     const loadFromCache = () => {
         try {
+            // Helper: read from scoped key, fallback to legacy unscoped key + migrate
+            const getWithLegacy = (k) => {
+                const scoped = nsKey(k);
+                let val = localStorage.getItem(scoped);
+                if (val) return val;
+                const legacy = `ns-${k}`;
+                if (legacy !== scoped) {
+                    val = localStorage.getItem(legacy);
+                    if (val) { localStorage.setItem(scoped, val); localStorage.removeItem(legacy); }
+                }
+                return val;
+            };
+
             // Restore lastSeenDate from localStorage first
-            const cachedCleared = localStorage.getItem(nsKey('cleared'));
+            const cachedCleared = getWithLegacy('cleared');
             if (cachedCleared) {
                 lastSeenDate = new Date(cachedCleared);
             }
 
             // Check TTL (1 hour max)
-            const cachedTime = parseInt(localStorage.getItem(nsKey('data-ts')) || '0');
+            const cachedTime = parseInt(getWithLegacy('data-ts') || '0');
             if (Date.now() - cachedTime > 3600000) {
                 localStorage.removeItem(nsKey('data'));
                 localStorage.removeItem(nsKey('etag'));
@@ -396,7 +411,7 @@
                 return;
             }
 
-            const cached = localStorage.getItem(nsKey('data'));
+            const cached = getWithLegacy('data');
             if (cached) {
                 try {
                     currentData = JSON.parse(cached);
@@ -404,6 +419,8 @@
                     recalculateNewStatus();
                 } catch (pe) { localStorage.removeItem(nsKey('data')); localStorage.removeItem(nsKey('etag')); localStorage.removeItem(nsKey('data-ts')); }
             }
+            // Migrate legacy etag if present
+            getWithLegacy('etag');
         } catch (e) { }
     };
 
@@ -477,7 +494,8 @@
 
             const safeHeroId = escapeHtml(hero.Id);
             const heroNavId = escapeHtml(hero.RealItemId || hero.Id);
-            htmlParts.push(`<div class="hero-section" onclick="document.dispatchEvent(new CustomEvent('ns-navigate', {detail: '${heroNavId}'}))"><div class="hero-bg" style="background-image:url('${escapeHtml(heroImg)}')"></div><div class="hero-overlay"></div><button class="dismiss-btn" title="${T.dismiss}" aria-label="${T.dismiss}" onclick="event.stopPropagation(); document.dispatchEvent(new CustomEvent('ns-dismiss', {detail: '${safeHeroId}'}))">close</button><div class="hero-content">${hero.IsUpgrade && hero.ShowBadge ? `<span class="hero-badge-upgrade">${T.badgeUpgrade}</span>` : hero.ShowBadge ? `<span class="hero-badge">${T.badgeNew}</span>` : ''}<div style="font-size:18px;font-weight:700;text-shadow:0 2px 4px #000;line-height:1.2;">${heroTitle}</div><div style="font-size:12px;opacity:0.8;margin-top:4px">${heroSub} &bull; ${timeAgo(hero.DateCreated)}</div></div></div>`);
+            const heroFallbackImg = client.getUrl(`Items/${encodeURIComponent(hero.SeriesId || hero.Id)}/Images/Primary?quality=70&fillWidth=380&fillHeight=160&format=webp`);
+            htmlParts.push(`<div class="hero-section" onclick="document.dispatchEvent(new CustomEvent('ns-navigate', {detail: '${heroNavId}'}))"><div class="hero-bg"><img src="${escapeHtml(heroImg)}" alt="" style="width:100%;height:100%;object-fit:cover;" onerror="if(this.dataset.fb){this.src=this.dataset.fb;this.removeAttribute('data-fb')}else{this.style.display='none'}" data-fb="${escapeHtml(heroFallbackImg)}"></div><div class="hero-overlay"></div><button class="dismiss-btn" title="${T.dismiss}" aria-label="${T.dismiss}" onclick="event.stopPropagation(); document.dispatchEvent(new CustomEvent('ns-dismiss', {detail: '${safeHeroId}'}))">close</button><div class="hero-content">${hero.IsUpgrade && hero.ShowBadge ? `<span class="hero-badge-upgrade">${T.badgeUpgrade}</span>` : hero.ShowBadge ? `<span class="hero-badge">${T.badgeNew}</span>` : ''}<div style="font-size:18px;font-weight:700;text-shadow:0 2px 4px #000;line-height:1.2;">${heroTitle}</div><div style="font-size:12px;opacity:0.8;margin-top:4px">${heroSub} &bull; ${timeAgo(hero.DateCreated)}</div></div></div>`);
         }
 
         filtered.filter(x => x !== hero).forEach(item => {

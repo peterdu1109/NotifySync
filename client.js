@@ -166,7 +166,7 @@
             .list-container { max-height: 500px; overflow-y: auto; -webkit-overflow-scrolling: touch; content-visibility: auto; contain-intrinsic-size: 500px; flex: 1; }
             .dropdown-item { display:flex; padding:12px 20px; border-bottom:1px solid var(--ns-border); cursor:pointer; transition: background .2s; position: relative; }
             .dropdown-item:hover { background: rgba(255,255,255,0.08); }
-            .item-badge { position: absolute; left: 4px; top: 50%; transform: translateY(-50%); font-size: 8px; font-weight: bold; padding: 2px 5px; border-radius: 3px; color: #fff; display: none; line-height: 1; letter-spacing: 0.5px; }
+            .item-badge { display: none; font-size: 7px; font-weight: bold; padding: 1px 4px; border-radius: 2px; color: #fff; line-height: 1; letter-spacing: 0.5px; width: fit-content; margin-bottom: 2px; }
             .style-new .item-badge { display: block; background: var(--ns-red); box-shadow: 0 1px 3px rgba(229,9,20,0.5); }
             .style-new { background: rgba(229, 9, 20, 0.05); }
             .style-upgrade .item-badge { display: block; background: var(--ns-upgrade); box-shadow: 0 1px 3px rgba(33,150,243,0.5); }
@@ -176,8 +176,8 @@
             .dropdown-thumb.music { object-fit:contain; }
             .dropdown-thumb.loaded { opacity:1; }
             .dropdown-info { flex:1; display:flex; flex-direction:column; justify-content:center; min-width: 0; }
-            .dropdown-title { font-weight:600; font-size:13px; margin-bottom:4px; white-space: normal; line-height: 1.2; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-            .dropdown-subtitle { font-size:11px; color:#aaa; white-space: normal; line-height: 1.3; }
+            .dropdown-title { font-weight:600; font-size:13px; margin-bottom:2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.2; }
+            .dropdown-subtitle { font-size:11px; color:#aaa; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.2; }
             .hero-section { height: 160px; position: relative; cursor: pointer; display: flex; align-items: flex-end; margin-bottom: -1px; flex-shrink: 0; }
             .hero-section .dismiss-btn { top:10px; right:10px; background:rgba(0,0,0,0.5); color:#fff; z-index:3; }
             .hero-section:hover .dismiss-btn { opacity:1; }
@@ -489,7 +489,8 @@
             }
 
             const safeId = escapeHtml(item.Id);
-            htmlParts.push(`<div class="dropdown-item ${item.IsUpgrade && item.ShowBadge ? 'style-upgrade' : item.ShowBadge ? 'style-new' : 'style-seen'}" data-item-id="${safeId}" onclick="document.dispatchEvent(new CustomEvent('ns-navigate', {detail: '${safeId}'}))"><div class="item-badge">${item.IsUpgrade ? T.badgeUpgrade : T.badgeNew}</div><button class="dismiss-btn" title="${T.dismiss}" aria-label="${T.dismiss}" onclick="event.stopPropagation(); document.dispatchEvent(new CustomEvent('ns-dismiss', {detail: '${safeId}'}))">&times;</button><div class="swipe-delete">${T.dismiss}</div><div class="thumb-wrapper"><img data-src="${imgUrl}" decoding="async" class="dropdown-thumb ${isMusic ? 'music' : ''}" loading="lazy" onerror="if(this.dataset.fallback){this.src=this.dataset.fallback;this.removeAttribute('data-fallback')}else{this.style.display='none'}" data-fallback="${fallbackUrl}"><span class="material-icons" style="color:#444;position:absolute;z-index:-1;">${isMusic ? 'album' : 'movie'}</span></div><div class="dropdown-info"><div class="dropdown-title">${title}</div><div class="dropdown-subtitle">${sub} &bull; ${timeAgo(item.DateCreated)}</div></div></div>`);
+            const badgeHtml = item.ShowBadge ? `<span class="item-badge">${item.IsUpgrade ? T.badgeUpgrade : T.badgeNew}</span>` : '';
+            htmlParts.push(`<div class="dropdown-item ${item.IsUpgrade && item.ShowBadge ? 'style-upgrade' : item.ShowBadge ? 'style-new' : 'style-seen'}" data-item-id="${safeId}" onclick="document.dispatchEvent(new CustomEvent('ns-navigate', {detail: '${safeId}'}))"><button class="dismiss-btn" title="${T.dismiss}" aria-label="${T.dismiss}" onclick="event.stopPropagation(); document.dispatchEvent(new CustomEvent('ns-dismiss', {detail: '${safeId}'}))">&times;</button><div class="swipe-delete">${T.dismiss}</div><div class="thumb-wrapper"><img data-src="${imgUrl}" decoding="async" class="dropdown-thumb ${isMusic ? 'music' : ''}" loading="lazy" onerror="if(this.dataset.fallback){this.src=this.dataset.fallback;this.removeAttribute('data-fallback')}else{this.style.display='none'}" data-fallback="${fallbackUrl}"><span class="material-icons" style="color:#444;position:absolute;z-index:-1;">${isMusic ? 'album' : 'movie'}</span></div><div class="dropdown-info">${badgeHtml}<div class="dropdown-title">${title}</div><div class="dropdown-subtitle">${sub} &bull; ${timeAgo(item.DateCreated)}</div></div></div>`);
         });
 
         if (activeFilter === 'All') {

@@ -13,7 +13,7 @@
         "changelog": "<b>🇬🇧 Fixes:</b><br>• Long titles and series names are now properly truncated with '...' — the date (e.g. '3h ago') always stays visible.<br>• Full text appears on hover (tooltip).<br><br><b>🇫🇷 Corrections :</b><br>• Les titres longs sont tronqués proprement avec '...' — la date (ex: 'il y a 3h') reste toujours visible.<br>• Le texte complet s'affiche au survol (info-bulle).",
         "targetAbi": "10.11.0.0",
         "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/5.5.7.4/NotifySync_5.5.7.4.zip",
-        "checksum": "52894CECB208EDB2AFC7F4C0595D675D",
+        "checksum": "979524DA6467071E8B09761CA8073653",
         "timestamp": "2026-03-22T21:00:00Z"
       },
       {

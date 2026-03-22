@@ -103,6 +103,14 @@ namespace NotifySync
         public long? DateModifiedTicks { get; set; }
 
         /// <summary>
+        /// Gets or sets the file size in bytes, used for upgrade detection.
+        /// A change in size strongly indicates a replaced source file rather than a metadata refresh.
+        /// Internal only — not exposed in the API response.
+        /// </summary>
+        [JsonIgnore]
+        public long? Size { get; set; }
+
+        /// <summary>
         /// Creates a shallow copy of the current notification item.
         /// </summary>
         /// <returns>A new <see cref="NotificationItem"/>.</returns>

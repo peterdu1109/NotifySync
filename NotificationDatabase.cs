@@ -82,7 +82,8 @@ namespace NotifySync
                             IndexNumber INTEGER,
                             ParentIndexNumber INTEGER,
                             IsUpgrade INTEGER NOT NULL DEFAULT 0,
-                            DateModifiedTicks INTEGER
+                            DateModifiedTicks INTEGER,
+                            Size INTEGER
                         );
                         CREATE INDEX IF NOT EXISTS idx_notifications_date ON Notifications(DateCreated DESC);
 
@@ -122,6 +123,7 @@ namespace NotifySync
                 // Migration: add columns for existing databases
                 MigrateAddColumn(connection, "Notifications", "IsUpgrade", "INTEGER NOT NULL DEFAULT 0");
                 MigrateAddColumn(connection, "Notifications", "DateModifiedTicks", "INTEGER");
+                MigrateAddColumn(connection, "Notifications", "Size", "INTEGER");
             }
             catch (Exception ex)
             {
@@ -163,12 +165,12 @@ namespace NotifySync
                     Id, Name, Category, SeriesName, SeriesId, DateCreated,
                     Type, RunTimeTicks, ProductionYear, BackdropImageTags,
                     PrimaryImageTag, IndexNumber, ParentIndexNumber,
-                    IsUpgrade, DateModifiedTicks
+                    IsUpgrade, DateModifiedTicks, Size
                 ) VALUES (
                     @Id, @Name, @Category, @SeriesName, @SeriesId, @DateCreated,
                     @Type, @RunTimeTicks, @ProductionYear, @Backdrop,
                     @Primary, @Index, @ParentIndex,
-                    @IsUpgrade, @DateModifiedTicks
+                    @IsUpgrade, @DateModifiedTicks, @Size
                 )";
 
             var pId = cmd.Parameters.Add("@Id", SqliteType.Text);
@@ -186,6 +188,7 @@ namespace NotifySync
             var pPIdx = cmd.Parameters.Add("@ParentIndex", SqliteType.Integer);
             var pUpgrade = cmd.Parameters.Add("@IsUpgrade", SqliteType.Integer);
             var pDateMod = cmd.Parameters.Add("@DateModifiedTicks", SqliteType.Integer);
+            var pSize = cmd.Parameters.Add("@Size", SqliteType.Integer);
 
             void Bind(NotificationItem item)
             {
@@ -204,6 +207,7 @@ namespace NotifySync
                 pPIdx.Value = (object?)item.ParentIndexNumber ?? DBNull.Value;
                 pUpgrade.Value = item.IsUpgrade ? 1 : 0;
                 pDateMod.Value = (object?)item.DateModifiedTicks ?? DBNull.Value;
+                pSize.Value = (object?)item.Size ?? DBNull.Value;
             }
 
             return (cmd, Bind);
@@ -419,6 +423,7 @@ namespace NotifySync
                 int oParentIndex = reader.GetOrdinal("ParentIndexNumber");
                 int oIsUpgrade = reader.GetOrdinal("IsUpgrade");
                 int oDateModTicks = reader.GetOrdinal("DateModifiedTicks");
+                int oSize = reader.GetOrdinal("Size");
 
                 while (reader.Read())
                 {
@@ -438,7 +443,8 @@ namespace NotifySync
                         IndexNumber = reader.IsDBNull(oIndex) ? null : reader.GetInt32(oIndex),
                         ParentIndexNumber = reader.IsDBNull(oParentIndex) ? null : reader.GetInt32(oParentIndex),
                         IsUpgrade = !reader.IsDBNull(oIsUpgrade) && reader.GetInt32(oIsUpgrade) != 0,
-                        DateModifiedTicks = reader.IsDBNull(oDateModTicks) ? null : reader.GetInt64(oDateModTicks)
+                        DateModifiedTicks = reader.IsDBNull(oDateModTicks) ? null : reader.GetInt64(oDateModTicks),
+                        Size = reader.IsDBNull(oSize) ? null : reader.GetInt64(oSize)
                     });
                 }
             }

@@ -1,4 +1,4 @@
-/* NOTIFYSYNC V5.5.5.0 */
+/* NOTIFYSYNC V5.5.6.0 */
 (function () {
     let currentData = [];
     let groupedData = [];
@@ -166,10 +166,10 @@
             .list-container { max-height: 500px; overflow-y: auto; -webkit-overflow-scrolling: touch; content-visibility: auto; contain-intrinsic-size: 500px; flex: 1; }
             .dropdown-item { display:flex; padding:12px 20px; border-bottom:1px solid var(--ns-border); cursor:pointer; transition: background .2s; position: relative; }
             .dropdown-item:hover { background: rgba(255,255,255,0.08); }
-            .status-dot { position: absolute; left: 6px; top: 50%; transform: translateY(-50%); width: 4px; height: 4px; border-radius: 50%; background: var(--ns-red); box-shadow: 0 0 5px var(--ns-red); display: none; }
-            .style-new .status-dot { display: block; }
+            .item-badge { position: absolute; left: 4px; top: 50%; transform: translateY(-50%); font-size: 8px; font-weight: bold; padding: 2px 5px; border-radius: 3px; color: #fff; display: none; line-height: 1; letter-spacing: 0.5px; }
+            .style-new .item-badge { display: block; background: var(--ns-red); box-shadow: 0 1px 3px rgba(229,9,20,0.5); }
             .style-new { background: rgba(229, 9, 20, 0.05); }
-            .style-upgrade .status-dot { display: block; background: var(--ns-upgrade); box-shadow: 0 0 5px var(--ns-upgrade); }
+            .style-upgrade .item-badge { display: block; background: var(--ns-upgrade); box-shadow: 0 1px 3px rgba(33,150,243,0.5); }
             .style-upgrade { background: rgba(33, 150, 243, 0.05); }
             .thumb-wrapper { width:90px; height:50px; margin-right:15px; flex-shrink:0; background:#222; border-radius:6px; overflow:hidden; display:flex; justify-content:center; align-items:center; box-shadow: 0 2px 5px rgba(0,0,0,0.3); }
             .dropdown-thumb { width:100%; height:100%; object-fit:cover; opacity:0; transition:opacity 0.3s; }
@@ -479,6 +479,7 @@
             const isMusic = item.Type === 'Audio';
             const isGroup = !!item.IsGroup;
             const imgUrl = client.getUrl(`Items/${encodeURIComponent(item.Id)}/Images/Primary?tag=${encodeURIComponent(item.PrimaryImageTag || '')}&${isMusic ? 'fillHeight=100&fillWidth=100' : 'fillHeight=112&fillWidth=200'}&quality=80&format=webp`);
+            const fallbackUrl = item.SeriesId ? client.getUrl(`Items/${encodeURIComponent(item.SeriesId)}/Images/Primary?${isMusic ? 'fillHeight=100&fillWidth=100' : 'fillHeight=112&fillWidth=200'}&quality=80&format=webp`) : '';
 
             let title = escapeHtml(item.Name), sub = escapeHtml(String(item.ProductionYear ?? ''));
             if (!isGroup && item.Type === 'Episode') { title = escapeHtml(formatEpisodeTitle(item)); sub = escapeHtml(item.SeriesName); }
@@ -488,7 +489,7 @@
             }
 
             const safeId = escapeHtml(item.Id);
-            htmlParts.push(`<div class="dropdown-item ${item.IsUpgrade && item.ShowBadge ? 'style-upgrade' : item.ShowBadge ? 'style-new' : 'style-seen'}" data-item-id="${safeId}" onclick="document.dispatchEvent(new CustomEvent('ns-navigate', {detail: '${safeId}'}))"><div class="status-dot"></div><button class="dismiss-btn" title="${T.dismiss}" aria-label="${T.dismiss}" onclick="event.stopPropagation(); document.dispatchEvent(new CustomEvent('ns-dismiss', {detail: '${safeId}'}))">&times;</button><div class="swipe-delete">${T.dismiss}</div><div class="thumb-wrapper"><img data-src="${imgUrl}" decoding="async" class="dropdown-thumb ${isMusic ? 'music' : ''}" loading="lazy" onerror="this.style.display='none'"><span class="material-icons" style="color:#444;position:absolute;z-index:-1;">${isMusic ? 'album' : 'movie'}</span></div><div class="dropdown-info"><div class="dropdown-title">${title}</div><div class="dropdown-subtitle">${sub} &bull; ${timeAgo(item.DateCreated)}</div></div></div>`);
+            htmlParts.push(`<div class="dropdown-item ${item.IsUpgrade && item.ShowBadge ? 'style-upgrade' : item.ShowBadge ? 'style-new' : 'style-seen'}" data-item-id="${safeId}" onclick="document.dispatchEvent(new CustomEvent('ns-navigate', {detail: '${safeId}'}))"><div class="item-badge">${item.IsUpgrade ? T.badgeUpgrade : T.badgeNew}</div><button class="dismiss-btn" title="${T.dismiss}" aria-label="${T.dismiss}" onclick="event.stopPropagation(); document.dispatchEvent(new CustomEvent('ns-dismiss', {detail: '${safeId}'}))">&times;</button><div class="swipe-delete">${T.dismiss}</div><div class="thumb-wrapper"><img data-src="${imgUrl}" decoding="async" class="dropdown-thumb ${isMusic ? 'music' : ''}" loading="lazy" onerror="if(this.dataset.fallback){this.src=this.dataset.fallback;this.removeAttribute('data-fallback')}else{this.style.display='none'}" data-fallback="${fallbackUrl}"><span class="material-icons" style="color:#444;position:absolute;z-index:-1;">${isMusic ? 'album' : 'movie'}</span></div><div class="dropdown-info"><div class="dropdown-title">${title}</div><div class="dropdown-subtitle">${sub} &bull; ${timeAgo(item.DateCreated)}</div></div></div>`);
         });
 
         if (activeFilter === 'All') {
@@ -732,6 +733,9 @@
         detectJellyfinLang();
         fetchData();
     });
+
+    // Background polling every 5 min to catch metadata updates (images, etc.)
+    setInterval(() => { if (!document.hidden && !isFetching) fetchData(); }, 300000);
 
     // Handle SPA navigation visibility changes
     document.addEventListener("visibilitychange", () => {

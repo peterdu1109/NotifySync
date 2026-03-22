@@ -456,9 +456,15 @@ namespace NotifySync
                     if (updatedNotif != null)
                     {
                         // Détecter un changement de fichier source (upgrade qualité)
-                        if (existing.DateModifiedTicks.HasValue
+                        // On exige un changement de taille pour distinguer un vrai remplacement de fichier
+                        // d'une simple mise à jour de métadonnées (qui ne change que DateModifiedTicks)
+                        bool sizeChanged = existing.Size.HasValue
+                            && updatedNotif.Size.HasValue
+                            && existing.Size.Value != updatedNotif.Size.Value;
+                        bool dateChanged = existing.DateModifiedTicks.HasValue
                             && updatedNotif.DateModifiedTicks.HasValue
-                            && existing.DateModifiedTicks.Value != updatedNotif.DateModifiedTicks.Value)
+                            && existing.DateModifiedTicks.Value != updatedNotif.DateModifiedTicks.Value;
+                        if (sizeChanged && dateChanged)
                         {
                             updatedNotif.IsUpgrade = true;
                             updatedNotif.DateCreated = DateTime.UtcNow; // Remonter en tête de liste
@@ -1108,7 +1114,8 @@ namespace NotifySync
                     PrimaryImageTag = item.ImageInfos.Where(i => i.Type == ImageType.Primary).Select(i => i.DateModified.Ticks.ToString(CultureInfo.InvariantCulture)).FirstOrDefault(),
                     IndexNumber = item.IndexNumber,
                     ParentIndexNumber = item.ParentIndexNumber,
-                    DateModifiedTicks = item.DateModified.Ticks
+                    DateModifiedTicks = item.DateModified.Ticks,
+                    Size = item.Size
                 };
 
                 if (item.GetBaseItemKind() == BaseItemKind.Audio && item is MediaBrowser.Controller.Entities.Audio.Audio audioItem)
@@ -1213,7 +1220,8 @@ namespace NotifySync
                     PrimaryImageTag = item.ImageInfos.Where(i => i.Type == ImageType.Primary).Select(i => i.DateModified.Ticks.ToString(System.Globalization.CultureInfo.InvariantCulture)).FirstOrDefault(),
                     IndexNumber = item.IndexNumber,
                     ParentIndexNumber = item.ParentIndexNumber,
-                    DateModifiedTicks = item.DateModified.Ticks
+                    DateModifiedTicks = item.DateModified.Ticks,
+                    Size = item.Size
                 };
 
                 if (item.GetBaseItemKind() == BaseItemKind.Audio && item is MediaBrowser.Controller.Entities.Audio.Audio audioItem)

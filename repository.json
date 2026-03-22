@@ -9,6 +9,14 @@
     "supportUrl": "https://github.com/peterdu1109/NotifySync",
     "versions": [
       {
+        "version": "5.5.7.0",
+        "changelog": "<b>🇬🇧 Improvements:</b><br>• NEW/UPD badge is now displayed above the title on each notification, aligned with the thumbnail — cleaner layout.<br>• Titles and subtitles are now truncated with ellipsis instead of wrapping to multiple lines.<br><br><b>🇫🇷 Améliorations :</b><br>• Le badge NOUVEAU/MAJ est maintenant affiché au-dessus du titre sur chaque notification, aligné avec la vignette — mise en page plus propre.<br>• Les titres et sous-titres sont tronqués avec des points de suspension au lieu de passer sur plusieurs lignes.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/5.5.7.0/NotifySync_5.5.7.0.zip",
+        "checksum": "D6071B1AE9157B964C4D27C18753898B",
+        "timestamp": "2026-03-22T15:00:00Z"
+      },
+      {
         "version": "5.5.6.0",
         "changelog": "<b>🇬🇧 Improvements:</b><br>• NEW and UPD badges are now displayed as text labels on each notification item (not just the hero), replacing the small dot.<br>• Upgrade detection is now more accurate — only real file replacements trigger the UPD badge, not simple metadata refreshes.<br>• Episodes and music tracks without their own image now fall back to the series poster or album cover.<br>• Images now auto-refresh every 5 minutes in the background to catch TMDB metadata updates.<br><br><b>🇫🇷 Améliorations :</b><br>• Les badges NOUVEAU et MAJ sont maintenant affichés en texte sur chaque notification (pas seulement le hero), remplaçant le petit point.<br>• La détection de mise à jour est plus précise — seul un vrai remplacement de fichier déclenche le badge MAJ, pas un simple rafraîchissement de métadonnées.<br>• Les épisodes et morceaux sans image propre utilisent maintenant le poster de la série ou la pochette de l'album.<br>• Les images se rafraîchissent automatiquement toutes les 5 minutes pour capter les mises à jour TMDB.",
         "targetAbi": "10.11.0.0",

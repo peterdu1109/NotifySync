@@ -40,6 +40,7 @@ namespace NotifySync
         private readonly CancellationTokenSource _disposeCts = new ();
 
         private readonly ConcurrentDictionary<string, long> _userStateVersion = new ();
+        private readonly ConcurrentDictionary<string, DateTime> _recentlyRemovedIds = new ();
         private int _isClearedDirty;
         private List<NotificationItem> _notifications = new List<NotificationItem>();
         private long _versionCounter = DateTime.UtcNow.Ticks;
@@ -417,6 +418,12 @@ namespace NotifySync
                 int removed = _notifications.RemoveAll(n => n.Id == itemId);
                 if (removed > 0)
                 {
+                    // Track recently removed notification IDs for upgrade detection.
+                    // When Radarr/Sonarr upgrades a file, Jellyfin fires ItemRemoved then
+                    // ItemAdded/ItemUpdated. By remembering the removed ID, we can detect
+                    // the re-appearing item as an upgrade rather than a new addition.
+                    _recentlyRemovedIds[itemId] = DateTime.UtcNow;
+
                     dbNeedsUpdate = true;
                     Interlocked.Increment(ref _versionCounter);
                 }
@@ -433,6 +440,16 @@ namespace NotifySync
             {
                 _db.DeleteNotifications(new[] { itemId });
                 _db.DeleteStatesForNotification(itemId);
+            }
+
+            // Purge stale entries older than 10 minutes
+            var cutoff = DateTime.UtcNow.AddMinutes(-10);
+            foreach (var kvp in _recentlyRemovedIds)
+            {
+                if (kvp.Value < cutoff)
+                {
+                    _recentlyRemovedIds.TryRemove(kvp.Key, out _);
+                }
             }
         }
 
@@ -581,15 +598,30 @@ namespace NotifySync
                     var notif = CreateNotificationFromItem(item);
                     if (notif != null)
                     {
-                        // Check deleted history for upgrade detection (delete + re-add scenario)
-                        bool deletedMatch = _db.HasRecentDeletedMatch(notif.Name, notif.Type, notif.ProductionYear, notif.SeriesName, notif.IndexNumber, notif.ParentIndexNumber);
+                        // Primary upgrade detection: check if this item was just removed
+                        // (Radarr/Sonarr upgrade flow: ItemRemoved → ItemAdded for same ID)
+                        bool recentlyRemoved = _recentlyRemovedIds.TryRemove(notif.Id, out var removedAt)
+                            && (DateTime.UtcNow - removedAt).TotalMinutes < 10;
+
+                        // Fallback: check deleted history (delete + re-add with new Jellyfin ID)
+                        bool deletedMatch = !recentlyRemoved
+                            && _db.HasRecentDeletedMatch(
+                                notif.Name,
+                                notif.Type,
+                                notif.ProductionYear,
+                                notif.SeriesName,
+                                notif.IndexNumber,
+                                notif.ParentIndexNumber);
+
                         _logger.LogInformation(
-                            "NotifySync ProcessBuffer: {Name} Type={Type} Year={Year} | deletedMatch={Match}",
+                            "NotifySync ProcessBuffer: {Name} Type={Type} Year={Year} | recentlyRemoved={Removed} | deletedMatch={Match}",
                             notif.Name,
                             notif.Type,
                             notif.ProductionYear,
+                            recentlyRemoved,
                             deletedMatch);
-                        if (!notif.IsUpgrade && deletedMatch)
+
+                        if (!notif.IsUpgrade && (recentlyRemoved || deletedMatch))
                         {
                             notif.IsUpgrade = true;
                         }

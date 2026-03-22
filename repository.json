@@ -9,6 +9,14 @@
     "supportUrl": "https://github.com/peterdu1109/NotifySync",
     "versions": [
       {
+        "version": "5.5.8.5",
+        "changelog": "<b>🇬🇧 Fix:</b><br>• Fixed movie upgrade detection when Radarr/Sonarr replaces a file (Jellyfin fires ItemRemoved + ItemAdded instead of ItemUpdated). The plugin now tracks recently-removed items in memory so re-appearing items are correctly marked as upgrades.<br><br><b>🇫🇷 Correction :</b><br>• Correction de la détection d'upgrade pour les films quand Radarr/Sonarr remplace un fichier (Jellyfin envoie ItemRemoved + ItemAdded au lieu de ItemUpdated). Le plugin mémorise les items récemment supprimés pour les marquer correctement comme mises à jour.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/5.5.8.5/NotifySync_5.5.8.5.zip",
+        "checksum": "4969285670D2794ED5E040642DAF3022",
+        "timestamp": "2026-03-23T10:00:00Z"
+      },
+      {
         "version": "5.5.8.4",
         "changelog": "<b>🇬🇧 Improvements:</b><br>• Upgraded media now stays visible even if already watched — so you know when a better version is available.<br>• Upgrade detection fallback via deleted history for legacy notifications.<br>• Diagnostic logging for upgrade detection.<br>• Upgraded and new episodes of the same series are shown separately.<br><br><b>🇫🇷 Améliorations :</b><br>• Les médias mis à jour restent visibles même s'ils ont été vus — vous savez quand une meilleure version est disponible.<br>• Fallback de détection via l'historique de suppression pour les notifications legacy.<br>• Logs de diagnostic pour la détection d'upgrade.<br>• Les épisodes mis à jour et les nouveaux d'une même série sont séparés.",
         "targetAbi": "10.11.0.0",

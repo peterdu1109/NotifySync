@@ -9,6 +9,14 @@
     "supportUrl": "https://github.com/peterdu1109/NotifySync",
     "versions": [
       {
+        "version": "5.5.5.0",
+        "changelog": "<b>🇬🇧 Fixes:</b><br>• Clearing a category now works reliably — one single request instead of dozens that were silently rejected.<br>• Collection notifications now respect user permissions — users only see collections they have access to.<br>• Swipe to dismiss on mobile no longer conflicts with scrolling.<br>• Fixed phantom badge counts that could appear during long sessions.<br><br><b>🇬🇧 Improvements:</b><br>• Reduced server memory usage — notifications are filtered before being loaded into memory.<br>• Removed unused dependency (lighter plugin).<br>• Cleaner browser console (no more debug messages).<br><br><b>🇫🇷 Corrections :</b><br>• Vider une catégorie fonctionne désormais correctement — une seule requête au lieu de dizaines rejetées silencieusement.<br>• Les notifications de collections respectent maintenant les permissions — les utilisateurs ne voient que les collections auxquelles ils ont accès.<br>• Le swipe pour supprimer sur mobile ne fait plus défiler la liste en même temps.<br>• Correction des compteurs fantômes qui pouvaient apparaître lors de longues sessions.<br><br><b>🇫🇷 Améliorations :</b><br>• Réduction de l'utilisation mémoire du serveur — les notifications sont filtrées avant d'être chargées.<br>• Suppression d'une dépendance inutile (plugin plus léger).<br>• Console navigateur plus propre (plus de messages de debug).",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/5.5.5.0/NotifySync_5.5.5.0.zip",
+        "checksum": "09E6B7882FEC32871FE4F826F461A6B3",
+        "timestamp": "2026-03-22T10:00:00Z"
+      },
+      {
         "version": "5.5.4.0",
         "changelog": "<b>🇬🇧 Improvements:</b><br>• NEW and UPD badges now stay visible for 72 hours, just like Netflix — even after opening the bell.<br>• The bell counter disappears when you open the menu, but badges remain on each item so you can see what's new at a glance.<br><br><b>🇫🇷 Améliorations :</b><br>• Les badges NOUVEAU et MAJ restent visibles pendant 72 heures, comme Netflix — même après avoir ouvert la cloche.<br>• Le compteur de la cloche disparaît à l'ouverture du menu, mais les badges restent sur chaque élément pour voir d'un coup d'œil les nouveautés.",
         "targetAbi": "10.11.0.0",

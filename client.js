@@ -1,4 +1,4 @@
-/* NOTIFYSYNC V5.5.4.0 */
+/* NOTIFYSYNC V5.5.5.0 */
 (function () {
     let currentData = [];
     let groupedData = [];
@@ -12,30 +12,7 @@
     let eventsRegistered = false;
     let lastPulseTime = 0;
     let previousDataIds = new Set();
-    let localPlayed;
-    try { localPlayed = JSON.parse(localStorage.getItem('ns-played') || '[]'); } catch (e) { localPlayed = []; localStorage.removeItem('ns-played'); }
-    let localPlayedSet = new Set(localPlayed);
-    let localPlayedDirty = false;
-    let localPlayedSaveTimer = null;
     let lazyImageObserver = null;
-
-    const flushLocalPlayed = () => {
-        if (localPlayedDirty) {
-            localStorage.setItem('ns-played', JSON.stringify(localPlayed));
-            localPlayedDirty = false;
-        }
-    };
-
-    const markLocalPlayed = (id) => {
-        if (id && !localPlayedSet.has(id)) {
-            localPlayed.push(id);
-            localPlayedSet.add(id);
-            if (localPlayed.length > 500) { const removed = localPlayed.shift(); localPlayedSet.delete(removed); }
-            localPlayedDirty = true;
-            clearTimeout(localPlayedSaveTimer);
-            localPlayedSaveTimer = setTimeout(flushLocalPlayed, 1000);
-        }
-    };
 
     const markReadOnServer = async (itemIds) => {
         const userId = getUserId();
@@ -44,7 +21,7 @@
             await fetch(`/NotifySync/MarkRead?userId=${userId}`, {
                 method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(itemIds)
             });
-        } catch (e) { console.warn("NotifySync: MarkRead failed, localStorage fallback active."); }
+        } catch (e) { /* MarkRead failed silently */ }
     };
 
     const dismissOnServer = async (itemId) => {
@@ -55,7 +32,18 @@
                 method: 'POST', headers: getAuthHeaders()
             });
             return res.ok;
-        } catch (e) { console.warn("NotifySync: Dismiss failed."); return false; }
+        } catch (e) { return false; }
+    };
+
+    const bulkDismissOnServer = async (itemIds) => {
+        const userId = getUserId();
+        if (!userId || !itemIds || itemIds.length === 0) return false;
+        try {
+            const res = await fetch(`/NotifySync/BulkDismiss/${userId}`, {
+                method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(itemIds)
+            });
+            return res.ok;
+        } catch (e) { return false; }
     };
 
     const BADGE_DURATION_MS = 72 * 60 * 60 * 1000; // 72h — badges stay visible like Netflix
@@ -252,7 +240,7 @@
                     localStorage.setItem('ns-cleared', lastSeenDate.toISOString());
                 }
             }
-        } catch (e) { console.warn("NotifySync: Cleared fetch failed, using cache."); }
+        } catch (e) { /* use cache */ }
     };
 
     const clearAllNotifications = async () => {
@@ -261,8 +249,8 @@
 
         try {
             const res = await fetch(`/NotifySync/Clear/${userId}?date=${encodeURIComponent(new Date().toISOString())}`, { method: 'POST', headers: getAuthHeaders() });
-            if (!res.ok) { console.warn('NotifySync: Clear failed', res.status); return; }
-        } catch (e) { console.warn('NotifySync: Clear failed', e); return; }
+            if (!res.ok) return;
+        } catch (e) { return; }
 
         lastSeenDate = new Date();
         currentData = [];
@@ -282,13 +270,9 @@
         const idsToDismiss = currentData.filter(i => i.Category === category).map(i => i.Id);
         if (idsToDismiss.length === 0) return;
 
-        // Dismiss each item server-side
-        try {
-            const results = await Promise.allSettled(idsToDismiss.map(id => dismissOnServer(id)));
-            if (results.every(r => r.status === 'rejected' || (r.status === 'fulfilled' && !r.value))) {
-                console.warn('NotifySync: Category clear failed'); return;
-            }
-        } catch (e) { console.warn('NotifySync: Category clear failed', e); return; }
+        // Dismiss all items in a single bulk request
+        const success = await bulkDismissOnServer(idsToDismiss);
+        if (!success) return;
 
         // Remove from local data
         currentData = currentData.filter(i => i.Category !== category);
@@ -305,7 +289,7 @@
         const now = Date.now();
         currentData.forEach(item => {
             // IsNew = unread (for bell counter)
-            item.IsNew = !item.IsRead && !localPlayedSet.has(item.Id);
+            item.IsNew = !item.IsRead;
             // ShowBadge = recent item (for visual NEW/UPD badges, Netflix-style persistence)
             const age = now - new Date(item.DateCreated).getTime();
             item.ShowBadge = age < BADGE_DURATION_MS;
@@ -323,7 +307,6 @@
 
         const userId = getUserId();
         if (!userId) {
-            console.warn("NotifySync: No userId auth found yet. Retrying in " + retryDelay + "ms");
             // No user ID yet (e.g. not logged in fully), retry with backoff
             if (pollTimeout) clearTimeout(pollTimeout);
             pollTimeout = setTimeout(fetchData, retryDelay);
@@ -331,7 +314,6 @@
             return;
         }
 
-        console.log("NotifySync: Fetching data for UserID:", userId);
         isFetching = true;
         try {
             const lastSeenPromise = fetchLastSeen();
@@ -344,14 +326,11 @@
             const [_, res] = await Promise.all([lastSeenPromise, dataPromise]);
 
             if (res.status === 304) {
-                console.log("NotifySync: Data 304 Not Modified");
                 // Data unchanged, recalculate with existing state
                 recalculateNewStatus();
             }
             else if (res.ok) {
                 const json = await res.json();
-                console.log("NotifySync: Data received", json.length, "items");
-
                 // Detect new items for pulse animation
                 const newIds = new Set(json.map(i => i.Id));
                 const hasNewItems = json.some(i => !previousDataIds.has(i.Id));
@@ -536,13 +515,14 @@
             container.removeEventListener('touchmove', _swipeHandlers.move);
             container.removeEventListener('touchend', _swipeHandlers.end);
         }
-        let startX = 0, currentX = 0, swiping = null;
+        let startX = 0, startY = 0, currentX = 0, swiping = null;
         const threshold = 70;
 
         const onStart = (e) => {
             const item = e.target.closest('.dropdown-item');
             if (!item || e.target.closest('.dismiss-btn')) return;
             startX = e.touches[0].clientX;
+            startY = e.touches[0].clientY;
             currentX = startX;
             swiping = item;
             swiping.style.transition = 'none';
@@ -550,11 +530,15 @@
         const onMove = (e) => {
             if (!swiping) return;
             currentX = e.touches[0].clientX;
+            const dy = e.touches[0].clientY - startY;
             const dx = currentX - startX;
-            if (dx < 0) {
-                const clampedDx = Math.max(dx, -120);
-                swiping.style.transform = `translateX(${clampedDx}px)`;
-                swiping.classList.toggle('swiping', Math.abs(dx) > 30);
+            if (Math.abs(dx) > Math.abs(dy)) {
+                e.preventDefault();
+                if (dx < 0) {
+                    const clampedDx = Math.max(dx, -120);
+                    swiping.style.transform = `translateX(${clampedDx}px)`;
+                    swiping.classList.toggle('swiping', Math.abs(dx) > 30);
+                }
             }
         };
         const onEnd = () => {
@@ -576,7 +560,7 @@
         };
 
         container.addEventListener('touchstart', onStart, { passive: true });
-        container.addEventListener('touchmove', onMove, { passive: true });
+        container.addEventListener('touchmove', onMove, { passive: false });
         container.addEventListener('touchend', onEnd, { passive: true });
         _swipeHandlers = { start: onStart, move: onMove, end: onEnd };
     };
@@ -646,8 +630,7 @@
                 // Mark as read on server but keep visual badges in the dropdown
                 const unreadIds = [];
                 currentData.forEach(i => {
-                    if (!i.IsRead && !localPlayedSet.has(i.Id)) {
-                        markLocalPlayed(i.Id);
+                    if (!i.IsRead) {
                         i.IsRead = true;
                         unreadIds.push(i.Id);
                     }
@@ -709,8 +692,6 @@
 
         // Listen to relevant real-time server events
         if (msg.MessageType === "LibraryChanged" || msg.MessageType === "UserDataChanged") {
-            console.log("NotifySync: Intercepted WebSocket event ->", msg.MessageType);
-
             // Reset all timers on each event
             if (wsDebounceTimeout) clearTimeout(wsDebounceTimeout);
             if (wsFollowUp1) clearTimeout(wsFollowUp1);
@@ -736,22 +717,18 @@
 
             // Re-fetch data instantly when user logs in or reconnects
             window.Events.on(window.ApiClient, "authenticated", () => {
-                console.log("NotifySync: User authenticated! Fetching data immediately.");
                 retryDelay = 1000;
                 detectJellyfinLang();
                 fetchData();
             });
 
-            console.log("NotifySync: Events successfully hooked.");
         } else {
-            console.warn("NotifySync: window.Events or ApiClient not ready. Retrying...");
             setTimeout(setupEvents, 2000);
         }
     };
 
     document.addEventListener('viewshow', () => {
-        console.log("NotifySync: View changed, checking auth...");
-        retryDelay = 1000; // Reset backoff to be more aggressive
+        retryDelay = 1000;
         detectJellyfinLang();
         fetchData();
     });

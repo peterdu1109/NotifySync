@@ -80,22 +80,22 @@ namespace NotifySync
         [HttpPost("Refresh")]
         public ActionResult Refresh()
         {
-            _logger.LogInformation("NotifySync : Rafraîchissement manuel demandé depuis l'interface.");
+            _logger.LogInformation("NotifySync: Manual refresh requested from the interface.");
             bool lockTaken = false;
             try
             {
                 Monitor.TryEnter(_refreshLock, TimeSpan.FromSeconds(5), ref lockTaken);
                 if (!lockTaken)
                 {
-                    _logger.LogWarning("NotifySync : Rafraîchissement ignoré, verrou occupé.");
-                    return StatusCode(StatusCodes.Status503ServiceUnavailable, "Système occupé.");
+                    _logger.LogWarning("NotifySync: Refresh skipped, lock is busy.");
+                    return StatusCode(StatusCodes.Status503ServiceUnavailable, "System busy.");
                 }
 
                 var now = DateTime.UtcNow;
                 if ((now - new DateTime(_lastRefreshTime)).TotalSeconds < 30)
                 {
-                    _logger.LogWarning("NotifySync : Rafraîchissement limité (rate limit).");
-                    return StatusCode(429, "Veuillez attendre 30 secondes.");
+                    _logger.LogWarning("NotifySync: Refresh rate-limited.");
+                    return StatusCode(429, "Please wait 30 seconds.");
                 }
 
                 _lastRefreshTime = now.Ticks;
@@ -110,7 +110,7 @@ namespace NotifySync
 
             if (NotificationManager.Instance != null)
             {
-                _logger.LogInformation("NotifySync : Lancement du scan manuel de l'historique...");
+                _logger.LogInformation("NotifySync: Starting manual history scan...");
                 UserViewCache.Clear();
                 _ = Task.Run(() =>
                 {
@@ -120,14 +120,14 @@ namespace NotifySync
                     }
                     catch (Exception ex)
                     {
-                        _staticLogger?.LogError(ex, "NotifySync : Échec du scan manuel de l'historique.");
+                        _staticLogger?.LogError(ex, "NotifySync: Manual history scan failed.");
                     }
                 });
                 return Ok(new { Message = "Refresh started" });
             }
 
-            _logger.LogError("NotifySync : NotificationManager.Instance est null lors du rafraîchissement !");
-            return StatusCode(500, "Manager non initialisé.");
+            _logger.LogError("NotifySync: NotificationManager.Instance is null during refresh!");
+            return StatusCode(500, "Manager not initialized.");
         }
 
         /// <summary>
@@ -142,7 +142,7 @@ namespace NotifySync
             var js = _clientJsLazy.Value;
             if (js == null)
             {
-                _logger.LogError("NotifySync : Ressource client.js introuvable !");
+                _logger.LogError("NotifySync: Embedded resource client.js not found!");
                 return NotFound();
             }
 
@@ -170,11 +170,11 @@ namespace NotifySync
 
             if (!IsAuthorizedForUser(userId))
             {
-                _logger.LogWarning("NotifySync : Accès GetData refusé pour l'utilisateur {UserId}.", userId);
+                _logger.LogWarning("NotifySync: GetData access denied for user {UserId}.", userId);
                 return Forbid();
             }
 
-            _logger.LogDebug("NotifySync : GetData demandé pour {UserId}.", userId);
+            _logger.LogDebug("NotifySync: GetData requested for {UserId}.", userId);
 
             try
             {
@@ -226,7 +226,6 @@ namespace NotifySync
                         continue;
                     }
 
-                    n.IsRead = state.IsRead;
                     candidates.Add(n);
                 }
 
@@ -234,6 +233,13 @@ namespace NotifySync
                 foreach (var n in candidates)
                 {
                     var item = _libraryManager.GetItemById(n.Id);
+                    if (item == null && !string.IsNullOrEmpty(n.RealItemId))
+                    {
+                        // Synthetic ID (e.g. collection notification) — resolve the real Jellyfin item
+                        // so we can enforce visibility and played-status checks.
+                        item = _libraryManager.GetItemById(n.RealItemId);
+                    }
+
                     if (item == null)
                     {
                         itemNotFound++;
@@ -256,13 +262,23 @@ namespace NotifySync
                     filtered.Add(n);
                 }
 
-                var filteredList = filtered.OrderByDescending(n => n.DateCreated).ToList();
+                // Clone only the filtered items and apply per-user read state
+                var filteredClones = new List<NotificationItem>(filtered.Count);
+                foreach (var n in filtered)
+                {
+                    var clone = n.Clone();
+                    userStates.TryGetValue(clone.Id, out var readState);
+                    clone.IsRead = readState.IsRead;
+                    filteredClones.Add(clone);
+                }
+
+                var filteredList = filteredClones.OrderByDescending(n => n.DateCreated).ToList();
                 int maxItems = Plugin.Instance?.Configuration?.MaxItems ?? 10;
                 var quotaResult = CategoryQuotaService.ApplyCategoryQuotas(filteredList, maxItems);
                 filteredList = quotaResult.Kept.ToList();
 
                 _logger.LogDebug(
-                    "NotifySync GetData : Total={Total}, Introuvables={NotFound}, NonVisibles={NotVisible}, Résultat : {Cats}",
+                    "NotifySync GetData: Total={Total}, NotFound={NotFound}, NotVisible={NotVisible}, Result: {Cats}",
                     allNotifs.Count,
                     itemNotFound,
                     filteredNotVisible,
@@ -286,7 +302,7 @@ namespace NotifySync
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "NotifySync : Erreur lors de la récupération des données pour l'utilisateur {UserId}.", userId);
+                _logger.LogError(ex, "NotifySync: Error retrieving data for user {UserId}.", userId);
                 return StatusCode(500, "Internal error.");
             }
         }
@@ -403,7 +419,7 @@ namespace NotifySync
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "NotifySync : Erreur dans BulkUserData pour l'utilisateur {UserId}.", userId);
+                _logger.LogError(ex, "NotifySync: Error in BulkUserData for user {UserId}.", userId);
                 return StatusCode(500, "Internal error.");
             }
         }
@@ -454,7 +470,7 @@ namespace NotifySync
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "NotifySync : Erreur dans MarkRead pour l'utilisateur {UserId}.", userId);
+                _logger.LogError(ex, "NotifySync: Error in MarkRead for user {UserId}.", userId);
                 return StatusCode(500, "Internal error.");
             }
         }
@@ -501,6 +517,80 @@ namespace NotifySync
             NotificationManager.Instance.IncrementUserStateVersion(normalizedUserId);
             InvalidateUserCache(normalizedUserId);
             return Ok();
+        }
+
+        /// <summary>
+        /// Dismisses multiple notifications for a user in a single request.
+        /// Bypasses the per-item throttle by using a bulk database operation.
+        /// </summary>
+        /// <param name="userId">The user identifier.</param>
+        /// <returns>An ActionResult indicating the status.</returns>
+        [HttpPost("BulkDismiss/{userId}")]
+        public async Task<ActionResult> BulkDismiss([FromRoute] string userId)
+        {
+            if (string.IsNullOrEmpty(userId) || !Guid.TryParse(userId, out _))
+            {
+                return BadRequest("Invalid UserId");
+            }
+
+            if (!IsAuthorizedForUser(userId))
+            {
+                return Forbid();
+            }
+
+            if (NotificationManager.Instance == null)
+            {
+                return StatusCode(StatusCodes.Status503ServiceUnavailable, "Manager not initialized.");
+            }
+
+            try
+            {
+                using var reader = new StreamReader(Request.Body);
+                var body = await reader.ReadToEndAsync().ConfigureAwait(false);
+                var itemIds = JsonSerializer.Deserialize(body, PluginJsonContext.Default.ListString);
+                if (itemIds == null || itemIds.Count == 0)
+                {
+                    return BadRequest("Empty item list");
+                }
+
+                // Cap to a reasonable maximum to prevent abuse
+                if (itemIds.Count > 500)
+                {
+                    return BadRequest("Too many items (max 500).");
+                }
+
+                var normalizedUserId = NormalizeId(userId);
+
+                // Resolve group IDs: each itemId might be a SeriesId that maps to multiple episode IDs
+                var allIds = new List<string>();
+                foreach (var id in itemIds)
+                {
+                    if (string.IsNullOrEmpty(id) || !Guid.TryParse(id, out _))
+                    {
+                        continue;
+                    }
+
+                    var resolved = NotificationManager.Instance.ResolveNotificationIds(id);
+                    allIds.AddRange(resolved);
+                }
+
+                if (allIds.Count == 0)
+                {
+                    return BadRequest("No valid item IDs.");
+                }
+
+                NotificationManager.Instance.Db.BulkSetDismissed(normalizedUserId, allIds);
+                NotificationManager.Instance.IncrementUserStateVersion(normalizedUserId);
+                InvalidateUserCache(normalizedUserId);
+
+                _logger.LogDebug("NotifySync : BulkDismiss {Count} items for user {UserId}.", allIds.Count, userId);
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "NotifySync: Error in BulkDismiss for user {UserId}.", userId);
+                return StatusCode(500, "Internal error.");
+            }
         }
 
         /// <summary>
@@ -578,7 +668,7 @@ namespace NotifySync
 
             if (string.IsNullOrEmpty(currentUserId))
             {
-                _logger.LogWarning("NotifySync : Aucune identité utilisateur trouvée dans le principal de la requête.");
+                _logger.LogWarning("NotifySync: No user identity found in the request principal.");
                 return false;
             }
 
@@ -592,7 +682,7 @@ namespace NotifySync
                 }
                 else
                 {
-                    _logger.LogWarning("NotifySync : Impossible de résoudre le nom d'utilisateur '{Username}'.", currentUserId);
+                    _logger.LogWarning("NotifySync: Unable to resolve username '{Username}'.", currentUserId);
                     return false;
                 }
             }
@@ -612,7 +702,7 @@ namespace NotifySync
                 return true;
             }
 
-            _logger.LogWarning("NotifySync : Autorisation refusée. Actuel : {Current}, Demandé : {Requested}.", currentUserId, userId);
+            _logger.LogWarning("NotifySync: Authorization denied. Current: {Current}, Requested: {Requested}.", currentUserId, userId);
             return false;
         }
 

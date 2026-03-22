@@ -125,7 +125,7 @@ namespace NotifySync
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Erreur lors de l'initialisation de la base SQLite.");
+                _logger.LogError(ex, "Error initializing SQLite database.");
             }
         }
 
@@ -217,7 +217,7 @@ namespace NotifySync
         public void SaveNotifications(IEnumerable<NotificationItem> items)
         {
             var itemList = items.ToList();
-            _logger.LogDebug("NotifySync : Sauvegarde de {Count} notifications.", itemList.Count);
+            _logger.LogDebug("NotifySync: Saving {Count} notifications.", itemList.Count);
             if (itemList.Count == 0)
             {
                 return;
@@ -227,7 +227,7 @@ namespace NotifySync
             {
                 using var connection = new SqliteConnection(_connectionString);
                 connection.Open();
-                _logger.LogDebug("NotifySync : Connexion SQLite ouverte avec succès.");
+                _logger.LogDebug("NotifySync: SQLite connection opened successfully.");
 
                 using var transaction = connection.BeginTransaction();
                 try
@@ -245,18 +245,18 @@ namespace NotifySync
                     }
 
                     transaction.Commit();
-                    _logger.LogDebug("NotifySync : {Count} lignes validées dans la base de données.", insertedCount);
+                    _logger.LogDebug("NotifySync: {Count} rows committed to the database.", insertedCount);
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "NotifySync : Erreur lors de l'exécution de la transaction. Annulation en cours.");
+                    _logger.LogError(ex, "NotifySync: Error executing transaction. Rolling back.");
                     transaction.Rollback();
                     throw;
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Erreur lors de la sauvegarde/mise à jour des notifications en SQLite.");
+                _logger.LogError(ex, "Error saving/updating notifications in SQLite.");
             }
         }
 
@@ -302,7 +302,7 @@ namespace NotifySync
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Erreur lors de la suppression de notifications ciblées en SQLite.");
+                _logger.LogError(ex, "Error deleting targeted notifications in SQLite.");
             }
         }
 
@@ -353,7 +353,7 @@ namespace NotifySync
                     }
 
                     transaction.Commit();
-                    _logger.LogInformation("NotifySync ReplaceAll : {Del} supprimées, {Ins} insérées en une seule transaction.", oldList.Count, newList.Count);
+                    _logger.LogInformation("NotifySync ReplaceAll: {Del} deleted, {Ins} inserted in a single transaction.", oldList.Count, newList.Count);
                 }
                 catch
                 {
@@ -363,7 +363,7 @@ namespace NotifySync
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "NotifySync : Erreur dans ReplaceAllNotifications (suppression+insertion atomique).");
+                _logger.LogError(ex, "NotifySync: Error in ReplaceAllNotifications (atomic delete+insert).");
             }
         }
 
@@ -382,7 +382,7 @@ namespace NotifySync
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Erreur lors du VACUUM de la base SQLite.");
+                _logger.LogError(ex, "Error during SQLite VACUUM.");
             }
         }
 
@@ -444,7 +444,7 @@ namespace NotifySync
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Erreur lors de la lecture des notifications SQLite.");
+                _logger.LogError(ex, "Error reading notifications from SQLite.");
             }
 
             return result;
@@ -473,7 +473,7 @@ namespace NotifySync
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "NotifySync : Erreur lors de la lecture des états de notification pour {UserId}.", userId);
+                _logger.LogError(ex, "NotifySync: Error reading notification states for {UserId}.", userId);
             }
 
             return result;
@@ -525,7 +525,7 @@ namespace NotifySync
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "NotifySync : Erreur lors du marquage groupé comme lu pour {UserId}.", userId);
+                _logger.LogError(ex, "NotifySync: Error during bulk mark-read for {UserId}.", userId);
             }
         }
 
@@ -553,7 +553,57 @@ namespace NotifySync
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "NotifySync : Erreur lors de la suppression de la notification {NotifId} pour {UserId}.", notificationId, userId);
+                _logger.LogError(ex, "NotifySync: Error dismissing notification {NotifId} for {UserId}.", notificationId, userId);
+            }
+        }
+
+        /// <summary>
+        /// Marks multiple notifications as dismissed for a user in a single transaction.
+        /// </summary>
+        /// <param name="userId">The normalized user identifier.</param>
+        /// <param name="notificationIds">The notification IDs to dismiss.</param>
+        public void BulkSetDismissed(string userId, IEnumerable<string> notificationIds)
+        {
+            try
+            {
+                using var connection = new SqliteConnection(_connectionString);
+                connection.Open();
+                using var transaction = connection.BeginTransaction();
+                try
+                {
+                    using var cmd = connection.CreateCommand();
+                    cmd.Transaction = transaction;
+                    cmd.CommandText = @"
+                        INSERT INTO UserNotificationState (UserId, NotificationId, IsDismissed, DismissedAt)
+                        VALUES (@UserId, @NotifId, 1, @Now)
+                        ON CONFLICT(UserId, NotificationId)
+                        DO UPDATE SET IsDismissed = 1, DismissedAt = @Now";
+                    var pUserId = cmd.Parameters.Add("@UserId", SqliteType.Text);
+                    var pNotifId = cmd.Parameters.Add("@NotifId", SqliteType.Text);
+                    var pNow = cmd.Parameters.Add("@Now", SqliteType.Text);
+                    pUserId.Value = userId;
+                    pNow.Value = DateTime.UtcNow.ToString("O");
+
+                    foreach (var id in notificationIds)
+                    {
+                        if (!string.IsNullOrEmpty(id))
+                        {
+                            pNotifId.Value = id;
+                            cmd.ExecuteNonQuery();
+                        }
+                    }
+
+                    transaction.Commit();
+                }
+                catch
+                {
+                    transaction.Rollback();
+                    throw;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "NotifySync: Error during bulk dismiss for {UserId}.", userId);
             }
         }
 
@@ -574,7 +624,7 @@ namespace NotifySync
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "NotifySync : Erreur lors de la suppression des états pour la notification {NotifId}.", notificationId);
+                _logger.LogError(ex, "NotifySync: Error deleting states for notification {NotifId}.", notificationId);
             }
         }
 
@@ -594,12 +644,12 @@ namespace NotifySync
                 int deleted = cmd.ExecuteNonQuery();
                 if (deleted > 0)
                 {
-                    _logger.LogInformation("NotifySync : {Count} états utilisateur orphelins purgés.", deleted);
+                    _logger.LogInformation("NotifySync: {Count} orphaned user states purged.", deleted);
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "NotifySync : Erreur lors de la purge des états utilisateur orphelins.");
+                _logger.LogError(ex, "NotifySync: Error purging orphaned user states.");
             }
         }
 
@@ -626,7 +676,7 @@ namespace NotifySync
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "NotifySync : Erreur lors de la lecture du snapshot pour la collection {CollectionId}.", collectionId);
+                _logger.LogError(ex, "NotifySync: Error reading snapshot for collection {CollectionId}.", collectionId);
             }
 
             return result;
@@ -679,7 +729,7 @@ namespace NotifySync
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "NotifySync : Erreur lors de la mise à jour du snapshot pour la collection {CollectionId}.", collectionId);
+                _logger.LogError(ex, "NotifySync: Error updating snapshot for collection {CollectionId}.", collectionId);
             }
         }
 
@@ -724,7 +774,7 @@ namespace NotifySync
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "NotifySync : Erreur lors du nettoyage des snapshots de collections obsolètes.");
+                _logger.LogError(ex, "NotifySync: Error cleaning up stale collection snapshots.");
             }
         }
 
@@ -756,7 +806,7 @@ namespace NotifySync
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "NotifySync : Erreur lors de l'enregistrement de l'item supprimé {Name}.", name);
+                _logger.LogError(ex, "NotifySync: Error saving deleted item {Name}.", name);
             }
         }
 
@@ -794,7 +844,7 @@ namespace NotifySync
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "NotifySync : Erreur lors de la lecture des items supprimés.");
+                _logger.LogError(ex, "NotifySync: Error reading deleted items.");
             }
 
             return result;
@@ -819,12 +869,12 @@ namespace NotifySync
                 deleted = cmd.ExecuteNonQuery();
                 if (deleted > 0)
                 {
-                    _logger.LogInformation("NotifySync : {Count} items supprimés expirés purgés (rétention {Days}j).", deleted, retentionDays);
+                    _logger.LogInformation("NotifySync: {Count} expired deleted items purged (retention {Days}d).", deleted, retentionDays);
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "NotifySync : Erreur lors de la purge des items supprimés expirés.");
+                _logger.LogError(ex, "NotifySync: Error purging expired deleted items.");
             }
 
             return deleted;

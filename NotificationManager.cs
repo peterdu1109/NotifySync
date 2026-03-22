@@ -65,7 +65,7 @@ namespace NotifySync
 
             _jsonPath = Path.Combine(stableDataPath, "notifications.json");
             _clearedPath = Path.Combine(stableDataPath, "users_cleared.json");
-            _logger.LogDebug("NotifySync : Chemins de données — DataPath={Path}, ClearedPath={ClearedPath}.", stableDataPath, _clearedPath);
+            _logger.LogDebug("NotifySync: Data paths — DataPath={Path}, ClearedPath={ClearedPath}.", stableDataPath, _clearedPath);
 
             _db = new NotificationDatabase(stableDataPath, _logger);
             LoadUserCleared();
@@ -155,15 +155,16 @@ namespace NotifySync
         }
 
         /// <summary>
-        /// Returns all recent notifications.
+        /// Returns all recent notifications as read-only references (no cloning).
+        /// Callers that need mutable copies should clone only the items they keep.
         /// </summary>
-        /// <returns>A collection of notification items.</returns>
-        public IReadOnlyCollection<NotificationItem> GetRecentNotifications()
+        /// <returns>A snapshot list of notification item references.</returns>
+        public IReadOnlyList<NotificationItem> GetRecentNotifications()
         {
             try
             {
                 _dataLock.EnterReadLock();
-                return _notifications.ConvertAll(n => n.Clone());
+                return _notifications.ToList();
             }
             finally
             {
@@ -196,7 +197,7 @@ namespace NotifySync
             _userClearedCache[normalized] = timestamp;
             Interlocked.Exchange(ref _isClearedDirty, 1);
             SaveUserCleared();
-            _logger.LogDebug("NotifySync : Utilisateur {User} effacé jusqu'à {Ts}.", normalized, timestamp);
+            _logger.LogDebug("NotifySync: User {User} cleared until {Ts}.", normalized, timestamp);
         }
 
         private string NormalizeUserId(string userId) => IdHelper.NormalizeId(userId);
@@ -220,16 +221,16 @@ namespace NotifySync
                         _userClearedCache[normalized] = kvp.Value;
                     }
 
-                    _logger.LogDebug("NotifySync : État effacé chargé pour {Count} utilisateurs.", data.Count);
+                    _logger.LogDebug("NotifySync: Cleared state loaded for {Count} users.", data.Count);
                 }
                 else
                 {
-                    _logger.LogWarning("NotifySync : La désérialisation a retourné null pour {Path}.", _clearedPath);
+                    _logger.LogWarning("NotifySync: Deserialization returned null for {Path}.", _clearedPath);
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "NotifySync : Erreur lors du chargement de users_cleared.json depuis {Path}.", _clearedPath);
+                _logger.LogError(ex, "NotifySync: Error loading users_cleared.json from {Path}.", _clearedPath);
             }
         }
 
@@ -248,11 +249,11 @@ namespace NotifySync
                     var json = JsonSerializer.Serialize(snapshot, PluginJsonContext.Default.DictionaryStringInt64);
                     File.WriteAllText(_clearedPath + ".tmp", json);
                     File.Move(_clearedPath + ".tmp", _clearedPath, true);
-                    _logger.LogDebug("NotifySync : État effacé sauvegardé pour {Count} utilisateurs.", snapshot.Count);
+                    _logger.LogDebug("NotifySync: Cleared state saved for {Count} users.", snapshot.Count);
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "NotifySync : Erreur lors de la sauvegarde de users_cleared.json.");
+                    _logger.LogError(ex, "NotifySync: Error saving users_cleared.json.");
                 }
             }
         }
@@ -283,11 +284,11 @@ namespace NotifySync
         private void LoadAndMigrate()
         {
             var diskNotifs = _db.GetAllNotifications().ToList();
-            _logger.LogInformation("NotifySync Démarrage : {Count} notifications chargées depuis la base SQLite.", diskNotifs.Count);
+            _logger.LogInformation("NotifySync Startup: {Count} notifications loaded from SQLite database.", diskNotifs.Count);
 
             if (diskNotifs.Count == 0 && File.Exists(_jsonPath))
             {
-                _logger.LogInformation("Migration des notifications JSON vers SQLite détectée...");
+                _logger.LogInformation("JSON to SQLite notification migration detected...");
                 try
                 {
                     using (var fs = new FileStream(_jsonPath, FileMode.Open, FileAccess.Read, FileShare.Read))
@@ -297,7 +298,7 @@ namespace NotifySync
                         {
                             _db.SaveNotifications(oldNotifs);
                             diskNotifs = oldNotifs;
-                            _logger.LogInformation("{Count} notifications migrées avec succès.", oldNotifs.Count);
+                            _logger.LogInformation("{Count} notifications migrated successfully.", oldNotifs.Count);
                         }
                     }
 
@@ -305,7 +306,7 @@ namespace NotifySync
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Erreur lors de la migration JSON vers SQLite.");
+                    _logger.LogError(ex, "Error during JSON to SQLite migration.");
                 }
             }
 
@@ -315,7 +316,7 @@ namespace NotifySync
             var itemsToDelete = quotaResult.RemovedIds;
 
             var newNotifs = finalNotifications.OrderByDescending(n => n.DateCreated).ToList();
-            _logger.LogInformation("NotifySync Démarrage : {Count} notifications conservées après application des quotas ({Deleted} supprimées).", newNotifs.Count, itemsToDelete.Count);
+            _logger.LogInformation("NotifySync Startup: {Count} notifications kept after applying quotas ({Deleted} removed).", newNotifs.Count, itemsToDelete.Count);
 
             if (itemsToDelete.Count > 0)
             {
@@ -389,7 +390,7 @@ namespace NotifySync
                     string? seriesName = (item as Episode)?.SeriesName;
                     int? year = item.ProductionYear;
 
-                    _db.SaveDeletedItem(item.Id.ToString(), item.Name ?? "Inconnu", type, seriesName, year);
+                    _db.SaveDeletedItem(item.Id.ToString(), item.Name ?? "Unknown", type, seriesName, year);
 
                     // Purge at most once per day to avoid unnecessary DB writes
                     var nowTicks = DateTime.UtcNow.Ticks;
@@ -402,7 +403,7 @@ namespace NotifySync
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "NotifySync : Erreur lors du suivi de la suppression de {Name}.", e.Item.Name);
+                    _logger.LogError(ex, "NotifySync: Error tracking deletion of {Name}.", e.Item.Name);
                 }
             }
 
@@ -598,7 +599,7 @@ namespace NotifySync
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Erreur lors du traitement du buffer de notifications.");
+                _logger.LogError(ex, "Error processing notification buffer.");
             }
             finally
             {
@@ -608,7 +609,7 @@ namespace NotifySync
 
         private void PopulateInitialHistory(IProgress<double> progress, CancellationToken cancellationToken)
         {
-            _logger.LogInformation("Lancement du scan manuel de l'historique NotifySync...");
+            _logger.LogInformation("Starting manual NotifySync history scan...");
 
             var config = Plugin.Instance?.Configuration;
             int maxItems = config?.MaxItems ?? 10;
@@ -767,7 +768,7 @@ namespace NotifySync
             // Track unique series per category to count series, not episodes
             var categorySeriesIds = new Dictionary<string, HashSet<string>>();
 
-            _logger.LogInformation("NotifySync Scan : {Total} éléments retournés par les requêtes combinées.", items.Count);
+            _logger.LogInformation("NotifySync Scan: {Total} items returned by combined queries.", items.Count);
 
             foreach (var item in items)
             {
@@ -798,8 +799,8 @@ namespace NotifySync
             }
 
             // Log diagnostics
-            _logger.LogInformation("NotifySync Scan Diagnostics : Types trouvés : {Types}.", string.Join(", ", typeCounts.Select(kv => $"{kv.Key}={kv.Value}")));
-            _logger.LogInformation("NotifySync Scan Diagnostics : Ignorés (hors bibliothèque active) : {Skipped}, Ignorés (null/erreur) : {Null}.", skippedNotEnabled, skippedNull);
+            _logger.LogInformation("NotifySync Scan Diagnostics: Types found: {Types}.", string.Join(", ", typeCounts.Select(kv => $"{kv.Key}={kv.Value}")));
+            _logger.LogInformation("NotifySync Scan Diagnostics: Skipped (not in enabled library): {Skipped}, Skipped (null/error): {Null}.", skippedNotEnabled, skippedNull);
 
             var quotaResult = CategoryQuotaService.ApplyCategoryQuotas(results, DatabaseCategoryLimit);
             var newNotifs = quotaResult.Kept.OrderByDescending(n => n.DateCreated).ToList();
@@ -821,7 +822,7 @@ namespace NotifySync
             // Discard old, insert new into DB directly
             if (newNotifs.Count == 0 && oldDbIds.Count > 0)
             {
-                _logger.LogWarning("Le scan de l'historique a retourné 0 élément (probablement en raison d'un démarrage du serveur où la bibliothèque n'est pas encore prête). La base de données existante ne sera pas effacée.");
+                _logger.LogWarning("History scan returned 0 items (likely because the server is starting and the library is not ready yet). The existing database will not be cleared.");
                 return;
             }
 
@@ -833,7 +834,7 @@ namespace NotifySync
                 _dataLock.EnterWriteLock();
                 _notifications = newNotifs;
                 Interlocked.Increment(ref _versionCounter);
-                _logger.LogInformation("Scan terminé. {Count} items indexés.", _notifications.Count);
+                _logger.LogInformation("Scan complete. {Count} items indexed.", _notifications.Count);
             }
             finally
             {
@@ -949,7 +950,7 @@ namespace NotifySync
                 return;
             }
 
-            _logger.LogInformation("NotifySync : Début du scan des collections ({Count} configurées).", config.EnabledCollections.Count);
+            _logger.LogInformation("NotifySync: Starting collection scan ({Count} configured).", config.EnabledCollections.Count);
 
             var newNotifications = new List<NotificationItem>();
             int idx = 0;
@@ -966,11 +967,11 @@ namespace NotifySync
                 var boxSet = _libraryManager.GetItemById(collectionGuid);
                 if (boxSet == null)
                 {
-                    _logger.LogWarning("NotifySync : Collection {CollectionId} introuvable, ignorée.", collectionIdStr);
+                    _logger.LogWarning("NotifySync: Collection {CollectionId} not found, skipped.", collectionIdStr);
                     continue;
                 }
 
-                // Lister les enfants actuels de la collection
+                // List current children of the collection
                 var children = _libraryManager.GetItemList(new InternalItemsQuery
                 {
                     AncestorIds = new[] { collectionGuid },
@@ -984,8 +985,8 @@ namespace NotifySync
 
                 if (snapshot.Count == 0)
                 {
-                    // Premier scan : stocker le baseline sans créer de notifications
-                    _logger.LogInformation("NotifySync : Premier scan de la collection \"{Name}\" — {Count} éléments enregistrés comme baseline.", boxSet.Name, currentIds.Count);
+                    // First scan: store the baseline without creating notifications
+                    _logger.LogInformation("NotifySync: First scan of collection \"{Name}\" — {Count} items recorded as baseline.", boxSet.Name, currentIds.Count);
                     _db.UpdateCollectionSnapshot(collectionIdStr, currentIds);
                 }
                 else
@@ -1003,7 +1004,7 @@ namespace NotifySync
                             }
                         }
 
-                        _logger.LogInformation("NotifySync : {Count} nouveaux éléments détectés dans la collection \"{Name}\".", newIds.Count, boxSet.Name);
+                        _logger.LogInformation("NotifySync: {Count} new items detected in collection \"{Name}\".", newIds.Count, boxSet.Name);
                     }
 
                     _db.UpdateCollectionSnapshot(collectionIdStr, currentIds);
@@ -1013,7 +1014,7 @@ namespace NotifySync
                 progress?.Report((double)idx / config.EnabledCollections.Count * 100);
             }
 
-            // Nettoyer les snapshots des collections retirées de la configuration
+            // Clean up snapshots for collections removed from configuration
             _db.RemoveStaleCollectionSnapshots(config.EnabledCollections);
 
             if (newNotifications.Count > 0)
@@ -1021,7 +1022,7 @@ namespace NotifySync
                 InjectCollectionNotifications(newNotifications);
             }
 
-            _logger.LogInformation("NotifySync : Scan des collections terminé. {Count} nouvelles notifications.", newNotifications.Count);
+            _logger.LogInformation("NotifySync: Collection scan complete. {Count} new notifications.", newNotifications.Count);
         }
 
         /// <summary>
@@ -1094,7 +1095,8 @@ namespace NotifySync
                 var notif = new NotificationItem
                 {
                     Id = $"col:{collectionId:N}:{item.Id}",
-                    Name = item.Name ?? "Inconnu",
+                    RealItemId = item.Id.ToString(),
+                    Name = item.Name ?? "Unknown",
                     Category = collectionName,
                     SeriesName = (item as Episode)?.SeriesName,
                     SeriesId = (item as Episode)?.SeriesId.ToString(),
@@ -1119,7 +1121,7 @@ namespace NotifySync
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "NotifySync : Échec de la création de notification collection pour l'élément {ItemName}.", item?.Name);
+                _logger.LogWarning(ex, "NotifySync: Failed to create collection notification for item {ItemName}.", item?.Name);
                 return null;
             }
         }
@@ -1131,20 +1133,20 @@ namespace NotifySync
                 return null;
             }
 
-            // Ignorer les dossiers (ex: Les catégories racines VOD/Séries de XFusion)
+            // Ignore folders (e.g. root VOD/Series categories from XFusion)
             if (item.IsFolder || item is Folder)
             {
                 return null;
             }
 
-            // Ignorer les Extras (Openings, Endings, ThemeVideos, etc.)
+            // Ignore Extras (Openings, Endings, ThemeVideos, etc.)
             if (item.ExtraType.HasValue)
             {
                 return null;
             }
 
-            // Heuristique pour ignorer les thèmes et génériques (Openings/Endings)
-            // Éliminer les éléments VOD courts, les thèmes musicaux et génériques mal classés
+            // Heuristic to ignore themes and opening/ending sequences
+            // Filter out short VOD items, theme songs, and misclassified openings/endings
             if (item is Episode ep && (ep.ParentIndexNumber == 0 || ep.IndexNumber == 0))
             {
                 string itemName = ep.Name ?? string.Empty;
@@ -1159,7 +1161,7 @@ namespace NotifySync
                 }
             }
 
-            // Exclure les musiques (Audio) servant de themes pour les séries/films (souvent Theme.mp3)
+            // Exclude audio tracks used as themes for series/movies (often Theme.mp3)
             if (item is MediaBrowser.Controller.Entities.Audio.Audio && item.Name != null)
             {
                 string itemName = item.Name;
@@ -1199,7 +1201,7 @@ namespace NotifySync
                 var notif = new NotificationItem
                 {
                     Id = item.Id.ToString(),
-                    Name = item.Name ?? "Inconnu",
+                    Name = item.Name ?? "Unknown",
                     Category = category,
                     SeriesName = (item as Episode)?.SeriesName,
                     SeriesId = (item as Episode)?.SeriesId.ToString(),
@@ -1224,7 +1226,7 @@ namespace NotifySync
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "NotifySync : Échec de la création de notification pour l'élément {ItemName}.", item?.Name);
+                _logger.LogWarning(ex, "NotifySync: Failed to create notification for item {ItemName}.", item?.Name);
                 return null;
             }
         }

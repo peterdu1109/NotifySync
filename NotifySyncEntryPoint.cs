@@ -6,7 +6,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json.Linq;
 
 namespace NotifySync
 {
@@ -36,13 +35,13 @@ namespace NotifySync
             if (TryRegisterFileTransformation())
             {
                 _logger.LogInformation(
-                    "NotifySync: Enregistré via File Transformation — injection automatique de client.js dans index.html (aucune modification de fichier nécessaire).");
+                    "NotifySync: Registered via File Transformation — automatic client.js injection into index.html (no file modification needed).");
             }
             else
             {
                 _logger.LogWarning(
-                    "NotifySync: Le plugin 'File Transformation' n'est pas installé. "
-                    + "Installez-le pour une injection automatique, ou ajoutez manuellement cette ligne avant </body> dans index.html : {ScriptTag}",
+                    "NotifySync: The 'File Transformation' plugin is not installed. "
+                    + "Install it for automatic injection, or manually add this line before </body> in index.html: {ScriptTag}",
                     ScriptTag);
             }
 
@@ -67,7 +66,7 @@ namespace NotifySync
 
                 if (ftAssembly == null)
                 {
-                    _logger.LogDebug("NotifySync: Assembly 'Jellyfin.Plugin.FileTransformation' non trouvée.");
+                    _logger.LogDebug("NotifySync: Assembly 'Jellyfin.Plugin.FileTransformation' not found.");
                     return false;
                 }
 
@@ -75,29 +74,34 @@ namespace NotifySync
                 Type? pluginInterface = ftAssembly.GetType("Jellyfin.Plugin.FileTransformation.PluginInterface");
                 if (pluginInterface == null)
                 {
-                    _logger.LogDebug("NotifySync: Type 'PluginInterface' introuvable dans File Transformation.");
+                    _logger.LogDebug("NotifySync: Type 'PluginInterface' not found in File Transformation.");
                     return false;
                 }
 
                 MethodInfo? registerMethod = pluginInterface.GetMethod("RegisterTransformation", BindingFlags.Static | BindingFlags.Public);
                 if (registerMethod == null)
                 {
-                    _logger.LogDebug("NotifySync: Méthode 'RegisterTransformation' introuvable.");
+                    _logger.LogDebug("NotifySync: Method 'RegisterTransformation' not found.");
                     return false;
                 }
 
-                // Build the registration payload
-                // File Transformation will call NotifySyncTransformation.Transform via reflection
+                // Build a JObject via reflection so we don't need a compile-time Newtonsoft.Json reference.
+                // Jellyfin already loads Newtonsoft.Json at runtime.
+                var paramType = registerMethod.GetParameters()[0].ParameterType;
+                var payload = Activator.CreateInstance(paramType)!;
+                var indexer = paramType.GetProperty("Item", new[] { typeof(string) })!;
+
+                // JToken implicit conversion from string — use JValue to wrap strings
+                var jValueType = paramType.Assembly.GetType("Newtonsoft.Json.Linq.JValue")!;
+                object MakeJValue(string s) => Activator.CreateInstance(jValueType, new object[] { s })!;
+
                 string thisAssemblyFullName = typeof(NotifySyncTransformation).Assembly.FullName!;
 
-                var payload = new JObject
-                {
-                    ["id"] = "95655672-2342-4321-8291-321312312312",
-                    ["fileNamePattern"] = "index.html",
-                    ["callbackAssembly"] = thisAssemblyFullName,
-                    ["callbackClass"] = "NotifySync.NotifySyncTransformation",
-                    ["callbackMethod"] = "Transform",
-                };
+                indexer.SetValue(payload, MakeJValue("95655672-2342-4321-8291-321312312312"), new object[] { "id" });
+                indexer.SetValue(payload, MakeJValue("index.html"), new object[] { "fileNamePattern" });
+                indexer.SetValue(payload, MakeJValue(thisAssemblyFullName), new object[] { "callbackAssembly" });
+                indexer.SetValue(payload, MakeJValue("NotifySync.NotifySyncTransformation"), new object[] { "callbackClass" });
+                indexer.SetValue(payload, MakeJValue("Transform"), new object[] { "callbackMethod" });
 
                 registerMethod.Invoke(null, new object[] { payload });
 
@@ -105,7 +109,7 @@ namespace NotifySync
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "NotifySync: Erreur lors de l'enregistrement File Transformation.");
+                _logger.LogWarning(ex, "NotifySync: Error during File Transformation registration.");
                 return false;
             }
         }

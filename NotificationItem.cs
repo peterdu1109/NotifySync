@@ -82,6 +82,14 @@ namespace NotifySync
         public bool IsRead { get; set; }
 
         /// <summary>
+        /// Gets or sets the real Jellyfin item ID for synthetic notifications (e.g. collection items).
+        /// When <see cref="Id"/> is a synthetic key like "col:{collectionId}:{itemId}", this stores
+        /// the actual Jellyfin item ID so permission and played-status checks can resolve the real item.
+        /// </summary>
+        [JsonIgnore]
+        public string? RealItemId { get; set; }
+
+        /// <summary>
         /// Gets or sets a value indicating whether this item is a file upgrade (replaced source file).
         /// </summary>
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]

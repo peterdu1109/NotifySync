@@ -13,7 +13,7 @@
         "changelog": "<b>🇬🇧 Improvements:</b><br>• Smarter upgrade detection — file replacements (e.g. WEBDL → Bluray) are now detected by file path, not just file size. Much more reliable.<br>• If you delete a movie and re-add it (e.g. with a better version), it now shows an UPD badge instead of NEW.<br>• Works with Sonarr, Radarr, Lidarr, or manual upgrades — no extra config needed.<br><br><b>🇫🇷 Améliorations :</b><br>• Détection des mises à jour plus fiable — les remplacements de fichiers (ex: WEBDL → Bluray) sont détectés par le chemin du fichier, plus seulement la taille.<br>• Si vous supprimez un film et le ré-ajoutez (ex: meilleure version), il affiche un badge MAJ au lieu de NOUVEAU.<br>• Compatible Sonarr, Radarr, Lidarr ou mise à jour manuelle — aucune configuration supplémentaire.",
         "targetAbi": "10.11.0.0",
         "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/5.5.7.3/NotifySync_5.5.7.3.zip",
-        "checksum": "966E92F1B23B97A8A894BBAF277FD9B3",
+        "checksum": "24437024A7626AF07701EDD4A5AB3370",
         "timestamp": "2026-03-22T20:00:00Z"
       },
       {

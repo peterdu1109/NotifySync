@@ -114,6 +114,8 @@ namespace NotifySync
                             Type TEXT NOT NULL,
                             SeriesName TEXT,
                             ProductionYear INTEGER,
+                            IndexNumber INTEGER,
+                            ParentIndexNumber INTEGER,
                             DeletedAt TEXT NOT NULL
                         );
                         CREATE INDEX IF NOT EXISTS idx_deleted_date ON DeletedItems(DeletedAt DESC);
@@ -126,6 +128,8 @@ namespace NotifySync
                 MigrateAddColumn(connection, "Notifications", "DateModifiedTicks", "INTEGER");
                 MigrateAddColumn(connection, "Notifications", "Size", "INTEGER");
                 MigrateAddColumn(connection, "Notifications", "FilePath", "TEXT");
+                MigrateAddColumn(connection, "DeletedItems", "IndexNumber", "INTEGER");
+                MigrateAddColumn(connection, "DeletedItems", "ParentIndexNumber", "INTEGER");
             }
             catch (Exception ex)
             {
@@ -798,7 +802,9 @@ namespace NotifySync
         /// <param name="type">The item type (Movie, Episode, Audio, etc.).</param>
         /// <param name="seriesName">The series name, if applicable.</param>
         /// <param name="productionYear">The production year, if applicable.</param>
-        public void SaveDeletedItem(string itemId, string name, string type, string? seriesName, int? productionYear)
+        /// <param name="indexNumber">The episode number, if applicable.</param>
+        /// <param name="parentIndexNumber">The season number, if applicable.</param>
+        public void SaveDeletedItem(string itemId, string name, string type, string? seriesName, int? productionYear, int? indexNumber = null, int? parentIndexNumber = null)
         {
             try
             {
@@ -806,13 +812,15 @@ namespace NotifySync
                 connection.Open();
                 using var cmd = connection.CreateCommand();
                 cmd.CommandText = @"
-                    INSERT INTO DeletedItems (ItemId, Name, Type, SeriesName, ProductionYear, DeletedAt)
-                    VALUES (@ItemId, @Name, @Type, @SeriesName, @ProductionYear, @DeletedAt)";
+                    INSERT INTO DeletedItems (ItemId, Name, Type, SeriesName, ProductionYear, IndexNumber, ParentIndexNumber, DeletedAt)
+                    VALUES (@ItemId, @Name, @Type, @SeriesName, @ProductionYear, @IndexNumber, @ParentIndexNumber, @DeletedAt)";
                 cmd.Parameters.AddWithValue("@ItemId", itemId);
                 cmd.Parameters.AddWithValue("@Name", name);
                 cmd.Parameters.AddWithValue("@Type", type);
                 cmd.Parameters.AddWithValue("@SeriesName", (object?)seriesName ?? DBNull.Value);
                 cmd.Parameters.AddWithValue("@ProductionYear", (object?)productionYear ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@IndexNumber", (object?)indexNumber ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@ParentIndexNumber", (object?)parentIndexNumber ?? DBNull.Value);
                 cmd.Parameters.AddWithValue("@DeletedAt", DateTime.UtcNow.ToString("O"));
                 cmd.ExecuteNonQuery();
             }
@@ -863,14 +871,18 @@ namespace NotifySync
         }
 
         /// <summary>
-        /// Checks if a recently deleted item matches the given name, type and year (upgrade detection).
-        /// Returns true if a match is found within the last 7 days.
+        /// Checks if a recently deleted item matches (upgrade detection).
+        /// For episodes: matches by SeriesName + season + episode number.
+        /// For movies/other: matches by Name + Type + Year.
         /// </summary>
         /// <param name="name">The item name.</param>
-        /// <param name="type">The item type (Movie, Episode, Audio).</param>
+        /// <param name="type">The item type.</param>
         /// <param name="productionYear">The production year.</param>
-        /// <returns>True if a matching deleted item was found recently.</returns>
-        public bool HasRecentDeletedMatch(string name, string type, int? productionYear)
+        /// <param name="seriesName">The series name (for episodes).</param>
+        /// <param name="indexNumber">The episode number (for episodes).</param>
+        /// <param name="parentIndexNumber">The season number (for episodes).</param>
+        /// <returns>True if a matching deleted item was found within the last 7 days.</returns>
+        public bool HasRecentDeletedMatch(string name, string type, int? productionYear, string? seriesName = null, int? indexNumber = null, int? parentIndexNumber = null)
         {
             try
             {
@@ -878,14 +890,33 @@ namespace NotifySync
                 connection.Open();
                 using var cmd = connection.CreateCommand();
                 var cutoff = DateTime.UtcNow.AddDays(-7).ToString("O");
-                cmd.CommandText = @"
-                    SELECT COUNT(*) FROM DeletedItems
-                    WHERE Name = @Name AND Type = @Type AND DeletedAt > @Cutoff
-                    AND (@Year IS NULL OR ProductionYear IS NULL OR ProductionYear = @Year)";
-                cmd.Parameters.AddWithValue("@Name", name);
-                cmd.Parameters.AddWithValue("@Type", type);
-                cmd.Parameters.AddWithValue("@Cutoff", cutoff);
-                cmd.Parameters.AddWithValue("@Year", (object?)productionYear ?? DBNull.Value);
+
+                // Episodes: match by SeriesName + Season + Episode (name can change: TBA → real title, VO → VF)
+                if (type == "Episode" && !string.IsNullOrEmpty(seriesName) && indexNumber.HasValue && parentIndexNumber.HasValue)
+                {
+                    cmd.CommandText = @"
+                        SELECT COUNT(*) FROM DeletedItems
+                        WHERE Type = 'Episode' AND SeriesName = @SeriesName
+                        AND IndexNumber = @IndexNumber AND ParentIndexNumber = @ParentIndexNumber
+                        AND DeletedAt > @Cutoff";
+                    cmd.Parameters.AddWithValue("@SeriesName", seriesName);
+                    cmd.Parameters.AddWithValue("@IndexNumber", indexNumber.Value);
+                    cmd.Parameters.AddWithValue("@ParentIndexNumber", parentIndexNumber.Value);
+                    cmd.Parameters.AddWithValue("@Cutoff", cutoff);
+                }
+                else
+                {
+                    // Movies/Audio: match by Name + Type + Year
+                    cmd.CommandText = @"
+                        SELECT COUNT(*) FROM DeletedItems
+                        WHERE Name = @Name AND Type = @Type AND DeletedAt > @Cutoff
+                        AND (@Year IS NULL OR ProductionYear IS NULL OR ProductionYear = @Year)";
+                    cmd.Parameters.AddWithValue("@Name", name);
+                    cmd.Parameters.AddWithValue("@Type", type);
+                    cmd.Parameters.AddWithValue("@Cutoff", cutoff);
+                    cmd.Parameters.AddWithValue("@Year", (object?)productionYear ?? DBNull.Value);
+                }
+
                 var result = cmd.ExecuteScalar();
                 return result != null && Convert.ToInt64(result, CultureInfo.InvariantCulture) > 0;
             }

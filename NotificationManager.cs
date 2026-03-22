@@ -389,8 +389,10 @@ namespace NotifySync
                     string type = item.GetType().Name;
                     string? seriesName = (item as Episode)?.SeriesName;
                     int? year = item.ProductionYear;
+                    int? indexNum = item.IndexNumber;
+                    int? parentIndexNum = item.ParentIndexNumber;
 
-                    _db.SaveDeletedItem(item.Id.ToString(), item.Name ?? "Unknown", type, seriesName, year);
+                    _db.SaveDeletedItem(item.Id.ToString(), item.Name ?? "Unknown", type, seriesName, year, indexNum, parentIndexNum);
 
                     // Purge at most once per day to avoid unnecessary DB writes
                     var nowTicks = DateTime.UtcNow.Ticks;
@@ -557,7 +559,7 @@ namespace NotifySync
                     if (notif != null)
                     {
                         // Check deleted history for upgrade detection (delete + re-add scenario)
-                        if (!notif.IsUpgrade && _db.HasRecentDeletedMatch(notif.Name, notif.Type, notif.ProductionYear))
+                        if (!notif.IsUpgrade && _db.HasRecentDeletedMatch(notif.Name, notif.Type, notif.ProductionYear, notif.SeriesName, notif.IndexNumber, notif.ParentIndexNumber))
                         {
                             notif.IsUpgrade = true;
                         }

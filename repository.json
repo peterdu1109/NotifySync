@@ -9,12 +9,12 @@
     "supportUrl": "https://github.com/peterdu1109/NotifySync",
     "versions": [
       {
-        "version": "5.5.8.2",
-        "changelog": "<b>🇬🇧 Improvements:</b><br>• Upgraded and new episodes of the same series are now shown separately — UPD badge no longer gets hidden by a NEW group.<br>• Grouped upgrades show 'updated episodes' / 'updated tracks' instead of 'new episodes'.<br><br><b>🇫🇷 Améliorations :</b><br>• Les épisodes mis à jour et les nouveaux d'une même série sont maintenant séparés — le badge MAJ n'est plus masqué par un groupe NOUVEAU.<br>• Les groupes de mises à jour affichent 'épisodes mis à jour' / 'pistes mises à jour'.",
+        "version": "5.5.8.3",
+        "changelog": "<b>🇬🇧 Improvements:</b><br>• Upgrade detection now falls back to deleted history when file metadata is missing (legacy notifications).<br>• Added diagnostic logging for upgrade detection to help troubleshoot edge cases.<br>• Upgraded and new episodes of the same series are shown separately.<br><br><b>🇫🇷 Améliorations :</b><br>• La détection de mise à jour utilise maintenant l'historique de suppression en fallback quand les métadonnées sont absentes (notifications legacy).<br>• Ajout de logs de diagnostic pour la détection d'upgrade.<br>• Les épisodes mis à jour et les nouveaux d'une même série sont séparés.",
         "targetAbi": "10.11.0.0",
-        "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/5.5.8.2/NotifySync_5.5.8.2.zip",
-        "checksum": "4807DD184EB2759A579C54F459FA46CD",
-        "timestamp": "2026-03-23T00:00:00Z"
+        "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/5.5.8.3/NotifySync_5.5.8.3.zip",
+        "checksum": "1B71A817B96781BABE0BC41F0B4C229A",
+        "timestamp": "2026-03-23T00:30:00Z"
       },
       {
         "version": "5.5.7.5",

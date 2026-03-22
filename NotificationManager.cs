@@ -469,7 +469,30 @@ namespace NotifySync
                         bool dateChanged = existing.DateModifiedTicks.HasValue
                             && updatedNotif.DateModifiedTicks.HasValue
                             && existing.DateModifiedTicks.Value != updatedNotif.DateModifiedTicks.Value;
-                        if (pathChanged || (sizeChanged && dateChanged))
+                        // Fallback: if existing has no file metadata (pre-5.5.7.3), check deleted history
+                        bool legacyFallback = string.IsNullOrEmpty(existing.FilePath)
+                            && !existing.Size.HasValue
+                            && _db.HasRecentDeletedMatch(
+                                updatedNotif.Name,
+                                updatedNotif.Type,
+                                updatedNotif.ProductionYear,
+                                updatedNotif.SeriesName,
+                                updatedNotif.IndexNumber,
+                                updatedNotif.ParentIndexNumber);
+
+                        _logger.LogInformation(
+                            "NotifySync Upgrade Check: {Name} | pathChanged={PathChanged} (old={OldPath}, new={NewPath}) | sizeChanged={SizeChanged} (old={OldSize}, new={NewSize}) | dateChanged={DateChanged} | legacyFallback={Legacy}",
+                            updatedNotif.Name,
+                            pathChanged,
+                            existing.FilePath ?? "NULL",
+                            updatedNotif.FilePath ?? "NULL",
+                            sizeChanged,
+                            existing.Size?.ToString(CultureInfo.InvariantCulture) ?? "NULL",
+                            updatedNotif.Size?.ToString(CultureInfo.InvariantCulture) ?? "NULL",
+                            dateChanged,
+                            legacyFallback);
+
+                        if (pathChanged || (sizeChanged && dateChanged) || legacyFallback)
                         {
                             updatedNotif.IsUpgrade = true;
                             updatedNotif.DateCreated = DateTime.UtcNow; // Remonter en tête de liste
@@ -559,7 +582,14 @@ namespace NotifySync
                     if (notif != null)
                     {
                         // Check deleted history for upgrade detection (delete + re-add scenario)
-                        if (!notif.IsUpgrade && _db.HasRecentDeletedMatch(notif.Name, notif.Type, notif.ProductionYear, notif.SeriesName, notif.IndexNumber, notif.ParentIndexNumber))
+                        bool deletedMatch = _db.HasRecentDeletedMatch(notif.Name, notif.Type, notif.ProductionYear, notif.SeriesName, notif.IndexNumber, notif.ParentIndexNumber);
+                        _logger.LogInformation(
+                            "NotifySync ProcessBuffer: {Name} Type={Type} Year={Year} | deletedMatch={Match}",
+                            notif.Name,
+                            notif.Type,
+                            notif.ProductionYear,
+                            deletedMatch);
+                        if (!notif.IsUpgrade && deletedMatch)
                         {
                             notif.IsUpgrade = true;
                         }

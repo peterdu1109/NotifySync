@@ -111,6 +111,14 @@ namespace NotifySync
         public long? Size { get; set; }
 
         /// <summary>
+        /// Gets or sets the file path of the media source, used for upgrade detection.
+        /// A change in path (e.g. WEBDL → Bluray) is the strongest indicator of a file replacement.
+        /// Internal only — not exposed in the API response.
+        /// </summary>
+        [JsonIgnore]
+        public string? FilePath { get; set; }
+
+        /// <summary>
         /// Creates a shallow copy of the current notification item.
         /// </summary>
         /// <returns>A new <see cref="NotificationItem"/>.</returns>

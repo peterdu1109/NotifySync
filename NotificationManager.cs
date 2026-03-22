@@ -455,16 +455,19 @@ namespace NotifySync
                     updatedNotif = CreateNotificationFromItem(e.Item);
                     if (updatedNotif != null)
                     {
-                        // Détecter un changement de fichier source (upgrade qualité)
-                        // On exige un changement de taille pour distinguer un vrai remplacement de fichier
-                        // d'une simple mise à jour de métadonnées (qui ne change que DateModifiedTicks)
+                        // Detect file replacement (quality upgrade)
+                        // Primary: Path changed = file replaced (strongest indicator)
+                        // Fallback: Size + DateModified changed = file replaced
+                        bool pathChanged = !string.IsNullOrEmpty(existing.FilePath)
+                            && !string.IsNullOrEmpty(updatedNotif.FilePath)
+                            && !string.Equals(existing.FilePath, updatedNotif.FilePath, StringComparison.Ordinal);
                         bool sizeChanged = existing.Size.HasValue
                             && updatedNotif.Size.HasValue
                             && existing.Size.Value != updatedNotif.Size.Value;
                         bool dateChanged = existing.DateModifiedTicks.HasValue
                             && updatedNotif.DateModifiedTicks.HasValue
                             && existing.DateModifiedTicks.Value != updatedNotif.DateModifiedTicks.Value;
-                        if (sizeChanged && dateChanged)
+                        if (pathChanged || (sizeChanged && dateChanged))
                         {
                             updatedNotif.IsUpgrade = true;
                             updatedNotif.DateCreated = DateTime.UtcNow; // Remonter en tête de liste
@@ -553,6 +556,12 @@ namespace NotifySync
                     var notif = CreateNotificationFromItem(item);
                     if (notif != null)
                     {
+                        // Check deleted history for upgrade detection (delete + re-add scenario)
+                        if (!notif.IsUpgrade && _db.HasRecentDeletedMatch(notif.Name, notif.Type, notif.ProductionYear))
+                        {
+                            notif.IsUpgrade = true;
+                        }
+
                         newItems.Add(notif);
                     }
                 }
@@ -1115,7 +1124,8 @@ namespace NotifySync
                     IndexNumber = item.IndexNumber,
                     ParentIndexNumber = item.ParentIndexNumber,
                     DateModifiedTicks = item.DateModified.Ticks,
-                    Size = item.Size
+                    Size = item.Size,
+                    FilePath = item.Path
                 };
 
                 if (item.GetBaseItemKind() == BaseItemKind.Audio && item is MediaBrowser.Controller.Entities.Audio.Audio audioItem)
@@ -1221,7 +1231,8 @@ namespace NotifySync
                     IndexNumber = item.IndexNumber,
                     ParentIndexNumber = item.ParentIndexNumber,
                     DateModifiedTicks = item.DateModified.Ticks,
-                    Size = item.Size
+                    Size = item.Size,
+                    FilePath = item.Path
                 };
 
                 if (item.GetBaseItemKind() == BaseItemKind.Audio && item is MediaBrowser.Controller.Entities.Audio.Audio audioItem)

@@ -83,7 +83,8 @@ namespace NotifySync
                             ParentIndexNumber INTEGER,
                             IsUpgrade INTEGER NOT NULL DEFAULT 0,
                             DateModifiedTicks INTEGER,
-                            Size INTEGER
+                            Size INTEGER,
+                            FilePath TEXT
                         );
                         CREATE INDEX IF NOT EXISTS idx_notifications_date ON Notifications(DateCreated DESC);
 
@@ -124,6 +125,7 @@ namespace NotifySync
                 MigrateAddColumn(connection, "Notifications", "IsUpgrade", "INTEGER NOT NULL DEFAULT 0");
                 MigrateAddColumn(connection, "Notifications", "DateModifiedTicks", "INTEGER");
                 MigrateAddColumn(connection, "Notifications", "Size", "INTEGER");
+                MigrateAddColumn(connection, "Notifications", "FilePath", "TEXT");
             }
             catch (Exception ex)
             {
@@ -165,12 +167,12 @@ namespace NotifySync
                     Id, Name, Category, SeriesName, SeriesId, DateCreated,
                     Type, RunTimeTicks, ProductionYear, BackdropImageTags,
                     PrimaryImageTag, IndexNumber, ParentIndexNumber,
-                    IsUpgrade, DateModifiedTicks, Size
+                    IsUpgrade, DateModifiedTicks, Size, FilePath
                 ) VALUES (
                     @Id, @Name, @Category, @SeriesName, @SeriesId, @DateCreated,
                     @Type, @RunTimeTicks, @ProductionYear, @Backdrop,
                     @Primary, @Index, @ParentIndex,
-                    @IsUpgrade, @DateModifiedTicks, @Size
+                    @IsUpgrade, @DateModifiedTicks, @Size, @FilePath
                 )";
 
             var pId = cmd.Parameters.Add("@Id", SqliteType.Text);
@@ -189,6 +191,7 @@ namespace NotifySync
             var pUpgrade = cmd.Parameters.Add("@IsUpgrade", SqliteType.Integer);
             var pDateMod = cmd.Parameters.Add("@DateModifiedTicks", SqliteType.Integer);
             var pSize = cmd.Parameters.Add("@Size", SqliteType.Integer);
+            var pFilePath = cmd.Parameters.Add("@FilePath", SqliteType.Text);
 
             void Bind(NotificationItem item)
             {
@@ -208,6 +211,7 @@ namespace NotifySync
                 pUpgrade.Value = item.IsUpgrade ? 1 : 0;
                 pDateMod.Value = (object?)item.DateModifiedTicks ?? DBNull.Value;
                 pSize.Value = (object?)item.Size ?? DBNull.Value;
+                pFilePath.Value = (object?)item.FilePath ?? DBNull.Value;
             }
 
             return (cmd, Bind);
@@ -424,6 +428,7 @@ namespace NotifySync
                 int oIsUpgrade = reader.GetOrdinal("IsUpgrade");
                 int oDateModTicks = reader.GetOrdinal("DateModifiedTicks");
                 int oSize = reader.GetOrdinal("Size");
+                int oFilePath = reader.GetOrdinal("FilePath");
 
                 while (reader.Read())
                 {
@@ -444,7 +449,8 @@ namespace NotifySync
                         ParentIndexNumber = reader.IsDBNull(oParentIndex) ? null : reader.GetInt32(oParentIndex),
                         IsUpgrade = !reader.IsDBNull(oIsUpgrade) && reader.GetInt32(oIsUpgrade) != 0,
                         DateModifiedTicks = reader.IsDBNull(oDateModTicks) ? null : reader.GetInt64(oDateModTicks),
-                        Size = reader.IsDBNull(oSize) ? null : reader.GetInt64(oSize)
+                        Size = reader.IsDBNull(oSize) ? null : reader.GetInt64(oSize),
+                        FilePath = reader.IsDBNull(oFilePath) ? null : reader.GetString(oFilePath)
                     });
                 }
             }
@@ -854,6 +860,40 @@ namespace NotifySync
             }
 
             return result;
+        }
+
+        /// <summary>
+        /// Checks if a recently deleted item matches the given name, type and year (upgrade detection).
+        /// Returns true if a match is found within the last 7 days.
+        /// </summary>
+        /// <param name="name">The item name.</param>
+        /// <param name="type">The item type (Movie, Episode, Audio).</param>
+        /// <param name="productionYear">The production year.</param>
+        /// <returns>True if a matching deleted item was found recently.</returns>
+        public bool HasRecentDeletedMatch(string name, string type, int? productionYear)
+        {
+            try
+            {
+                using var connection = new SqliteConnection(_connectionString);
+                connection.Open();
+                using var cmd = connection.CreateCommand();
+                var cutoff = DateTime.UtcNow.AddDays(-7).ToString("O");
+                cmd.CommandText = @"
+                    SELECT COUNT(*) FROM DeletedItems
+                    WHERE Name = @Name AND Type = @Type AND DeletedAt > @Cutoff
+                    AND (@Year IS NULL OR ProductionYear IS NULL OR ProductionYear = @Year)";
+                cmd.Parameters.AddWithValue("@Name", name);
+                cmd.Parameters.AddWithValue("@Type", type);
+                cmd.Parameters.AddWithValue("@Cutoff", cutoff);
+                cmd.Parameters.AddWithValue("@Year", (object?)productionYear ?? DBNull.Value);
+                var result = cmd.ExecuteScalar();
+                return result != null && Convert.ToInt64(result, CultureInfo.InvariantCulture) > 0;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "NotifySync: Error checking deleted item match for {Name}.", name);
+                return false;
+            }
         }
 
         /// <summary>

@@ -13,7 +13,7 @@
         "changelog": "<b>🇬🇧 Fixes:</b><br>• Fixed localStorage cache migration — upgrading from 5.5.7.x no longer loses cached data.<br>• Hero image now falls back to Primary poster if backdrop fails to load (no more black hero).<br>• Fixed potential division by zero in scan progress reporting.<br>• Dates now handle invalid values gracefully instead of showing NaN.<br><br><b>🇫🇷 Corrections :</b><br>• Correction de la migration du cache localStorage — la mise à jour depuis 5.5.7.x ne perd plus les données en cache.<br>• L'image hero utilise maintenant le poster Primary si le backdrop échoue (plus de hero noir).<br>• Correction d'une division par zéro possible dans le rapport de progression du scan.<br>• Les dates gèrent maintenant les valeurs invalides sans afficher NaN.",
         "targetAbi": "10.11.0.0",
         "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/5.5.8.1/NotifySync_5.5.8.1.zip",
-        "checksum": "580000232A31F4B4F7D4D0EC97483B2A",
+        "checksum": "1814ABF79C3639639F3F0A3679EFF080",
         "timestamp": "2026-03-22T23:30:00Z"
       },
       {

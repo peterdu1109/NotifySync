@@ -13,7 +13,7 @@
         "changelog": "<b>🇬🇧 Improvements:</b><br>• Upgraded and new episodes of the same series are now shown separately — UPD badge no longer gets hidden by a NEW group.<br>• Grouped upgrades show 'updated episodes' / 'updated tracks' instead of 'new episodes'.<br><br><b>🇫🇷 Améliorations :</b><br>• Les épisodes mis à jour et les nouveaux d'une même série sont maintenant séparés — le badge MAJ n'est plus masqué par un groupe NOUVEAU.<br>• Les groupes de mises à jour affichent 'épisodes mis à jour' / 'pistes mises à jour'.",
         "targetAbi": "10.11.0.0",
         "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/5.5.8.2/NotifySync_5.5.8.2.zip",
-        "checksum": "7C50DF9D24B3A4FCC8F326D1EFCCB118",
+        "checksum": "4807DD184EB2759A579C54F459FA46CD",
         "timestamp": "2026-03-23T00:00:00Z"
       },
       {

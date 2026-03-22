@@ -1,4 +1,4 @@
-/* NOTIFYSYNC V5.5.7.1 */
+/* NOTIFYSYNC V5.5.7.2 */
 (function () {
     let currentData = [];
     let groupedData = [];
@@ -171,8 +171,8 @@
             .style-new { background: rgba(229, 9, 20, 0.05); }
             .style-upgrade .item-badge { display: block; background: var(--ns-upgrade); box-shadow: 0 1px 3px rgba(33,150,243,0.5); }
             .style-upgrade { background: rgba(33, 150, 243, 0.05); }
-            .thumb-wrapper { width:90px; height:50px; margin-right:15px; flex-shrink:0; background:#222; border-radius:6px; overflow:hidden; display:flex; justify-content:center; align-items:center; box-shadow: 0 2px 5px rgba(0,0,0,0.3); }
-            .dropdown-thumb { width:100%; height:100%; object-fit:cover; opacity:0; transition:opacity 0.3s; }
+            .thumb-wrapper { width:90px; height:50px; margin-right:15px; flex-shrink:0; background:#222; border-radius:6px; overflow:hidden; display:flex; justify-content:center; align-items:center; box-shadow: 0 2px 5px rgba(0,0,0,0.3); position:relative; }
+            .dropdown-thumb { width:100%; height:100%; object-fit:cover; opacity:0; transition:opacity 0.3s; position:absolute; inset:0; z-index:1; }
             .dropdown-thumb.music { object-fit:contain; }
             .dropdown-thumb.loaded { opacity:1; }
             .dropdown-info { flex:1; display:flex; flex-direction:column; justify-content:center; min-width: 0; }
@@ -182,7 +182,7 @@
             .hero-section .dismiss-btn { top:10px; right:10px; background:rgba(0,0,0,0.5); color:#fff; z-index:3; }
             .hero-section:hover .dismiss-btn { opacity:1; }
             .hero-section .dismiss-btn:hover { background:rgba(229,9,20,0.8); }
-            .hero-bg { position: absolute; inset: 0; background-size: cover; background-position: center top; transition: transform 5s ease; }
+            .hero-bg { position: absolute; inset: 0; background-size: cover; background-position: center center; transition: transform 5s ease; }
             .hero-overlay { position: absolute; inset: 0; background: linear-gradient(to top, var(--ns-glass) 5%, transparent 100%); }
             .hero-content { position: relative; z-index: 2; padding: 20px; width: 100%; }
             .hero-badge { background: var(--ns-red); color: #fff; font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 3px; display: inline-block; margin-bottom: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.5); }
@@ -456,8 +456,8 @@
 
         if (hero) {
             const isGroup = !!hero.IsGroup;
-            let heroImg = (hero.BackdropImageTags && hero.BackdropImageTags[0]) ? client.getUrl(`Items/${encodeURIComponent(hero.Id)}/Images/Backdrop/0?tag=${encodeURIComponent(hero.BackdropImageTags[0])}&quality=70&maxWidth=600&format=webp`) : client.getUrl(`Items/${encodeURIComponent(hero.SeriesId || hero.Id)}/Images/Primary?quality=70&maxWidth=400&format=webp`);
-            if (isGroup && hero.SeriesId) heroImg = client.getUrl(`Items/${encodeURIComponent(hero.Id)}/Images/Backdrop/0?quality=70&maxWidth=600&format=webp`);
+            let heroImg = (hero.BackdropImageTags && hero.BackdropImageTags[0]) ? client.getUrl(`Items/${encodeURIComponent(hero.Id)}/Images/Backdrop/0?tag=${encodeURIComponent(hero.BackdropImageTags[0])}&quality=70&fillWidth=380&fillHeight=160&format=webp`) : client.getUrl(`Items/${encodeURIComponent(hero.SeriesId || hero.Id)}/Images/Primary?quality=70&fillWidth=380&fillHeight=160&format=webp`);
+            if (isGroup && hero.SeriesId) heroImg = client.getUrl(`Items/${encodeURIComponent(hero.Id)}/Images/Backdrop/0?quality=70&fillWidth=380&fillHeight=160&format=webp`);
 
             let heroTitle = escapeHtml(hero.Name), heroSub = '';
             if (!isGroup && hero.Type === 'Episode') {

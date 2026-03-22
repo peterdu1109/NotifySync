@@ -9,6 +9,14 @@
     "supportUrl": "https://github.com/peterdu1109/NotifySync",
     "versions": [
       {
+        "version": "5.5.7.2",
+        "changelog": "<b>🇬🇧 Fixes:</b><br>• Hero image is now better centered — no more cropped faces or awkward framing.<br><br><b>🇫🇷 Corrections :</b><br>• L'image du hero est maintenant mieux centrée — plus de visages coupés ou de cadrage décalé.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/5.5.7.2/NotifySync_5.5.7.2.zip",
+        "checksum": "F405C06795744CF191C157FB5ED30EC9",
+        "timestamp": "2026-03-22T18:00:00Z"
+      },
+      {
         "version": "5.5.7.1",
         "changelog": "<b>🇬🇧 Fixes:</b><br>• Badge size and dismiss button icon refined.<br>• Dismiss button now uses a properly centered icon.<br>• Image loading improved — only shows loaded images, no more blank flashes.<br><br><b>🇫🇷 Corrections :</b><br>• Taille du badge et icône du bouton de suppression affinés.<br>• Le bouton de suppression utilise maintenant une icône parfaitement centrée.<br>• Chargement des images amélioré — seules les images chargées sont affichées.",
         "targetAbi": "10.11.0.0",

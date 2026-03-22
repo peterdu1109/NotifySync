@@ -9,6 +9,14 @@
     "supportUrl": "https://github.com/peterdu1109/NotifySync",
     "versions": [
       {
+        "version": "5.5.7.4",
+        "changelog": "<b>🇬🇧 Fixes:</b><br>• Long titles and series names are now properly truncated with '...' — the date (e.g. '3h ago') always stays visible.<br>• Full text appears on hover (tooltip).<br><br><b>🇫🇷 Corrections :</b><br>• Les titres longs sont tronqués proprement avec '...' — la date (ex: 'il y a 3h') reste toujours visible.<br>• Le texte complet s'affiche au survol (info-bulle).",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/5.5.7.4/NotifySync_5.5.7.4.zip",
+        "checksum": "52894CECB208EDB2AFC7F4C0595D675D",
+        "timestamp": "2026-03-22T21:00:00Z"
+      },
+      {
         "version": "5.5.7.3",
         "changelog": "<b>🇬🇧 Improvements:</b><br>• Smarter upgrade detection — file replacements (e.g. WEBDL → Bluray) are now detected by file path, not just file size. Much more reliable.<br>• If you delete a movie and re-add it (e.g. with a better version), it now shows an UPD badge instead of NEW.<br>• Works with Sonarr, Radarr, Lidarr, or manual upgrades — no extra config needed.<br><br><b>🇫🇷 Améliorations :</b><br>• Détection des mises à jour plus fiable — les remplacements de fichiers (ex: WEBDL → Bluray) sont détectés par le chemin du fichier, plus seulement la taille.<br>• Si vous supprimez un film et le ré-ajoutez (ex: meilleure version), il affiche un badge MAJ au lieu de NOUVEAU.<br>• Compatible Sonarr, Radarr, Lidarr ou mise à jour manuelle — aucune configuration supplémentaire.",
         "targetAbi": "10.11.0.0",

@@ -12,7 +12,7 @@ namespace NotifySync
     public class HistoryScanTask : IScheduledTask
     {
         /// <inheritdoc />
-        public string Name => "NotifySync : Scan de l'historique";
+        public string Name => "NotifySync: History Scan";
 
         /// <inheritdoc />
         public string Key => "NotifySyncHistoryScanTask";

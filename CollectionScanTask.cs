@@ -12,7 +12,7 @@ namespace NotifySync
     public class CollectionScanTask : IScheduledTask
     {
         /// <inheritdoc />
-        public string Name => "NotifySync : Scan des collections";
+        public string Name => "NotifySync: Collection Scan";
 
         /// <inheritdoc />
         public string Key => "NotifySyncCollectionScanTask";

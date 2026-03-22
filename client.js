@@ -1,4 +1,4 @@
-/* NOTIFYSYNC V5.5.7.5 */
+/* NOTIFYSYNC V5.5.8.0 */
 (function () {
     let currentData = [];
     let groupedData = [];
@@ -201,6 +201,8 @@
         return (userId && userId !== 'null' && userId !== 'undefined') ? userId : null;
     };
 
+    const nsKey = (key) => { const uid = getUserId(); return uid ? `ns-${uid}-${key}` : `ns-${key}`; };
+
     const processGrouping = (items) => {
         const seriesMap = new Map();
         const result = [];
@@ -239,7 +241,7 @@
                     // Support both plain ISO string and JSON-encoded string
                     const parsed = text.startsWith('"') ? JSON.parse(text) : text;
                     lastSeenDate = new Date(parsed);
-                    localStorage.setItem('ns-cleared', lastSeenDate.toISOString());
+                    localStorage.setItem(nsKey('cleared'), lastSeenDate.toISOString());
                 }
             }
         } catch (e) { /* use cache */ }
@@ -259,7 +261,7 @@
         groupedData = [];
         previousDataIds = new Set();
         lastFetchTime = 0;
-        localStorage.removeItem('ns-etag');
+        localStorage.removeItem(nsKey('etag'));
         updateBadge();
         const drop = document.getElementById('notification-dropdown');
         if (drop) updateList(drop);
@@ -278,8 +280,8 @@
 
         // Remove from local data
         currentData = currentData.filter(i => i.Category !== category);
-        localStorage.setItem('ns-data', JSON.stringify(currentData)); localStorage.setItem('ns-data-ts', Date.now().toString());
-        localStorage.removeItem('ns-etag');
+        localStorage.setItem(nsKey('data'), JSON.stringify(currentData)); localStorage.setItem(nsKey('data-ts'), Date.now().toString());
+        localStorage.removeItem(nsKey('etag'));
         lastFetchTime = 0;
         recalculateNewStatus();
         activeFilter = 'All';
@@ -319,7 +321,7 @@
         isFetching = true;
         try {
             const lastSeenPromise = fetchLastSeen();
-            const lastEtag = localStorage.getItem('ns-etag') || '';
+            const lastEtag = localStorage.getItem(nsKey('etag')) || '';
             const headers = getAuthHeaders();
             if (lastEtag) headers['If-None-Match'] = lastEtag;
 
@@ -339,8 +341,8 @@
 
                 currentData = json;
                 const newEtag = res.headers.get('ETag');
-                if (newEtag) localStorage.setItem('ns-etag', newEtag);
-                localStorage.setItem('ns-data', JSON.stringify(currentData)); localStorage.setItem('ns-data-ts', Date.now().toString());
+                if (newEtag) localStorage.setItem(nsKey('etag'), newEtag);
+                localStorage.setItem(nsKey('data'), JSON.stringify(currentData)); localStorage.setItem(nsKey('data-ts'), Date.now().toString());
 
                 // Server already filters out played items in GetData(), no need for BulkUserData
                 recalculateNewStatus();
@@ -380,27 +382,27 @@
     const loadFromCache = () => {
         try {
             // Restore lastSeenDate from localStorage first
-            const cachedCleared = localStorage.getItem('ns-cleared');
+            const cachedCleared = localStorage.getItem(nsKey('cleared'));
             if (cachedCleared) {
                 lastSeenDate = new Date(cachedCleared);
             }
 
             // Check TTL (1 hour max)
-            const cachedTime = parseInt(localStorage.getItem('ns-data-ts') || '0');
+            const cachedTime = parseInt(localStorage.getItem(nsKey('data-ts')) || '0');
             if (Date.now() - cachedTime > 3600000) {
-                localStorage.removeItem('ns-data');
-                localStorage.removeItem('ns-etag');
-                localStorage.removeItem('ns-data-ts');
+                localStorage.removeItem(nsKey('data'));
+                localStorage.removeItem(nsKey('etag'));
+                localStorage.removeItem(nsKey('data-ts'));
                 return;
             }
 
-            const cached = localStorage.getItem('ns-data');
+            const cached = localStorage.getItem(nsKey('data'));
             if (cached) {
                 try {
                     currentData = JSON.parse(cached);
                     previousDataIds = new Set(currentData.map(i => i.Id));
                     recalculateNewStatus();
-                } catch (pe) { localStorage.removeItem('ns-data'); localStorage.removeItem('ns-etag'); localStorage.removeItem('ns-data-ts'); }
+                } catch (pe) { localStorage.removeItem(nsKey('data')); localStorage.removeItem(nsKey('etag')); localStorage.removeItem(nsKey('data-ts')); }
             }
         } catch (e) { }
     };
@@ -410,7 +412,7 @@
         if (btn) btn.classList.add('spinning');
         try {
             await fetch('/NotifySync/Refresh', { method: 'POST', headers: getAuthHeaders() });
-            localStorage.removeItem('ns-etag');
+            localStorage.removeItem(nsKey('etag'));
             // Le serveur lance un Task.Run en background. 
             // On laisse le WebSocketMessage ("LibraryChanged" ou "UserDataChanged") nous notifier 
             // lorsque le scan aura modifié la base de données.
@@ -448,7 +450,7 @@
         if (activeFilter !== 'All') filtered = filtered.filter(i => i.Category === activeFilter);
         const cats = new Set(['All']); groupedData.forEach(i => cats.add(i.Category));
         const filterBar = drop.querySelector('.filter-bar');
-        filterBar.innerHTML = Array.from(cats).map(c => `<div class="filter-pill ${activeFilter === c ? 'active' : ''}" data-category="${escapeHtml(c)}" onclick="document.dispatchEvent(new CustomEvent('ns-filter', {detail:'${escapeHtml(c)}'}))">${T['filter' + c] || escapeHtml(c)}</div>`).join('');
+        filterBar.innerHTML = Array.from(cats).map(c => `<div class="filter-pill ${activeFilter === c ? 'active' : ''}" data-category="${escapeHtml(c)}" tabindex="0" role="button" onclick="document.dispatchEvent(new CustomEvent('ns-filter', {detail:'${escapeHtml(c)}'}))" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">${T['filter' + c] || escapeHtml(c)}</div>`).join('');
 
         if (filtered.length === 0) { container.innerHTML = `<div style="padding:60px 20px;text-align:center;color:#666;font-style:italic;">${T.empty}</div>`; return; }
 
@@ -474,7 +476,8 @@
             }
 
             const safeHeroId = escapeHtml(hero.Id);
-            htmlParts.push(`<div class="hero-section" onclick="document.dispatchEvent(new CustomEvent('ns-navigate', {detail: '${safeHeroId}'}))"><div class="hero-bg" style="background-image:url('${escapeHtml(heroImg)}')"></div><div class="hero-overlay"></div><button class="dismiss-btn" title="${T.dismiss}" aria-label="${T.dismiss}" onclick="event.stopPropagation(); document.dispatchEvent(new CustomEvent('ns-dismiss', {detail: '${safeHeroId}'}))">close</button><div class="hero-content">${hero.IsUpgrade && hero.ShowBadge ? `<span class="hero-badge-upgrade">${T.badgeUpgrade}</span>` : hero.ShowBadge ? `<span class="hero-badge">${T.badgeNew}</span>` : ''}<div style="font-size:18px;font-weight:700;text-shadow:0 2px 4px #000;line-height:1.2;">${heroTitle}</div><div style="font-size:12px;opacity:0.8;margin-top:4px">${heroSub} &bull; ${timeAgo(hero.DateCreated)}</div></div></div>`);
+            const heroNavId = escapeHtml(hero.RealItemId || hero.Id);
+            htmlParts.push(`<div class="hero-section" onclick="document.dispatchEvent(new CustomEvent('ns-navigate', {detail: '${heroNavId}'}))"><div class="hero-bg" style="background-image:url('${escapeHtml(heroImg)}')"></div><div class="hero-overlay"></div><button class="dismiss-btn" title="${T.dismiss}" aria-label="${T.dismiss}" onclick="event.stopPropagation(); document.dispatchEvent(new CustomEvent('ns-dismiss', {detail: '${safeHeroId}'}))">close</button><div class="hero-content">${hero.IsUpgrade && hero.ShowBadge ? `<span class="hero-badge-upgrade">${T.badgeUpgrade}</span>` : hero.ShowBadge ? `<span class="hero-badge">${T.badgeNew}</span>` : ''}<div style="font-size:18px;font-weight:700;text-shadow:0 2px 4px #000;line-height:1.2;">${heroTitle}</div><div style="font-size:12px;opacity:0.8;margin-top:4px">${heroSub} &bull; ${timeAgo(hero.DateCreated)}</div></div></div>`);
         }
 
         filtered.filter(x => x !== hero).forEach(item => {
@@ -491,8 +494,9 @@
             }
 
             const safeId = escapeHtml(item.Id);
+            const navId = escapeHtml(item.RealItemId || item.Id);
             const badgeHtml = item.ShowBadge ? `<span class="item-badge">${item.IsUpgrade ? T.badgeUpgrade : T.badgeNew}</span>` : '';
-            htmlParts.push(`<div class="dropdown-item ${item.IsUpgrade && item.ShowBadge ? 'style-upgrade' : item.ShowBadge ? 'style-new' : 'style-seen'}" data-item-id="${safeId}" onclick="document.dispatchEvent(new CustomEvent('ns-navigate', {detail: '${safeId}'}))"><button class="dismiss-btn" title="${T.dismiss}" aria-label="${T.dismiss}" onclick="event.stopPropagation(); document.dispatchEvent(new CustomEvent('ns-dismiss', {detail: '${safeId}'}))">close</button><div class="swipe-delete">${T.dismiss}</div><div class="thumb-wrapper"><img data-src="${imgUrl}" decoding="async" class="dropdown-thumb ${isMusic ? 'music' : ''}" loading="lazy" onerror="if(this.dataset.fallback){this.src=this.dataset.fallback;this.removeAttribute('data-fallback')}else{this.style.display='none'}" data-fallback="${fallbackUrl}"><span class="material-icons" style="color:#555;font-size:24px;">${isMusic ? 'album' : 'movie'}</span></div><div class="dropdown-info">${badgeHtml}<div class="dropdown-title" title="${title}">${title}</div><div class="dropdown-subtitle" title="${sub}"><span class="sub-time">${timeAgo(item.DateCreated)} &bull;</span><span class="sub-text">${sub}</span></div></div></div>`);
+            htmlParts.push(`<div class="dropdown-item ${item.IsUpgrade && item.ShowBadge ? 'style-upgrade' : item.ShowBadge ? 'style-new' : 'style-seen'}" data-item-id="${safeId}" onclick="document.dispatchEvent(new CustomEvent('ns-navigate', {detail: '${navId}'}))"><button class="dismiss-btn" title="${T.dismiss}" aria-label="${T.dismiss}" onclick="event.stopPropagation(); document.dispatchEvent(new CustomEvent('ns-dismiss', {detail: '${safeId}'}))">close</button><div class="swipe-delete">${T.dismiss}</div><div class="thumb-wrapper"><img data-src="${imgUrl}" decoding="async" class="dropdown-thumb ${isMusic ? 'music' : ''}" loading="lazy" onerror="if(this.dataset.fallback){this.src=this.dataset.fallback;this.removeAttribute('data-fallback')}else{this.style.display='none'}" data-fallback="${fallbackUrl}"><span class="material-icons" style="color:#555;font-size:24px;">${isMusic ? 'album' : 'movie'}</span></div><div class="dropdown-info">${badgeHtml}<div class="dropdown-title" title="${title}">${title}</div><div class="dropdown-subtitle" title="${sub}"><span class="sub-time">${timeAgo(item.DateCreated)} &bull;</span><span class="sub-text">${sub}</span></div></div></div>`);
         });
 
         if (activeFilter === 'All') {
@@ -600,15 +604,15 @@
                 document.addEventListener('ns-dismiss', async (e) => {
                     const itemId = e.detail;
                     // Optimistic UI: animate out immediately
-                    const el = document.querySelector(`.dropdown-item[data-item-id="${itemId}"]`);
+                    const el = document.querySelector(`.dropdown-item[data-item-id="${CSS.escape(itemId)}"]`);
                     if (el) el.classList.add('dismissing');
 
                     const success = await dismissOnServer(itemId);
                     if (success) {
                         // Remove from local data (by Id OR by SeriesId for group dismiss)
                         currentData = currentData.filter(i => !(i.Id === itemId || i.SeriesId === itemId));
-                        localStorage.setItem('ns-data', JSON.stringify(currentData)); localStorage.setItem('ns-data-ts', Date.now().toString());
-                        localStorage.removeItem('ns-etag'); // Force fresh fetch next time
+                        localStorage.setItem(nsKey('data'), JSON.stringify(currentData)); localStorage.setItem(nsKey('data-ts'), Date.now().toString());
+                        localStorage.removeItem(nsKey('etag')); // Force fresh fetch next time
                         recalculateNewStatus();
                         setTimeout(() => {
                             const d = document.getElementById('notification-dropdown');

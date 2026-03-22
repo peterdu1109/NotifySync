@@ -1192,7 +1192,7 @@ namespace NotifySync
 
             try
             {
-                string category = "Autres";
+                string category = "Other";
                 var owners = item.GetAncestorIds().ToArray();
                 var config = Plugin.Instance?.Configuration;
 

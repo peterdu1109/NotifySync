@@ -136,7 +136,7 @@ namespace NotifySync
         /// <returns>The javascript file.</returns>
         [HttpGet("Client.js")]
         [AllowAnonymous]
-        [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
+        [ResponseCache(Duration = 300, Location = ResponseCacheLocation.Any)]
         public ActionResult GetClientJs()
         {
             var js = _clientJsLazy.Value;

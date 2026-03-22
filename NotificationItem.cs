@@ -86,7 +86,7 @@ namespace NotifySync
         /// When <see cref="Id"/> is a synthetic key like "col:{collectionId}:{itemId}", this stores
         /// the actual Jellyfin item ID so permission and played-status checks can resolve the real item.
         /// </summary>
-        [JsonIgnore]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? RealItemId { get; set; }
 
         /// <summary>

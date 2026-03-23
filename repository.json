@@ -9,6 +9,14 @@
     "supportUrl": "https://github.com/peterdu1109/NotifySync",
     "versions": [
       {
+        "version": "5.5.8.6",
+        "changelog": "<b>🇬🇧 Fix:</b><br>• Fixed upgrade detection being lost during Jellyfin library rescans. ProcessBuffer no longer overwrites existing notifications — preserves IsUpgrade flag so Radarr/Sonarr upgrades reliably show UPD badge.<br>• Eliminates 1500+ unnecessary DB writes per library rescan.<br><br><b>🇫🇷 Correction :</b><br>• Correction de la perte du badge MAJ lors des rescans de bibliothèque Jellyfin. ProcessBuffer ne remplace plus les notifications existantes — le flag IsUpgrade est préservé pour que les upgrades Radarr/Sonarr affichent correctement le badge MAJ.<br>• Élimine 1500+ écritures DB inutiles par rescan.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/v5.5.8.6/NotifySync.zip",
+        "checksum": "3A247A52E0D001F1935B5604BA2C18CC",
+        "timestamp": "2026-03-23T11:30:00Z"
+      },
+      {
         "version": "5.5.8.5",
         "changelog": "<b>🇬🇧 Fix:</b><br>• Fixed movie upgrade detection when Radarr/Sonarr replaces a file (Jellyfin fires ItemRemoved + ItemAdded instead of ItemUpdated). The plugin now tracks recently-removed items in memory so re-appearing items are correctly marked as upgrades.<br><br><b>🇫🇷 Correction :</b><br>• Correction de la détection d'upgrade pour les films quand Radarr/Sonarr remplace un fichier (Jellyfin envoie ItemRemoved + ItemAdded au lieu de ItemUpdated). Le plugin mémorise les items récemment supprimés pour les marquer correctement comme mises à jour.",
         "targetAbi": "10.11.0.0",

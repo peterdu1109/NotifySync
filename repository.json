@@ -13,7 +13,7 @@
         "changelog": "<b>🇬🇧 Fix:</b><br>• Fixed upgrade detection for replaced episodes (Sonarr). Episodes without metadata are deferred ~15s to let Jellyfin load SeriesName before matching.<br>• ProcessBuffer no longer overwrites existing notifications during library rescans.<br>• Eliminates 1500+ unnecessary DB writes per library rescan.<br><br><b>🇫🇷 Correction :</b><br>• Correction de la détection d'upgrade pour les épisodes remplacés (Sonarr). Les épisodes sans métadonnées sont différés ~15s pour permettre à Jellyfin de charger le SeriesName.<br>• ProcessBuffer ne remplace plus les notifications existantes lors des rescans.<br>• Élimine 1500+ écritures DB inutiles par rescan.",
         "targetAbi": "10.11.0.0",
         "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/v5.5.8.7/NotifySync.zip",
-        "checksum": "40C22A7E91B488A5700800B371AEC3DE",
+        "checksum": "159312D3AB252092580FFB84F65D1B17",
         "timestamp": "2026-03-23T12:00:00Z"
       },
       {

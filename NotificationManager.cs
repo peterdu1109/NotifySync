@@ -613,6 +613,32 @@ namespace NotifySync
                                 notif.IndexNumber,
                                 notif.ParentIndexNumber);
 
+                        // Skip items that already exist in notifications (library rescan noise).
+                        // Only process if it's a genuine upgrade or a truly new item.
+                        // This prevents overwriting existing IsUpgrade flags and avoids
+                        // thousands of unnecessary DB writes during Jellyfin library validation.
+                        bool alreadyExists = false;
+                        try
+                        {
+                            _dataLock.EnterReadLock();
+                            alreadyExists = _notifications.Any(n => n.Id == notif.Id);
+                        }
+                        finally
+                        {
+                            if (_dataLock.IsReadLockHeld)
+                            {
+                                _dataLock.ExitReadLock();
+                            }
+                        }
+
+                        if (alreadyExists && !recentlyRemoved && !deletedMatch)
+                        {
+                            _logger.LogDebug(
+                                "NotifySync ProcessBuffer: skipping existing item {Name} (no upgrade signal)",
+                                notif.Name);
+                            continue;
+                        }
+
                         _logger.LogInformation(
                             "NotifySync ProcessBuffer: {Name} Type={Type} Year={Year} | recentlyRemoved={Removed} | deletedMatch={Match}",
                             notif.Name,

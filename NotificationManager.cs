@@ -41,6 +41,7 @@ namespace NotifySync
 
         private readonly ConcurrentDictionary<string, long> _userStateVersion = new ();
         private readonly ConcurrentDictionary<string, DateTime> _recentlyRemovedIds = new ();
+        private readonly ConcurrentDictionary<string, int> _deferredEpisodes = new ();
         private int _isClearedDirty;
         private List<NotificationItem> _notifications = new List<NotificationItem>();
         private long _versionCounter = DateTime.UtcNow.Ticks;
@@ -588,6 +589,7 @@ namespace NotifySync
             try
             {
                 var newItems = new List<NotificationItem>();
+                bool hasDeferredItems = false;
                 while (_eventBuffer.TryDequeue(out var item))
                 {
                     if (item == null)
@@ -598,6 +600,32 @@ namespace NotifySync
                     var notif = CreateNotificationFromItem(item);
                     if (notif != null)
                     {
+                        // Defer episodes without SeriesName — metadata not loaded yet.
+                        // Jellyfin fires ItemAdded before completing the metadata refresh,
+                        // so SeriesName may be null. Without it, HasRecentDeletedMatch
+                        // can't match by SeriesName+Season+Episode and upgrade detection fails.
+                        // Re-enqueue once to give Jellyfin time (~5s) to populate metadata.
+                        if (notif.Type == "Episode"
+                            && string.IsNullOrEmpty(notif.SeriesName)
+                            && notif.IndexNumber.HasValue)
+                        {
+                            int retries = _deferredEpisodes.GetOrAdd(notif.Id, 0);
+                            if (retries < 3)
+                            {
+                                _deferredEpisodes[notif.Id] = retries + 1;
+                                _eventBuffer.Enqueue(item);
+                                hasDeferredItems = true;
+                                continue;
+                            }
+
+                            // Max retries reached — process as-is
+                            _deferredEpisodes.TryRemove(notif.Id, out _);
+                        }
+                        else
+                        {
+                            _deferredEpisodes.TryRemove(notif.Id, out _);
+                        }
+
                         // Primary upgrade detection: check if this item was just removed
                         // (Radarr/Sonarr upgrade flow: ItemRemoved → ItemAdded for same ID)
                         bool recentlyRemoved = _recentlyRemovedIds.TryRemove(notif.Id, out var removedAt)
@@ -653,6 +681,19 @@ namespace NotifySync
                         }
 
                         newItems.Add(notif);
+                    }
+                }
+
+                // Re-trigger timer for deferred episodes waiting for metadata
+                if (hasDeferredItems && !_disposeCts.IsCancellationRequested)
+                {
+                    try
+                    {
+                        _bufferProcessTimer.Change(5000, Timeout.Infinite);
+                    }
+                    catch (ObjectDisposedException)
+                    {
+                        // Timer already disposed during plugin shutdown
                     }
                 }
 

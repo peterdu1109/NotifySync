@@ -40,8 +40,6 @@ namespace NotifySync
         private readonly CancellationTokenSource _disposeCts = new ();
 
         private readonly ConcurrentDictionary<string, long> _userStateVersion = new ();
-        private readonly ConcurrentDictionary<string, DateTime> _recentlyRemovedIds = new ();
-        private readonly ConcurrentDictionary<string, int> _deferredEpisodes = new ();
         private int _isClearedDirty;
         private List<NotificationItem> _notifications = new List<NotificationItem>();
         private long _versionCounter = DateTime.UtcNow.Ticks;
@@ -419,12 +417,6 @@ namespace NotifySync
                 int removed = _notifications.RemoveAll(n => n.Id == itemId);
                 if (removed > 0)
                 {
-                    // Track recently removed notification IDs for upgrade detection.
-                    // When Radarr/Sonarr upgrades a file, Jellyfin fires ItemRemoved then
-                    // ItemAdded/ItemUpdated. By remembering the removed ID, we can detect
-                    // the re-appearing item as an upgrade rather than a new addition.
-                    _recentlyRemovedIds[itemId] = DateTime.UtcNow;
-
                     dbNeedsUpdate = true;
                     Interlocked.Increment(ref _versionCounter);
                 }
@@ -441,16 +433,6 @@ namespace NotifySync
             {
                 _db.DeleteNotifications(new[] { itemId });
                 _db.DeleteStatesForNotification(itemId);
-            }
-
-            // Purge stale entries older than 10 minutes
-            var cutoff = DateTime.UtcNow.AddMinutes(-10);
-            foreach (var kvp in _recentlyRemovedIds)
-            {
-                if (kvp.Value < cutoff)
-                {
-                    _recentlyRemovedIds.TryRemove(kvp.Key, out _);
-                }
             }
         }
 
@@ -514,6 +496,23 @@ namespace NotifySync
                         {
                             updatedNotif.IsUpgrade = true;
                             updatedNotif.DateCreated = DateTime.UtcNow; // Remonter en tête de liste
+                        }
+                        else if (!existing.IsUpgrade
+                            && _db.HasRecentDeletedMatch(
+                                updatedNotif.Name,
+                                updatedNotif.Type,
+                                updatedNotif.ProductionYear,
+                                updatedNotif.SeriesName,
+                                updatedNotif.IndexNumber,
+                                updatedNotif.ParentIndexNumber))
+                        {
+                            // Metadata now available — re-check deleted history for upgrade detection.
+                            // ProcessBuffer may have missed it due to null SeriesName at ItemAdded time.
+                            updatedNotif.IsUpgrade = true;
+                            updatedNotif.DateCreated = DateTime.UtcNow;
+                            _logger.LogInformation(
+                                "NotifySync Upgrade Check: {Name} | deletedMatch=True (detected on metadata refresh)",
+                                updatedNotif.Name);
                         }
                         else
                         {
@@ -589,7 +588,6 @@ namespace NotifySync
             try
             {
                 var newItems = new List<NotificationItem>();
-                bool hasDeferredItems = false;
                 while (_eventBuffer.TryDequeue(out var item))
                 {
                     if (item == null)
@@ -600,51 +598,9 @@ namespace NotifySync
                     var notif = CreateNotificationFromItem(item);
                     if (notif != null)
                     {
-                        // Defer episodes without SeriesName — metadata not loaded yet.
-                        // Jellyfin fires ItemAdded before completing the metadata refresh,
-                        // so SeriesName may be null. Without it, HasRecentDeletedMatch
-                        // can't match by SeriesName+Season+Episode and upgrade detection fails.
-                        // Re-enqueue once to give Jellyfin time (~5s) to populate metadata.
-                        if (notif.Type == "Episode"
-                            && string.IsNullOrEmpty(notif.SeriesName)
-                            && notif.IndexNumber.HasValue)
-                        {
-                            int retries = _deferredEpisodes.GetOrAdd(notif.Id, 0);
-                            if (retries < 3)
-                            {
-                                _deferredEpisodes[notif.Id] = retries + 1;
-                                _eventBuffer.Enqueue(item);
-                                hasDeferredItems = true;
-                                continue;
-                            }
-
-                            // Max retries reached — process as-is
-                            _deferredEpisodes.TryRemove(notif.Id, out _);
-                        }
-                        else
-                        {
-                            _deferredEpisodes.TryRemove(notif.Id, out _);
-                        }
-
-                        // Primary upgrade detection: check if this item was just removed
-                        // (Radarr/Sonarr upgrade flow: ItemRemoved → ItemAdded for same ID)
-                        bool recentlyRemoved = _recentlyRemovedIds.TryRemove(notif.Id, out var removedAt)
-                            && (DateTime.UtcNow - removedAt).TotalMinutes < 10;
-
-                        // Fallback: check deleted history (delete + re-add with new Jellyfin ID)
-                        bool deletedMatch = !recentlyRemoved
-                            && _db.HasRecentDeletedMatch(
-                                notif.Name,
-                                notif.Type,
-                                notif.ProductionYear,
-                                notif.SeriesName,
-                                notif.IndexNumber,
-                                notif.ParentIndexNumber);
-
                         // Skip items that already exist in notifications (library rescan noise).
-                        // Only process if it's a genuine upgrade or a truly new item.
-                        // This prevents overwriting existing IsUpgrade flags and avoids
-                        // thousands of unnecessary DB writes during Jellyfin library validation.
+                        // OnItemUpdated handles upgrade detection for existing items via
+                        // HasRecentDeletedMatch, so we can skip the DB query here entirely.
                         bool alreadyExists = false;
                         try
                         {
@@ -659,23 +615,31 @@ namespace NotifySync
                             }
                         }
 
-                        if (alreadyExists && !recentlyRemoved && !deletedMatch)
+                        if (alreadyExists)
                         {
                             _logger.LogDebug(
-                                "NotifySync ProcessBuffer: skipping existing item {Name} (no upgrade signal)",
+                                "NotifySync ProcessBuffer: skipping existing item {Name}",
                                 notif.Name);
                             continue;
                         }
 
-                        _logger.LogInformation(
-                            "NotifySync ProcessBuffer: {Name} Type={Type} Year={Year} | recentlyRemoved={Removed} | deletedMatch={Match}",
+                        // New item — check deleted history for upgrade detection.
+                        bool deletedMatch = _db.HasRecentDeletedMatch(
                             notif.Name,
                             notif.Type,
                             notif.ProductionYear,
-                            recentlyRemoved,
+                            notif.SeriesName,
+                            notif.IndexNumber,
+                            notif.ParentIndexNumber);
+
+                        _logger.LogInformation(
+                            "NotifySync ProcessBuffer: {Name} Type={Type} Year={Year} | deletedMatch={Match}",
+                            notif.Name,
+                            notif.Type,
+                            notif.ProductionYear,
                             deletedMatch);
 
-                        if (!notif.IsUpgrade && (recentlyRemoved || deletedMatch))
+                        if (!notif.IsUpgrade && deletedMatch)
                         {
                             notif.IsUpgrade = true;
                         }
@@ -684,63 +648,9 @@ namespace NotifySync
                     }
                 }
 
-                // Re-trigger timer for deferred episodes waiting for metadata
-                if (hasDeferredItems && !_disposeCts.IsCancellationRequested)
-                {
-                    try
-                    {
-                        _bufferProcessTimer.Change(5000, Timeout.Infinite);
-                    }
-                    catch (ObjectDisposedException)
-                    {
-                        // Timer already disposed during plugin shutdown
-                    }
-                }
-
                 if (newItems.Count > 0)
                 {
-                    var itemsToDelete = new List<string>();
-                    var itemsToSave = new List<NotificationItem>(newItems);
-
-                    try
-                    {
-                        _dataLock.EnterWriteLock();
-                        foreach (var ni in itemsToSave)
-                        {
-                            _notifications.RemoveAll(n => n.Id == ni.Id);
-                            _notifications.Add(ni);
-                        }
-
-                        // Apply Quota per category
-                        var quotaResult = CategoryQuotaService.ApplyCategoryQuotas(_notifications, DatabaseCategoryLimit);
-                        var finalNotifications = quotaResult.Kept;
-                        itemsToDelete.AddRange(quotaResult.RemovedIds);
-
-                        _notifications = finalNotifications.OrderByDescending(n => n.DateCreated).ToList();
-
-                        if (_notifications.Count > GlobalRetentionLimit)
-                        {
-                            var overLimit = _notifications.Skip(GlobalRetentionLimit).Select(n => n.Id).ToList();
-                            itemsToDelete.AddRange(overLimit!);
-                            _notifications = _notifications.Take(GlobalRetentionLimit).ToList();
-                        }
-
-                        Interlocked.Increment(ref _versionCounter);
-                    }
-                    finally
-                    {
-                        if (_dataLock.IsWriteLockHeld)
-                        {
-                            _dataLock.ExitWriteLock();
-                        }
-                    }
-
-                    // IO outside lock
-                    _db.SaveNotifications(itemsToSave);
-                    if (itemsToDelete.Count > 0)
-                    {
-                        _db.DeleteNotifications(itemsToDelete);
-                    }
+                    MergeAndPersistNotifications(newItems);
                 }
             }
             catch (Exception ex)
@@ -750,6 +660,51 @@ namespace NotifySync
             finally
             {
                 Interlocked.Exchange(ref _isProcessingBuffer, 0);
+            }
+        }
+
+        /// <summary>
+        /// Merges new notifications into the in-memory list, applies quotas, and persists to DB.
+        /// </summary>
+        private void MergeAndPersistNotifications(List<NotificationItem> newItems)
+        {
+            var itemsToDelete = new List<string>();
+
+            try
+            {
+                _dataLock.EnterWriteLock();
+                foreach (var ni in newItems)
+                {
+                    _notifications.RemoveAll(n => n.Id == ni.Id);
+                    _notifications.Add(ni);
+                }
+
+                var quotaResult = CategoryQuotaService.ApplyCategoryQuotas(_notifications, DatabaseCategoryLimit);
+                itemsToDelete.AddRange(quotaResult.RemovedIds);
+
+                _notifications = quotaResult.Kept.OrderByDescending(n => n.DateCreated).ToList();
+
+                if (_notifications.Count > GlobalRetentionLimit)
+                {
+                    var overLimit = _notifications.Skip(GlobalRetentionLimit).Select(n => n.Id).ToList();
+                    itemsToDelete.AddRange(overLimit!);
+                    _notifications = _notifications.Take(GlobalRetentionLimit).ToList();
+                }
+
+                Interlocked.Increment(ref _versionCounter);
+            }
+            finally
+            {
+                if (_dataLock.IsWriteLockHeld)
+                {
+                    _dataLock.ExitWriteLock();
+                }
+            }
+
+            _db.SaveNotifications(newItems);
+            if (itemsToDelete.Count > 0)
+            {
+                _db.DeleteNotifications(itemsToDelete);
             }
         }
 
@@ -1179,46 +1134,7 @@ namespace NotifySync
         /// </summary>
         private void InjectCollectionNotifications(List<NotificationItem> newItems)
         {
-            var itemsToDelete = new List<string>();
-            var itemsToSave = new List<NotificationItem>(newItems);
-
-            try
-            {
-                _dataLock.EnterWriteLock();
-                foreach (var ni in itemsToSave)
-                {
-                    _notifications.RemoveAll(n => n.Id == ni.Id);
-                    _notifications.Add(ni);
-                }
-
-                var quotaResult = CategoryQuotaService.ApplyCategoryQuotas(_notifications, DatabaseCategoryLimit);
-                var finalNotifications = quotaResult.Kept;
-                itemsToDelete.AddRange(quotaResult.RemovedIds);
-
-                _notifications = finalNotifications.OrderByDescending(n => n.DateCreated).ToList();
-
-                if (_notifications.Count > GlobalRetentionLimit)
-                {
-                    var overLimit = _notifications.Skip(GlobalRetentionLimit).Select(n => n.Id).ToList();
-                    itemsToDelete.AddRange(overLimit!);
-                    _notifications = _notifications.Take(GlobalRetentionLimit).ToList();
-                }
-
-                Interlocked.Increment(ref _versionCounter);
-            }
-            finally
-            {
-                if (_dataLock.IsWriteLockHeld)
-                {
-                    _dataLock.ExitWriteLock();
-                }
-            }
-
-            _db.SaveNotifications(itemsToSave);
-            if (itemsToDelete.Count > 0)
-            {
-                _db.DeleteNotifications(itemsToDelete);
-            }
+            MergeAndPersistNotifications(newItems);
         }
 
         /// <summary>

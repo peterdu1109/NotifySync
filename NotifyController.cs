@@ -485,7 +485,7 @@ namespace NotifySync
         public ActionResult Dismiss([FromRoute] string userId, [FromRoute] string itemId)
         {
             if (string.IsNullOrEmpty(userId) || !Guid.TryParse(userId, out _)
-                || string.IsNullOrEmpty(itemId) || !Guid.TryParse(itemId, out _))
+                || string.IsNullOrEmpty(itemId))
             {
                 return BadRequest("Invalid UserId or ItemId");
             }
@@ -565,7 +565,7 @@ namespace NotifySync
                 var allIds = new List<string>();
                 foreach (var id in itemIds)
                 {
-                    if (string.IsNullOrEmpty(id) || !Guid.TryParse(id, out _))
+                    if (string.IsNullOrEmpty(id))
                     {
                         continue;
                     }

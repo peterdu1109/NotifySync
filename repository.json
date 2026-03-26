@@ -9,6 +9,14 @@
     "supportUrl": "https://github.com/peterdu1109/NotifySync",
     "versions": [
       {
+        "version": "5.5.8.8",
+        "changelog": "<b>🇬🇧 Simplification:</b><br>• Simplified upgrade detection — removed deferring and in-memory ID tracking. OnItemUpdated now re-checks deleted history when metadata is available, catching upgrades that ProcessBuffer missed.<br>• Deduplicated quota+trim logic into shared helper.<br>• Fixed collection notifications that couldn't be dismissed (Guid validation was too strict).<br>• ProcessBuffer now skips existing items before any DB query (~1500 queries saved per library rescan).<br><br><b>🇫🇷 Simplification :</b><br>• Simplification de la détection d'upgrade — suppression du deferring et du suivi d'ID en mémoire. OnItemUpdated re-vérifie l'historique de suppression quand les métadonnées sont disponibles, rattrapant les upgrades manqués par ProcessBuffer.<br>• Factorisation de la logique quota+trim en helper partagé.<br>• Correction du dismiss des notifications de collections (validation Guid trop stricte).<br>• ProcessBuffer skip les items existants avant toute requête DB (~1500 requêtes économisées par rescan).",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/v5.5.8.8/NotifySync.zip",
+        "checksum": "76F1A3EFD3F7654E7D32229967A46430",
+        "timestamp": "2026-03-26T12:00:00Z"
+      },
+      {
         "version": "5.5.8.7",
         "changelog": "<b>🇬🇧 Fix:</b><br>• Fixed upgrade detection for replaced episodes (Sonarr). Episodes without metadata are deferred ~15s to let Jellyfin load SeriesName before matching.<br>• ProcessBuffer no longer overwrites existing notifications during library rescans.<br>• Eliminates 1500+ unnecessary DB writes per library rescan.<br><br><b>🇫🇷 Correction :</b><br>• Correction de la détection d'upgrade pour les épisodes remplacés (Sonarr). Les épisodes sans métadonnées sont différés ~15s pour permettre à Jellyfin de charger le SeriesName.<br>• ProcessBuffer ne remplace plus les notifications existantes lors des rescans.<br>• Élimine 1500+ écritures DB inutiles par rescan.",
         "targetAbi": "10.11.0.0",

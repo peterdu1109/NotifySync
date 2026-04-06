@@ -18,7 +18,7 @@
       },
       {
         "version": "5.5.8.8",
-        "changelog": "<b>🇬🇧 Simplification:</b><br>• Simplified upgrade detection — removed deferring and in-memory ID tracking. OnItemUpdated now re-checks deleted history when metadata is available, catching upgrades that ProcessBuffer missed.<br>• Deduplicated quota+trim logic into shared helper.<br>• Fixed collection notifications that couldn't be dismissed (Guid validation was too strict).<br>• ProcessBuffer now skips existing items before any DB query (~1500 queries saved per library rescan).<br><br><b>🇫🇷 Simplification :</b><br>• Simplification de la détection d'upgrade — suppression du deferring et du suivi d'ID en mémoire. OnItemUpdated re-vérifie l'historique de suppression quand les métadonnées sont disponibles, rattrapant les upgrades manqués par ProcessBuffer.<br>• Factorisation de la logique quota+trim en helper partagé.<br>• Correction du dismiss des notifications de collections (validation Guid trop stricte).<br>• ProcessBuffer skip les items existants avant toute requête DB (~1500 requêtes économisées par rescan).",
+        "changelog": "<a style='color:white;text-decoration:none' href=\"https://github.com/peterdu1109/NotifySync/releases/tag/v5.5.8.8\">📋 <span style='text-decoration:underline'>Release Notes v5.5.8.8</span></a>",
         "targetAbi": "10.11.0.0",
         "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/v5.5.8.8/NotifySync.zip",
         "checksum": "76F1A3EFD3F7654E7D32229967A46430",
@@ -26,7 +26,7 @@
       },
       {
         "version": "5.5.8.7",
-        "changelog": "<b>🇬🇧 Fix:</b><br>• Fixed upgrade detection for replaced episodes (Sonarr). Episodes without metadata are deferred ~15s to let Jellyfin load SeriesName before matching.<br>• ProcessBuffer no longer overwrites existing notifications during library rescans.<br>• Eliminates 1500+ unnecessary DB writes per library rescan.<br><br><b>🇫🇷 Correction :</b><br>• Correction de la détection d'upgrade pour les épisodes remplacés (Sonarr). Les épisodes sans métadonnées sont différés ~15s pour permettre à Jellyfin de charger le SeriesName.<br>• ProcessBuffer ne remplace plus les notifications existantes lors des rescans.<br>• Élimine 1500+ écritures DB inutiles par rescan.",
+        "changelog": "<a style='color:white;text-decoration:none' href=\"https://github.com/peterdu1109/NotifySync/releases/tag/v5.5.8.7\">📋 <span style='text-decoration:underline'>Release Notes v5.5.8.7</span></a>",
         "targetAbi": "10.11.0.0",
         "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/v5.5.8.7/NotifySync.zip",
         "checksum": "159312D3AB252092580FFB84F65D1B17",
@@ -34,7 +34,7 @@
       },
       {
         "version": "5.5.8.6",
-        "changelog": "<b>🇬🇧 Fix:</b><br>• Fixed upgrade detection being lost during Jellyfin library rescans. ProcessBuffer no longer overwrites existing notifications — preserves IsUpgrade flag so Radarr/Sonarr upgrades reliably show UPD badge.<br>• Eliminates 1500+ unnecessary DB writes per library rescan.<br><br><b>🇫🇷 Correction :</b><br>• Correction de la perte du badge MAJ lors des rescans de bibliothèque Jellyfin. ProcessBuffer ne remplace plus les notifications existantes — le flag IsUpgrade est préservé pour que les upgrades Radarr/Sonarr affichent correctement le badge MAJ.<br>• Élimine 1500+ écritures DB inutiles par rescan.",
+        "changelog": "<a style='color:white;text-decoration:none' href=\"https://github.com/peterdu1109/NotifySync/releases/tag/v5.5.8.6\">📋 <span style='text-decoration:underline'>Release Notes v5.5.8.6</span></a>",
         "targetAbi": "10.11.0.0",
         "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/v5.5.8.6/NotifySync.zip",
         "checksum": "3A247A52E0D001F1935B5604BA2C18CC",
@@ -42,7 +42,7 @@
       },
       {
         "version": "5.5.8.5",
-        "changelog": "<b>🇬🇧 Fix:</b><br>• Fixed movie upgrade detection when Radarr/Sonarr replaces a file (Jellyfin fires ItemRemoved + ItemAdded instead of ItemUpdated). The plugin now tracks recently-removed items in memory so re-appearing items are correctly marked as upgrades.<br><br><b>🇫🇷 Correction :</b><br>• Correction de la détection d'upgrade pour les films quand Radarr/Sonarr remplace un fichier (Jellyfin envoie ItemRemoved + ItemAdded au lieu de ItemUpdated). Le plugin mémorise les items récemment supprimés pour les marquer correctement comme mises à jour.",
+        "changelog": "<a style='color:white;text-decoration:none' href=\"https://github.com/peterdu1109/NotifySync/releases/tag/5.5.8.5\">📋 <span style='text-decoration:underline'>Release Notes v5.5.8.5</span></a>",
         "targetAbi": "10.11.0.0",
         "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/5.5.8.5/NotifySync_5.5.8.5.zip",
         "checksum": "4969285670D2794ED5E040642DAF3022",
@@ -50,7 +50,7 @@
       },
       {
         "version": "5.5.8.4",
-        "changelog": "<b>🇬🇧 Improvements:</b><br>• Upgraded media now stays visible even if already watched — so you know when a better version is available.<br>• Upgrade detection fallback via deleted history for legacy notifications.<br>• Diagnostic logging for upgrade detection.<br>• Upgraded and new episodes of the same series are shown separately.<br><br><b>🇫🇷 Améliorations :</b><br>• Les médias mis à jour restent visibles même s'ils ont été vus — vous savez quand une meilleure version est disponible.<br>• Fallback de détection via l'historique de suppression pour les notifications legacy.<br>• Logs de diagnostic pour la détection d'upgrade.<br>• Les épisodes mis à jour et les nouveaux d'une même série sont séparés.",
+        "changelog": "<a style='color:white;text-decoration:none' href=\"https://github.com/peterdu1109/NotifySync/releases/tag/5.5.8.4\">📋 <span style='text-decoration:underline'>Release Notes v5.5.8.4</span></a>",
         "targetAbi": "10.11.0.0",
         "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/5.5.8.4/NotifySync_5.5.8.4.zip",
         "checksum": "7AC1C551409DE83998C66480C7115B6C",
@@ -58,7 +58,7 @@
       },
       {
         "version": "5.5.8.3",
-        "changelog": "<b>🇬🇧 Improvements:</b><br>• Upgrade detection fallback via deleted history for legacy notifications.<br>• Diagnostic logging for upgrade detection.<br>• Upgraded and new episodes of the same series are shown separately.<br><br><b>🇫🇷 Améliorations :</b><br>• Fallback de détection via l'historique de suppression pour les notifications legacy.<br>• Logs de diagnostic pour la détection d'upgrade.<br>• Les épisodes mis à jour et les nouveaux d'une même série sont séparés.",
+        "changelog": "<a style='color:white;text-decoration:none' href=\"https://github.com/peterdu1109/NotifySync/releases/tag/5.5.8.3\">📋 <span style='text-decoration:underline'>Release Notes v5.5.8.3</span></a>",
         "targetAbi": "10.11.0.0",
         "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/5.5.8.3/NotifySync_5.5.8.3.zip",
         "checksum": "1B71A817B96781BABE0BC41F0B4C229A",
@@ -66,7 +66,7 @@
       },
       {
         "version": "5.5.8.2",
-        "changelog": "<b>🇬🇧 Improvements:</b><br>• Upgraded and new episodes of the same series are now shown separately.<br>• Grouped upgrades show 'updated episodes' instead of 'new episodes'.<br>• Hero date position now consistent with list items.<br><br><b>🇫🇷 Améliorations :</b><br>• Les épisodes mis à jour et les nouveaux d'une même série sont séparés.<br>• Les groupes de mises à jour affichent 'épisodes mis à jour'.<br>• Position de la date hero cohérente avec les items de la liste.",
+        "changelog": "<a style='color:white;text-decoration:none' href=\"https://github.com/peterdu1109/NotifySync/releases/tag/5.5.8.2\">📋 <span style='text-decoration:underline'>Release Notes v5.5.8.2</span></a>",
         "targetAbi": "10.11.0.0",
         "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/5.5.8.2/NotifySync_5.5.8.2.zip",
         "checksum": "4807DD184EB2759A579C54F459FA46CD",
@@ -74,7 +74,7 @@
       },
       {
         "version": "5.5.8.1",
-        "changelog": "<b>🇬🇧 Fixes:</b><br>• Fixed localStorage cache migration from 5.5.7.x.<br>• Hero image fallback to Primary poster if backdrop fails.<br>• Fixed division by zero in scan progress.<br>• Invalid dates handled gracefully.<br><br><b>🇫🇷 Corrections :</b><br>• Correction de la migration du cache localStorage depuis 5.5.7.x.<br>• Image hero : fallback vers le poster Primary si le backdrop échoue.<br>• Correction d'une division par zéro dans la progression du scan.<br>• Les dates invalides s'affichent proprement.",
+        "changelog": "<a style='color:white;text-decoration:none' href=\"https://github.com/peterdu1109/NotifySync/releases/tag/5.5.8.1\">📋 <span style='text-decoration:underline'>Release Notes v5.5.8.1</span></a>",
         "targetAbi": "10.11.0.0",
         "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/5.5.8.1/NotifySync_5.5.8.1.zip",
         "checksum": "1814ABF79C3639639F3F0A3679EFF080",
@@ -82,7 +82,7 @@
       },
       {
         "version": "5.5.8.0",
-        "changelog": "<b>🇬🇧 Improvements:</b><br>• Collection navigation uses real item ID.<br>• localStorage scoped per user (multi-user browser support).<br>• Filter pills keyboard accessible.<br>• Task names in English.<br>• client.js cached 5 minutes.<br>• Config quota range aligned with server (1–50).<br>• CSS.escape for collection IDs.<br><br><b>🇫🇷 Améliorations :</b><br>• Navigation des collections utilise le vrai ID.<br>• localStorage isolé par utilisateur.<br>• Filtres accessibles au clavier.<br>• Noms des tâches en anglais.<br>• client.js mis en cache 5 minutes.<br>• Plage de quota alignée avec le serveur (1–50).<br>• CSS.escape pour les IDs de collection.",
+        "changelog": "<a style='color:white;text-decoration:none' href=\"https://github.com/peterdu1109/NotifySync/releases/tag/5.5.8.0\">📋 <span style='text-decoration:underline'>Release Notes v5.5.8.0</span></a>",
         "targetAbi": "10.11.0.0",
         "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/5.5.8.0/NotifySync_5.5.8.0.zip",
         "checksum": "8AEAD83EDDCB0E4E6785A99DA2101652",
@@ -90,7 +90,7 @@
       },
       {
         "version": "5.5.7.5",
-        "changelog": "<b>🇬🇧 Improvements:</b><br>• Upgrade detection for episodes is now much smarter — matches by series name + season + episode number instead of episode title. Replacing VO with VOSTFR via Sonarr now correctly shows an UPD badge.<br>• Works even when the episode title changes (e.g. TBA → real title).<br><br><b>🇫🇷 Améliorations :</b><br>• La détection de mise à jour des épisodes est plus fiable — le match se fait par nom de série + saison + numéro d'épisode au lieu du titre. Remplacer la VO par la VOSTFR via Sonarr affiche correctement le badge MAJ.<br>• Fonctionne même si le titre de l'épisode change (ex: TBA → vrai titre).",
+        "changelog": "<a style='color:white;text-decoration:none' href=\"https://github.com/peterdu1109/NotifySync/releases/tag/5.5.7.5\">📋 <span style='text-decoration:underline'>Release Notes v5.5.7.5</span></a>",
         "targetAbi": "10.11.0.0",
         "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/5.5.7.5/NotifySync_5.5.7.5.zip",
         "checksum": "66844EB0694E0C43784A0949BDA07E96",
@@ -98,7 +98,7 @@
       },
       {
         "version": "5.5.7.4",
-        "changelog": "<b>🇬🇧 Fixes:</b><br>• Long titles and series names are now properly truncated with '...' — the date (e.g. '3h ago') always stays visible.<br>• Full text appears on hover (tooltip).<br><br><b>🇫🇷 Corrections :</b><br>• Les titres longs sont tronqués proprement avec '...' — la date (ex: 'il y a 3h') reste toujours visible.<br>• Le texte complet s'affiche au survol (info-bulle).",
+        "changelog": "<a style='color:white;text-decoration:none' href=\"https://github.com/peterdu1109/NotifySync/releases/tag/5.5.7.4\">📋 <span style='text-decoration:underline'>Release Notes v5.5.7.4</span></a>",
         "targetAbi": "10.11.0.0",
         "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/5.5.7.4/NotifySync_5.5.7.4.zip",
         "checksum": "979524DA6467071E8B09761CA8073653",
@@ -106,7 +106,7 @@
       },
       {
         "version": "5.5.7.3",
-        "changelog": "<b>🇬🇧 Improvements:</b><br>• Smarter upgrade detection — file replacements (e.g. WEBDL → Bluray) are now detected by file path, not just file size. Much more reliable.<br>• If you delete a movie and re-add it (e.g. with a better version), it now shows an UPD badge instead of NEW.<br>• Works with Sonarr, Radarr, Lidarr, or manual upgrades — no extra config needed.<br><br><b>🇫🇷 Améliorations :</b><br>• Détection des mises à jour plus fiable — les remplacements de fichiers (ex: WEBDL → Bluray) sont détectés par le chemin du fichier, plus seulement la taille.<br>• Si vous supprimez un film et le ré-ajoutez (ex: meilleure version), il affiche un badge MAJ au lieu de NOUVEAU.<br>• Compatible Sonarr, Radarr, Lidarr ou mise à jour manuelle — aucune configuration supplémentaire.",
+        "changelog": "<a style='color:white;text-decoration:none' href=\"https://github.com/peterdu1109/NotifySync/releases/tag/5.5.7.3\">📋 <span style='text-decoration:underline'>Release Notes v5.5.7.3</span></a>",
         "targetAbi": "10.11.0.0",
         "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/5.5.7.3/NotifySync_5.5.7.3.zip",
         "checksum": "24437024A7626AF07701EDD4A5AB3370",
@@ -114,7 +114,7 @@
       },
       {
         "version": "5.5.7.2",
-        "changelog": "<b>🇬🇧 Fixes:</b><br>• Hero image is now better centered — no more cropped faces or awkward framing.<br><br><b>🇫🇷 Corrections :</b><br>• L'image du hero est maintenant mieux centrée — plus de visages coupés ou de cadrage décalé.",
+        "changelog": "<a style='color:white;text-decoration:none' href=\"https://github.com/peterdu1109/NotifySync/releases/tag/5.5.7.2\">📋 <span style='text-decoration:underline'>Release Notes v5.5.7.2</span></a>",
         "targetAbi": "10.11.0.0",
         "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/5.5.7.2/NotifySync_5.5.7.2.zip",
         "checksum": "F405C06795744CF191C157FB5ED30EC9",
@@ -122,7 +122,7 @@
       },
       {
         "version": "5.5.7.1",
-        "changelog": "<b>🇬🇧 Fixes:</b><br>• Badge size and dismiss button icon refined.<br>• Dismiss button now uses a properly centered icon.<br>• Image loading improved — only shows loaded images, no more blank flashes.<br><br><b>🇫🇷 Corrections :</b><br>• Taille du badge et icône du bouton de suppression affinés.<br>• Le bouton de suppression utilise maintenant une icône parfaitement centrée.<br>• Chargement des images amélioré — seules les images chargées sont affichées.",
+        "changelog": "<a style='color:white;text-decoration:none' href=\"https://github.com/peterdu1109/NotifySync/releases/tag/5.5.7.1\">📋 <span style='text-decoration:underline'>Release Notes v5.5.7.1</span></a>",
         "targetAbi": "10.11.0.0",
         "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/5.5.7.1/NotifySync_5.5.7.1.zip",
         "checksum": "E5057514A6DEC2F010760612ED917261",
@@ -130,7 +130,7 @@
       },
       {
         "version": "5.5.7.0",
-        "changelog": "<b>🇬🇧 Improvements:</b><br>• NEW/UPD badge is now displayed above the title on each notification, aligned with the thumbnail — cleaner layout.<br>• Titles and subtitles are now truncated with ellipsis instead of wrapping to multiple lines.<br><br><b>🇫🇷 Améliorations :</b><br>• Le badge NOUVEAU/MAJ est maintenant affiché au-dessus du titre sur chaque notification, aligné avec la vignette — mise en page plus propre.<br>• Les titres et sous-titres sont tronqués avec des points de suspension au lieu de passer sur plusieurs lignes.",
+        "changelog": "<a style='color:white;text-decoration:none' href=\"https://github.com/peterdu1109/NotifySync/releases/tag/5.5.7.0\">📋 <span style='text-decoration:underline'>Release Notes v5.5.7.0</span></a>",
         "targetAbi": "10.11.0.0",
         "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/5.5.7.0/NotifySync_5.5.7.0.zip",
         "checksum": "D6071B1AE9157B964C4D27C18753898B",
@@ -138,7 +138,7 @@
       },
       {
         "version": "5.5.6.0",
-        "changelog": "<b>🇬🇧 Improvements:</b><br>• NEW and UPD badges are now displayed as text labels on each notification item (not just the hero), replacing the small dot.<br>• Upgrade detection is now more accurate — only real file replacements trigger the UPD badge, not simple metadata refreshes.<br>• Episodes and music tracks without their own image now fall back to the series poster or album cover.<br>• Images now auto-refresh every 5 minutes in the background to catch TMDB metadata updates.<br><br><b>🇫🇷 Améliorations :</b><br>• Les badges NOUVEAU et MAJ sont maintenant affichés en texte sur chaque notification (pas seulement le hero), remplaçant le petit point.<br>• La détection de mise à jour est plus précise — seul un vrai remplacement de fichier déclenche le badge MAJ, pas un simple rafraîchissement de métadonnées.<br>• Les épisodes et morceaux sans image propre utilisent maintenant le poster de la série ou la pochette de l'album.<br>• Les images se rafraîchissent automatiquement toutes les 5 minutes pour capter les mises à jour TMDB.",
+        "changelog": "<a style='color:white;text-decoration:none' href=\"https://github.com/peterdu1109/NotifySync/releases/tag/5.5.6.0\">📋 <span style='text-decoration:underline'>Release Notes v5.5.6.0</span></a>",
         "targetAbi": "10.11.0.0",
         "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/5.5.6.0/NotifySync_5.5.6.0.zip",
         "checksum": "5B3E363E79FE0610CD1B8E0D650A468B",
@@ -146,7 +146,7 @@
       },
       {
         "version": "5.5.5.0",
-        "changelog": "<b>🇬🇧 Fixes:</b><br>• Clearing a category now works reliably — one single request instead of dozens that were silently rejected.<br>• Collection notifications now respect user permissions — users only see collections they have access to.<br>• Swipe to dismiss on mobile no longer conflicts with scrolling.<br>• Fixed phantom badge counts that could appear during long sessions.<br><br><b>🇬🇧 Improvements:</b><br>• Reduced server memory usage — notifications are filtered before being loaded into memory.<br>• Removed unused dependency (lighter plugin).<br>• Cleaner browser console (no more debug messages).<br><br><b>🇫🇷 Corrections :</b><br>• Vider une catégorie fonctionne désormais correctement — une seule requête au lieu de dizaines rejetées silencieusement.<br>• Les notifications de collections respectent maintenant les permissions — les utilisateurs ne voient que les collections auxquelles ils ont accès.<br>• Le swipe pour supprimer sur mobile ne fait plus défiler la liste en même temps.<br>• Correction des compteurs fantômes qui pouvaient apparaître lors de longues sessions.<br><br><b>🇫🇷 Améliorations :</b><br>• Réduction de l'utilisation mémoire du serveur — les notifications sont filtrées avant d'être chargées.<br>• Suppression d'une dépendance inutile (plugin plus léger).<br>• Console navigateur plus propre (plus de messages de debug).",
+        "changelog": "<a style='color:white;text-decoration:none' href=\"https://github.com/peterdu1109/NotifySync/releases/tag/5.5.5.0\">📋 <span style='text-decoration:underline'>Release Notes v5.5.5.0</span></a>",
         "targetAbi": "10.11.0.0",
         "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/5.5.5.0/NotifySync_5.5.5.0.zip",
         "checksum": "09E6B7882FEC32871FE4F826F461A6B3",
@@ -154,7 +154,7 @@
       },
       {
         "version": "5.5.4.0",
-        "changelog": "<b>🇬🇧 Improvements:</b><br>• NEW and UPD badges now stay visible for 72 hours, just like Netflix — even after opening the bell.<br>• The bell counter disappears when you open the menu, but badges remain on each item so you can see what's new at a glance.<br><br><b>🇫🇷 Améliorations :</b><br>• Les badges NOUVEAU et MAJ restent visibles pendant 72 heures, comme Netflix — même après avoir ouvert la cloche.<br>• Le compteur de la cloche disparaît à l'ouverture du menu, mais les badges restent sur chaque élément pour voir d'un coup d'œil les nouveautés.",
+        "changelog": "<a style='color:white;text-decoration:none' href=\"https://github.com/peterdu1109/NotifySync/releases/tag/5.5.4.0\">📋 <span style='text-decoration:underline'>Release Notes v5.5.4.0</span></a>",
         "targetAbi": "10.11.0.0",
         "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/5.5.4.0/NotifySync_5.5.4.0.zip",
         "checksum": "70CE25612DE7D664259C8D819442A256",
@@ -162,7 +162,7 @@
       },
       {
         "version": "5.5.3.0",
-        "changelog": "<b>🇬🇧 Fixes:</b><br>• Dismissing a grouped series now correctly removes all its episodes from the list.<br>• Fixed a server crash that could occur when multiple users interact simultaneously.<br>• Improved reliability of read/unread status tracking.<br><br><b>🇫🇷 Corrections :</b><br>• Supprimer une série groupée retire maintenant correctement tous ses épisodes de la liste.<br>• Correction d'un crash serveur pouvant survenir lors d'interactions simultanées de plusieurs utilisateurs.<br>• Amélioration de la fiabilité du suivi lu/non-lu.",
+        "changelog": "<a style='color:white;text-decoration:none' href=\"https://github.com/peterdu1109/NotifySync/releases/tag/5.5.3.0\">📋 <span style='text-decoration:underline'>Release Notes v5.5.3.0</span></a>",
         "targetAbi": "10.11.0.0",
         "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/5.5.3.0/NotifySync_5.5.3.0.zip",
         "checksum": "DC42C0A51466D5B2D9D3E917DEB065F0",
@@ -170,7 +170,7 @@
       },
       {
         "version": "5.5.2.0",
-        "changelog": "<b>🇬🇧 Fixes:</b><br>• Fixed a bug where the bell could stop displaying if the browser cache was corrupted (automatic reset).<br>• Minor internal robustness improvements.<br><br><b>🇫🇷 Corrections :</b><br>• Correction d'un bug où la cloche pouvait ne plus s'afficher si le cache du navigateur était corrompu (reset automatique).<br>• Petites améliorations internes de robustesse.",
+        "changelog": "<a style='color:white;text-decoration:none' href=\"https://github.com/peterdu1109/NotifySync/releases/tag/5.5.2.0\">📋 <span style='text-decoration:underline'>Release Notes v5.5.2.0</span></a>",
         "targetAbi": "10.11.0.0",
         "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/5.5.2.0/NotifySync_5.5.2.0.zip",
         "checksum": "FD2BC492E261E23F1CA36BDD6CC5D007",
@@ -178,7 +178,7 @@
       },
       {
         "version": "5.5.1.0",
-        "changelog": "<b>🇬🇧 New Features:</b><br>• The clear button at the bottom now adapts to the active filter: 'Clear list' on All, or 'Clear Movies' etc. on a category.<br>• The hero notification can now be dismissed individually (× button, visible on hover on PC, always visible on mobile).<br><br><b>🇫🇷 Nouveautés :</b><br>• Le bouton Vider en bas du menu s'adapte au filtre actif : Vider la liste sur Tout, ou Vider Films etc. sur une catégorie.<br>• La notification hero peut être supprimée individuellement (bouton × visible au survol PC, toujours visible sur mobile).",
+        "changelog": "<a style='color:white;text-decoration:none' href=\"https://github.com/peterdu1109/NotifySync/releases/tag/5.5.1.0\">📋 <span style='text-decoration:underline'>Release Notes v5.5.1.0</span></a>",
         "targetAbi": "10.11.0.0",
         "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/5.5.1.0/NotifySync_5.5.1.0.zip",
         "checksum": "34B16BC2E46A34CEC3E2D59087D7DBEE",
@@ -186,7 +186,7 @@
       },
       {
         "version": "5.5.0.0",
-        "changelog": "<b>🇬🇧 New Features:</b><br>• Collection Monitoring — Track Jellyfin collections (BoxSets). New additions trigger a notification.<br>• UPD Badge — When a media file is replaced (quality upgrade), the notification comes back with a blue UPD badge.<br>• Deletion History — Admins can view recently deleted media in the config page (configurable retention).<br>• Swipe to Dismiss — On mobile, swipe a notification left to remove it.<br>• Clear by Category — Long press (mobile) or right-click (desktop) on a filter to clear only that category.<br><br><b>🇬🇧 Improvements:</b><br>• Clearing the list no longer closes the dropdown.<br>• Clicking the bell refreshes notifications immediately.<br>• Dismiss button is larger and more accessible.<br>• Improved performance on large libraries.<br>• Local cache expires automatically after 1 hour.<br><br><b>🇫🇷 Nouveautés :</b><br>• Surveillance des collections — Suivez vos collections Jellyfin (BoxSets). Les nouveaux ajouts déclenchent une notification.<br>• Badge MAJ — Quand un fichier média est remplacé (upgrade qualité), la notification remonte avec un badge bleu MAJ.<br>• Historique des suppressions — Les admins peuvent consulter les médias supprimés dans la page de configuration.<br>• Swipe pour supprimer — Sur mobile, glissez une notification vers la gauche pour la retirer.<br>• Vider par catégorie — Appui long (mobile) ou clic droit (PC) sur un filtre pour ne vider qu'une catégorie.<br><br><b>🇫🇷 Améliorations :</b><br>• Vider la liste ne ferme plus le menu.<br>• Clic sur la cloche rafraîchit immédiatement.<br>• Bouton de suppression agrandi et plus accessible.<br>• Performances améliorées sur les grandes bibliothèques.<br>• Cache local avec expiration automatique (1h).",
+        "changelog": "<a style='color:white;text-decoration:none' href=\"https://github.com/peterdu1109/NotifySync/releases/tag/5.5.0.0\">📋 <span style='text-decoration:underline'>Release Notes v5.5.0.0</span></a>",
         "targetAbi": "10.11.0.0",
         "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/5.5.0.0/NotifySync_5.5.0.0.zip",
         "checksum": "65FC3E1F00D64FEB11770AF1DB5C1D03",
@@ -194,7 +194,7 @@
       },
       {
         "version": "5.4.2.0",
-        "changelog": "<b>🇬🇧 Fixes:</b><br>• Fixed a memory leak that could slow down the interface during long sessions.<br>• Improved security on displayed content.<br>• Internal cleanup for better consistency.<br><br><b>🇫🇷 Corrections :</b><br>• Correction d'une fuite mémoire qui pouvait ralentir l'interface lors de sessions prolongées.<br>• Amélioration de la sécurité sur le contenu affiché.<br>• Nettoyage interne pour une meilleure cohérence.",
+        "changelog": "<a style='color:white;text-decoration:none' href=\"https://github.com/peterdu1109/NotifySync/releases/tag/5.4.2.0\">📋 <span style='text-decoration:underline'>Release Notes v5.4.2.0</span></a>",
         "targetAbi": "10.11.0.0",
         "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/5.4.2.0/NotifySync_5.4.2.0.zip",
         "checksum": "10C9D32D4977DED2F8580D698BE05466",
@@ -202,7 +202,7 @@
       },
       {
         "version": "5.4.1.0",
-        "changelog": "<b>🇬🇧 New Features:</b><br>• The bell and config page now follow your Jellyfin language setting (French / English).<br><br><b>🇬🇧 Fixes:</b><br>• Dismissing a series now correctly removes all its episodes.<br>• The bell no longer flashes incorrectly after clearing the list.<br>• Notification count updates properly after marking content as watched/unwatched.<br>• Config page labels appear instantly (no more empty flash on load).<br><br><b>🇫🇷 Nouveautés :</b><br>• La cloche et la page de configuration suivent désormais la langue de votre Jellyfin (Français / Anglais).<br><br><b>🇫🇷 Corrections :</b><br>• Supprimer une série retire maintenant correctement tous ses épisodes.<br>• La cloche ne clignote plus après avoir vidé la liste.<br>• Le compteur se met à jour correctement après avoir marqué un contenu comme vu/non-vu.<br>• Les libellés de la page de configuration s'affichent instantanément.",
+        "changelog": "<a style='color:white;text-decoration:none' href=\"https://github.com/peterdu1109/NotifySync/releases/tag/5.4.1.0\">📋 <span style='text-decoration:underline'>Release Notes v5.4.1.0</span></a>",
         "targetAbi": "10.11.0.0",
         "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/5.4.1.0/NotifySync_5.4.1.0.zip",
         "checksum": "1E15EFCE1B99CC81426E94DEA7CD35DA",
@@ -210,7 +210,7 @@
       },
       {
         "version": "5.4.0.0",
-        "changelog": "<b>🇬🇧 New Features:</b><br>• Read/Unread status saved on the server — synced across all your browsers and devices.<br>• Dismiss individual notifications with a smooth animation.<br>• Bell animation when new content arrives.<br><br><b>🇫🇷 Nouveautés :</b><br>• État lu/non-lu sauvegardé sur le serveur — synchronisé entre tous vos navigateurs et appareils.<br>• Suppression individuelle d'une notification avec animation fluide.<br>• Animation de la cloche quand un nouveau contenu arrive.",
+        "changelog": "<a style='color:white;text-decoration:none' href=\"https://github.com/peterdu1109/NotifySync/releases/tag/5.4.0.0\">📋 <span style='text-decoration:underline'>Release Notes v5.4.0.0</span></a>",
         "targetAbi": "10.11.0.0",
         "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/5.4.0.0/NotifySync_5.4.0.0.zip",
         "checksum": "A40B48CDA28FD11B3AF89993CA389A62",
@@ -218,7 +218,7 @@
       },
       {
         "version": "5.3.1.0",
-        "changelog": "<b>🇬🇧 Improvements:</b><br>• Notifications refresh faster and use less bandwidth.<br>• Fixed several stability issues under heavy load.<br>• The bell no longer registers duplicate event listeners during long sessions.<br><br><b>🇫🇷 Améliorations :</b><br>• Les notifications se rafraîchissent plus vite et consomment moins de bande passante.<br>• Correction de plusieurs problèmes de stabilité sous forte charge.<br>• La cloche n'accumule plus d'écouteurs inutiles lors de sessions prolongées.",
+        "changelog": "<a style='color:white;text-decoration:none' href=\"https://github.com/peterdu1109/NotifySync/releases/tag/5.3.1.0\">📋 <span style='text-decoration:underline'>Release Notes v5.3.1.0</span></a>",
         "targetAbi": "10.11.0.0",
         "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/5.3.1.0/NotifySync_5.3.1.0.zip",
         "checksum": "BB339BF46EE3845B695B38552BFAE9AA",
@@ -226,7 +226,7 @@
       },
       {
         "version": "5.3.0.0",
-        "changelog": "<b>🇬🇧 New Features:</b><br>• Complete bell redesign — Netflix-style dropdown with frosted glass look.<br>• Clear list button — clear all notifications without affecting your watch history.<br><br><b>🇬🇧 Fixes:</b><br>• Clearing the list now persists correctly across server restarts.<br>• Fixed timezone issues that could cause notifications to expire incorrectly.<br><br><b>🇫🇷 Nouveautés :</b><br>• Refonte complète de la cloche — Menu déroulant style Netflix avec effet verre dépoli.<br>• Bouton Vider la liste — effacez tout sans toucher à votre historique Jellyfin.<br><br><b>🇫🇷 Corrections :</b><br>• Le vidage persiste correctement après un redémarrage du serveur.<br>• Correction de problèmes de fuseau horaire sur l'expiration des notifications.",
+        "changelog": "<a style='color:white;text-decoration:none' href=\"https://github.com/peterdu1109/NotifySync/releases/tag/5.3.0.0\">📋 <span style='text-decoration:underline'>Release Notes v5.3.0.0</span></a>",
         "targetAbi": "10.11.0.0",
         "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/5.3.0.0/NotifySync_5.3.0.0.zip",
         "checksum": "19ECEC887E592A3C11C4FC34D5E348B8",
@@ -234,7 +234,7 @@
       },
       {
         "version": "5.2.2.0",
-        "changelog": "<b>🇬🇧 Fixes:</b><br>• Fixed a critical issue where Jellyfin could freeze when opening the bell on large libraries.<br>• Media with missing metadata now shows up correctly after TMDB data loads.<br>• The 'Mark all as watched' button no longer blocks the interface.<br><br><b>🇫🇷 Corrections :</b><br>• Correction d'un problème critique où Jellyfin pouvait se figer à l'ouverture de la cloche.<br>• Les médias sans métadonnées s'affichent correctement après le chargement TMDB.<br>• Le bouton Tout marquer comme vu ne bloque plus l'interface.",
+        "changelog": "<a style='color:white;text-decoration:none' href=\"https://github.com/peterdu1109/NotifySync/releases/tag/5.2.2.0\">📋 <span style='text-decoration:underline'>Release Notes v5.2.2.0</span></a>",
         "targetAbi": "10.11.0.0",
         "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/5.2.2.0/NotifySync_5.2.2.0.zip",
         "checksum": "10643AB462573D930F8E12A28FEC59D5",
@@ -242,7 +242,7 @@
       },
       {
         "version": "5.2.0.0",
-        "changelog": "<b>🇬🇧 New Features:</b><br>• Notification history is now automatically scanned when Jellyfin starts.<br><br><b>🇬🇧 Fixes:</b><br>• Database limited to 100 items per category for better stability.<br>• Watch status is now properly synced with Jellyfin.<br><br><b>🇫🇷 Nouveautés :</b><br>• L'historique des notifications est scanné automatiquement au démarrage de Jellyfin.<br><br><b>🇫🇷 Corrections :</b><br>• Base de données limitée à 100 éléments par catégorie pour une meilleure stabilité.<br>• Le statut Vu est correctement synchronisé avec Jellyfin.",
+        "changelog": "<a style='color:white;text-decoration:none' href=\"https://github.com/peterdu1109/NotifySync/releases/tag/5.2.0.0\">📋 <span style='text-decoration:underline'>Release Notes v5.2.0.0</span></a>",
         "targetAbi": "10.11.0.0",
         "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/5.2.0.0/NotifySync_5.2.0.0.zip",
         "checksum": "B939FC45E87F4F4BF7B2618E139AD877",
@@ -250,7 +250,7 @@
       },
       {
         "version": "5.1.0.2",
-        "changelog": "<b>🇬🇧 Fixes:</b><br>• Fixed a critical bug where the notification database was lost after each server restart.<br>• Notifications now appear instantly after login — no more need to press F5.<br>• Bell icon alignment now matches Jellyfin's native header icons.<br><br><b>🇫🇷 Corrections :</b><br>• Correction d'un bug critique où la base de données était perdue après chaque redémarrage.<br>• Les notifications s'affichent instantanément après la connexion — plus besoin d'appuyer sur F5.<br>• L'alignement de la cloche correspond aux icônes natives de Jellyfin.",
+        "changelog": "<a style='color:white;text-decoration:none' href=\"https://github.com/peterdu1109/NotifySync/releases/tag/5.1.0.2\">📋 <span style='text-decoration:underline'>Release Notes v5.1.0.2</span></a>",
         "targetAbi": "10.11.0.0",
         "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/5.1.0.2/NotifySync_5.1.0.2.zip",
         "checksum": "15B7D400647F61F19DA4AB4D10C5B420",
@@ -258,7 +258,7 @@
       },
       {
         "version": "5.1.0.0",
-        "changelog": "<b>🇬🇧 New Features:</b><br>• File Transformation support — the bell can now be injected automatically. No manual file editing required.<br><br><b>🇬🇧 Fixes:</b><br>• Category mapping now displays the correct library name instead of 'text'.<br><br><b>🇫🇷 Nouveautés :</b><br>• Support File Transformation — la cloche peut être injectée automatiquement. Plus besoin de modifier de fichier.<br><br><b>🇫🇷 Corrections :</b><br>• Le mappage des catégories affiche le bon nom de bibliothèque au lieu de 'text'.",
+        "changelog": "<a style='color:white;text-decoration:none' href=\"https://github.com/peterdu1109/NotifySync/releases/tag/5.1.0.0\">📋 <span style='text-decoration:underline'>Release Notes v5.1.0.0</span></a>",
         "targetAbi": "10.11.0.0",
         "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/5.1.0.0/NotifySync_5.1.0.0.zip",
         "checksum": "4BD49E3CEBE69D3D4368B0F67D043EF3",
@@ -266,7 +266,7 @@
       },
       {
         "version": "5.0.0.0",
-        "changelog": "<b>🇬🇧 New Features:</b><br>• Easy script injection — simple commands for Linux, Docker, and Windows.<br>• Real-time notifications via Jellyfin's built-in WebSockets. No page refresh needed.<br>• Modernized configuration page.<br><br><b>🇫🇷 Nouveautés :</b><br>• Injection simplifiée du script — commandes simples pour Linux, Docker et Windows.<br>• Notifications en temps réel via les WebSockets natifs de Jellyfin.<br>• Page de configuration modernisée.",
+        "changelog": "<a style='color:white;text-decoration:none' href=\"https://github.com/peterdu1109/NotifySync/releases/tag/5.0.0.0\">📋 <span style='text-decoration:underline'>Release Notes v5.0.0.0</span></a>",
         "targetAbi": "10.11.0.0",
         "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/5.0.0.0/NotifySync_5.0.0.0.zip",
         "checksum": "B1149D256CD570EDCA93EB140DEC608C",
@@ -274,7 +274,7 @@
       },
       {
         "version": "4.8.0.7",
-        "changelog": "<b>🇬🇧 Improvements:</b><br>• Major performance improvement on large libraries — eliminated thousands of unnecessary queries.<br>• Reduced server load by caching read status in memory.<br><br><b>🇫🇷 Améliorations :</b><br>• Amélioration majeure des performances sur les grandes bibliothèques.<br>• Réduction de la charge serveur grâce à la mise en cache en mémoire.",
+        "changelog": "<a style='color:white;text-decoration:none' href=\"https://github.com/peterdu1109/NotifySync/releases/tag/4.8.0.7\">📋 <span style='text-decoration:underline'>Release Notes v4.8.0.7</span></a>",
         "targetAbi": "10.11.0.0",
         "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/4.8.0.7/NotifySync_4.8.0.7.zip",
         "checksum": "9A04D3153252135A8963754341CC8807",
@@ -282,7 +282,7 @@
       },
       {
         "version": "4.8.0.6",
-        "changelog": "<b>🇬🇧 Fixes:</b><br>• XFusion/WebChannel virtual streams are now properly detected.<br>• Fixed a crash that could occur with certain folder types.<br><br><b>🇫🇷 Corrections :</b><br>• Les flux virtuels XFusion/WebChannel sont correctement détectés.<br>• Correction d'un crash pouvant survenir avec certains types de dossiers.",
+        "changelog": "<a style='color:white;text-decoration:none' href=\"https://github.com/peterdu1109/NotifySync/releases/tag/4.8.0.6\">📋 <span style='text-decoration:underline'>Release Notes v4.8.0.6</span></a>",
         "targetAbi": "10.11.0.0",
         "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/4.8.0.6/NotifySync_4.8.0.6.zip",
         "checksum": "D7854CBD5DE99457782D83D666454B30",
@@ -290,7 +290,7 @@
       },
       {
         "version": "4.8.0.5",
-        "changelog": "<b>🇬🇧 Fixes:</b><br>• Added support for XFusion VOD & Series streams.<br>• Fixed a critical error that prevented the plugin from loading.<br><br><b>🇫🇷 Corrections :</b><br>• Ajout du support des flux VOD et Séries XFusion.<br>• Correction d'une erreur critique empêchant le chargement du plugin.",
+        "changelog": "<a style='color:white;text-decoration:none' href=\"https://github.com/peterdu1109/NotifySync/releases/tag/4.8.0.5\">📋 <span style='text-decoration:underline'>Release Notes v4.8.0.5</span></a>",
         "targetAbi": "10.11.0.0",
         "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/4.8.0.5/NotifySync_4.8.0.5.zip",
         "checksum": "410A748EEEDCC36DF0419B62AF754B9A",
@@ -298,7 +298,7 @@
       },
       {
         "version": "4.8.0.4",
-        "changelog": "<b>🇬🇧 New Features:</b><br>• Music support — music tracks are now detected in real-time.<br>• Watch status is now synced with Jellyfin.<br>• Theme songs, openings, and extras are automatically filtered out.<br><br><b>🇫🇷 Nouveautés :</b><br>• Support de la musique — les pistes musicales sont détectées en temps réel.<br>• Le statut Vu est synchronisé avec Jellyfin.<br>• Les génériques, openings et extras sont automatiquement filtrés.",
+        "changelog": "<a style='color:white;text-decoration:none' href=\"https://github.com/peterdu1109/NotifySync/releases/tag/4.8.0.4\">📋 <span style='text-decoration:underline'>Release Notes v4.8.0.4</span></a>",
         "targetAbi": "10.11.0.0",
         "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/4.8.0.4/NotifySync_4.8.0.4.zip",
         "checksum": "ADD8981DF11A54F3F874526E6BC9E9A8",
@@ -306,7 +306,7 @@
       },
       {
         "version": "4.8.0.3",
-        "changelog": "<b>🇬🇧 Fixes:</b><br>• Fixed a data corruption risk on server crash (safe file writing).<br>• Eliminated a CPU bottleneck under heavy load.<br>• Improved performance when checking permissions for many users.<br><br><b>🇫🇷 Corrections :</b><br>• Correction d'un risque de corruption de données en cas de crash serveur.<br>• Suppression d'un goulot d'étranglement CPU sous forte charge.<br>• Meilleures performances lors de la vérification des permissions.",
+        "changelog": "<a style='color:white;text-decoration:none' href=\"https://github.com/peterdu1109/NotifySync/releases/tag/4.8.0.3\">📋 <span style='text-decoration:underline'>Release Notes v4.8.0.3</span></a>",
         "targetAbi": "10.11.0.0",
         "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/4.8.0.3/NotifySync_v4.8.0.3.zip",
         "checksum": "B85838D8CF4ABB60CB2AC1B6010904FE",
@@ -314,7 +314,7 @@
       },
       {
         "version": "4.8.0.2",
-        "changelog": "<b>🇬🇧 Fixes:</b><br>• Series category now appears correctly — IPTV/VOD episodes no longer hide local series.<br>• Scanning is now limited to selected libraries only.<br><br><b>🇫🇷 Corrections :</b><br>• La catégorie Séries s'affiche correctement — les épisodes IPTV/VOD ne masquent plus les séries locales.<br>• Le scan est limité aux bibliothèques sélectionnées.",
+        "changelog": "<a style='color:white;text-decoration:none' href=\"https://github.com/peterdu1109/NotifySync/releases/tag/4.8.0.2\">📋 <span style='text-decoration:underline'>Release Notes v4.8.0.2</span></a>",
         "targetAbi": "10.11.0.0",
         "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/4.8.0.2/NotifySync_v4.8.0.2.zip",
         "checksum": "B8DF4DEE21A31AFD2044812736BC0F6D",
@@ -322,7 +322,7 @@
       },
       {
         "version": "4.8.0.1",
-        "changelog": "<b>🇬🇧 Fixes:</b><br>• Theme songs and Season 0 extras no longer pollute the episode list.<br>• IPTV streams are now automatically excluded from notifications.<br><br><b>🇫🇷 Corrections :</b><br>• Les génériques et extras de la Saison 0 ne polluent plus la liste des épisodes.<br>• Les flux IPTV sont automatiquement exclus des notifications.",
+        "changelog": "<a style='color:white;text-decoration:none' href=\"https://github.com/peterdu1109/NotifySync/releases/tag/4.8.0.1\">📋 <span style='text-decoration:underline'>Release Notes v4.8.0.1</span></a>",
         "targetAbi": "10.11.0.0",
         "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/4.8.0.1/NotifySync_v4.8.0.1.zip",
         "checksum": "9D6DF72A5080B8010DCD0AE806C5D2A8",
@@ -330,7 +330,7 @@
       },
       {
         "version": "4.8.0.0",
-        "changelog": "<b>🇬🇧 New Features:</b><br>• Complete quota system rewrite — each category gets its fair share of notifications.<br>• Full music support — tracks are grouped by album instead of appearing individually.<br>• Support for custom library names in the bell.<br><br><b>🇫🇷 Nouveautés :</b><br>• Refonte complète du système de quotas — chaque catégorie reçoit sa juste part.<br>• Support complet de la musique — les pistes sont groupées par album.<br>• Support des noms personnalisés de bibliothèques dans la cloche.",
+        "changelog": "<a style='color:white;text-decoration:none' href=\"https://github.com/peterdu1109/NotifySync/releases/tag/4.8.0.0\">📋 <span style='text-decoration:underline'>Release Notes v4.8.0.0</span></a>",
         "targetAbi": "10.11.0.0",
         "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/4.8.0.0/NotifySync_v4.8.0.0.zip",
         "checksum": "1A612869C5CA1126DC0FEF95C34C5321",
@@ -338,7 +338,7 @@
       },
       {
         "version": "4.7.17.10",
-        "changelog": "<b>🇬🇧 Improvements:</b><br>• Watch status is now accurate per episode.<br>• Clicking a series no longer marks all episodes as watched.<br>• The bell shows the real number of unwatched episodes.<br>• Category filtering is now configurable.<br><br><b>🇫🇷 Améliorations :</b><br>• Le statut Vu est maintenant précis par épisode.<br>• Cliquer sur une série ne marque plus tous les épisodes comme vus.<br>• La cloche affiche le nombre réel d'épisodes non vus.<br>• Le filtrage par catégorie est configurable.",
+        "changelog": "<a style='color:white;text-decoration:none' href=\"https://github.com/peterdu1109/NotifySync/releases/tag/4.7.17.10\">📋 <span style='text-decoration:underline'>Release Notes v4.7.17.10</span></a>",
         "targetAbi": "10.11.0.0",
         "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/4.7.17.10/NotifySync_v4.7.17.10.zip",
         "checksum": "CF1A194163DBF4DAB9DFB1CD403B8E3D",
@@ -346,7 +346,7 @@
       },
       {
         "version": "4.7.17.5",
-        "changelog": "<b>🇬🇧 Fixes:</b><br>• Fixed a bug where individual episodes were removed instead of grouped series during live events.<br>• Quota system is now consistent between initial scan and real-time additions.<br><br><b>🇫🇷 Corrections :</b><br>• Correction d'un bug où les épisodes individuels étaient supprimés au lieu des séries groupées.<br>• Le système de quotas est cohérent entre le scan initial et les ajouts en temps réel.",
+        "changelog": "<a style='color:white;text-decoration:none' href=\"https://github.com/peterdu1109/NotifySync/releases/tag/4.7.17.5\">📋 <span style='text-decoration:underline'>Release Notes v4.7.17.5</span></a>",
         "targetAbi": "10.11.0.0",
         "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/4.7.17.5/NotifySync_v4.7.17.5.zip",
         "checksum": "154A8A8ECDE56EB909871D5145740F0E",
@@ -354,7 +354,7 @@
       },
       {
         "version": "4.7.16",
-        "changelog": "<b>🇬🇧 Improvements:</b><br>• Full compatibility with Jellyfin 10.11.0.<br>• Improved overall stability and performance.<br><br><b>🇫🇷 Améliorations :</b><br>• Compatibilité complète avec Jellyfin 10.11.0.<br>• Amélioration de la stabilité et des performances globales.",
+        "changelog": "<a style='color:white;text-decoration:none' href=\"https://github.com/peterdu1109/NotifySync/releases/tag/4.7.16\">📋 <span style='text-decoration:underline'>Release Notes v4.7.16</span></a>",
         "targetAbi": "10.11.0.0",
         "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/4.7.16/NotifySync_v4.7.16.zip",
         "checksum": "D16BCBFE9117CF610A6A616F556EF5DF",
@@ -362,7 +362,7 @@
       },
       {
         "version": "4.7.14",
-        "changelog": "<b>🇬🇧 Improvements:</b><br>• Database limited to 2000 items to protect server stability.<br>• The plugin now stops cleanly when Jellyfin shuts down.<br>• Major CPU and database performance optimization.<br><br><b>🇫🇷 Améliorations :</b><br>• Base de données limitée à 2000 éléments pour la stabilité.<br>• Le plugin s'arrête proprement à l'arrêt de Jellyfin.<br>• Optimisation majeure des performances.",
+        "changelog": "<a style='color:white;text-decoration:none' href=\"https://github.com/peterdu1109/NotifySync/releases/tag/4.7.14\">📋 <span style='text-decoration:underline'>Release Notes v4.7.14</span></a>",
         "targetAbi": "10.11.0.0",
         "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/4.7.14/NotifySync_v4.7.14.zip",
         "checksum": "B177F74C77F365DD1AF85481DA2F082D",
@@ -370,7 +370,7 @@
       },
       {
         "version": "4.7.12",
-        "changelog": "<b>🇬🇧 Improvements:</b><br>• Improved stability under concurrent access.<br>• Reduced disk writes for better performance.<br><br><b>🇫🇷 Améliorations :</b><br>• Meilleure stabilité lors d'accès simultanés.<br>• Réduction des écritures disque.",
+        "changelog": "<a style='color:white;text-decoration:none' href=\"https://github.com/peterdu1109/NotifySync/releases/tag/4.7.12\">📋 <span style='text-decoration:underline'>Release Notes v4.7.12</span></a>",
         "targetAbi": "10.11.0.0",
         "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/4.7.12/NotifySync_v4.7.12.zip",
         "checksum": "0F0894C14A5651569D673049EF88D35A",
@@ -378,7 +378,7 @@
       },
       {
         "version": "4.7.11",
-        "changelog": "<b>🇬🇧 Fixes:</b><br>• Notifications now appear immediately after login.<br><br><b>🇫🇷 Corrections :</b><br>• Les notifications s'affichent immédiatement après la connexion.",
+        "changelog": "<a style='color:white;text-decoration:none' href=\"https://github.com/peterdu1109/NotifySync/releases/tag/4.7.11\">📋 <span style='text-decoration:underline'>Release Notes v4.7.11</span></a>",
         "targetAbi": "10.11.0.0",
         "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/4.7.11/NotifySync_v4.7.11.zip",
         "checksum": "F88A5863E91CC3ABDE8D57A5D87EFDBE",
@@ -386,7 +386,7 @@
       },
       {
         "version": "4.7.7",
-        "changelog": "<b>🇬🇧 Fixes:</b><br>• Fixed a timeout issue when loading the bell interface.<br><br><b>🇫🇷 Corrections :</b><br>• Correction d'un problème de délai lors du chargement de la cloche.",
+        "changelog": "<a style='color:white;text-decoration:none' href=\"https://github.com/peterdu1109/NotifySync/releases/tag/4.7.7\">📋 <span style='text-decoration:underline'>Release Notes v4.7.7</span></a>",
         "targetAbi": "10.11.0.0",
         "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/4.7.7/NotifySync_v4.7.7.zip",
         "checksum": "0AA2CF4C6A1D6AD38B10C7C1F66207C3",
@@ -394,7 +394,7 @@
       },
       {
         "version": "4.7.6",
-        "changelog": "<b>🇬🇧 Fixes:</b><br>• Fixed an error that could prevent the bell script from loading.<br><br><b>🇫🇷 Corrections :</b><br>• Correction d'une erreur pouvant empêcher le chargement du script de la cloche.",
+        "changelog": "<a style='color:white;text-decoration:none' href=\"https://github.com/peterdu1109/NotifySync/releases/tag/4.7.6\">📋 <span style='text-decoration:underline'>Release Notes v4.7.6</span></a>",
         "targetAbi": "10.11.0.0",
         "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/4.7.6/NotifySync_v4.7.6.zip",
         "checksum": "6160B698C4CC381F588B85F0A9FCA9E8",
@@ -402,7 +402,7 @@
       },
       {
         "version": "4.7.4",
-        "changelog": "<b>🇬🇧 Fixes:</b><br>• Fixed compatibility with Linux (case-insensitive user IDs).<br>• Better error logging for file permission issues.<br><br><b>🇫🇷 Corrections :</b><br>• Correction de la compatibilité Linux (IDs utilisateurs insensibles à la casse).<br>• Meilleure journalisation des erreurs de permissions.",
+        "changelog": "<a style='color:white;text-decoration:none' href=\"https://github.com/peterdu1109/NotifySync/releases/tag/4.7.4\">📋 <span style='text-decoration:underline'>Release Notes v4.7.4</span></a>",
         "targetAbi": "10.11.0.0",
         "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/4.7.4/NotifySync_v4.7.4.zip",
         "checksum": "2F4BEEF013B8A811D1453D5CF1562107",
@@ -410,7 +410,7 @@
       },
       {
         "version": "4.7.2",
-        "changelog": "<b>🇬🇧 Fixes:</b><br>• Fixed a bug where previously seen content could reappear as new after an error.<br><br><b>🇫🇷 Corrections :</b><br>• Correction d'un bug où du contenu déjà vu pouvait réapparaître comme nouveau.",
+        "changelog": "<a style='color:white;text-decoration:none' href=\"https://github.com/peterdu1109/NotifySync/releases/tag/4.7.2\">📋 <span style='text-decoration:underline'>Release Notes v4.7.2</span></a>",
         "targetAbi": "10.11.0.0",
         "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/4.7.2/NotifySync_v4.7.2.zip",
         "checksum": "674B15EB501E7E5B5E4A93752F297129",
@@ -418,7 +418,7 @@
       },
       {
         "version": "4.7.1",
-        "changelog": "<b>🇬🇧 Fixes:</b><br>• Fixed a checksum error that could prevent plugin installation.<br><br><b>🇫🇷 Corrections :</b><br>• Correction d'une erreur de checksum pouvant empêcher l'installation.",
+        "changelog": "<a style='color:white;text-decoration:none' href=\"https://github.com/peterdu1109/NotifySync/releases/tag/4.7.1\">📋 <span style='text-decoration:underline'>Release Notes v4.7.1</span></a>",
         "targetAbi": "10.11.0.0",
         "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/4.7.1/NotifySync_v4.7.1.zip",
         "checksum": "B2AD87613FCF6B012370610E27F0C38A",
@@ -426,7 +426,7 @@
       },
       {
         "version": "4.7.0",
-        "changelog": "<b>🇬🇧 Fixes:</b><br>• Fixed 401 errors on the homepage caused by missing authentication.<br>• The bell no longer sends infinite requests if authentication fails.<br><br><b>🇫🇷 Corrections :</b><br>• Correction des erreurs 401 causées par une authentification manquante.<br>• La cloche n'envoie plus de requêtes infinies si l'authentification échoue.",
+        "changelog": "<a style='color:white;text-decoration:none' href=\"https://github.com/peterdu1109/NotifySync/releases/tag/4.7.0\">📋 <span style='text-decoration:underline'>Release Notes v4.7.0</span></a>",
         "targetAbi": "10.11.0.0",
         "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/4.7.0/NotifySync_v4.7.0.zip",
         "checksum": "236EDE72BB0D27FC6A6687BDC3686D87",
@@ -434,7 +434,7 @@
       },
       {
         "version": "4.6.9",
-        "changelog": "<b>🇬🇧 Improvements:</b><br>• Security hardened — all API endpoints now require authentication.<br>• Users can only access their own notification data.<br><br><b>🇫🇷 Améliorations :</b><br>• Sécurité renforcée — tous les points d'accès API nécessitent une authentification.<br>• Les utilisateurs ne peuvent accéder qu'à leurs propres données.",
+        "changelog": "<a style='color:white;text-decoration:none' href=\"https://github.com/peterdu1109/NotifySync/releases/tag/4.6.9\">📋 <span style='text-decoration:underline'>Release Notes v4.6.9</span></a>",
         "targetAbi": "10.11.0.0",
         "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/4.6.9/NotifySync_v4.6.9.zip",
         "checksum": "73CB970CDFE1ECA64CA7E4445A90BDB2",
@@ -442,7 +442,7 @@
       },
       {
         "version": "4.6.8",
-        "changelog": "<b>🇬🇧</b> Initial public release of NotifySync — a notification bell for Jellyfin.<br><br><b>🇫🇷</b> Première version publique de NotifySync — une cloche de notifications pour Jellyfin.",
+        "changelog": "<a style='color:white;text-decoration:none' href=\"https://github.com/peterdu1109/NotifySync/releases/tag/4.6.8\">📋 <span style='text-decoration:underline'>Release Notes v4.6.8</span></a>",
         "targetAbi": "10.11.0.0",
         "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/4.6.8/NotifySync.zip",
         "checksum": "20F44EA96BF01C1BB688A112BC5D0C48",

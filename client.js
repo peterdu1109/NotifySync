@@ -623,14 +623,12 @@
                 document.addEventListener('ns-navigate', (e) => {
                     const id = e.detail;
                     closeDropdown();
-                    const dest = '#!/details?id=' + id;
+                    const path = '/details?id=' + id;
                     // Use Jellyfin's internal router so theme music and page lifecycle trigger correctly
                     if (window.Emby && window.Emby.Page && window.Emby.Page.show) {
-                        window.Emby.Page.show(dest);
-                    } else if (window.Dashboard && window.Dashboard.navigate) {
-                        window.Dashboard.navigate(dest);
+                        window.Emby.Page.show(path);
                     } else {
-                        window.location.hash = dest;
+                        window.location.hash = '#!/details?id=' + id;
                     }
                 });
                 document.addEventListener('ns-dismiss', async (e) => {

@@ -1,4 +1,4 @@
-/* NOTIFYSYNC V5.5.8.8 */
+/* NOTIFYSYNC V5.5.9.0 */
 (function () {
     let currentData = [];
     let groupedData = [];
@@ -623,7 +623,15 @@
                 document.addEventListener('ns-navigate', (e) => {
                     const id = e.detail;
                     closeDropdown();
-                    window.location.hash = '#!/details?id=' + id;
+                    const dest = '#!/details?id=' + id;
+                    // Use Jellyfin's internal router so theme music and page lifecycle trigger correctly
+                    if (window.Emby && window.Emby.Page && window.Emby.Page.show) {
+                        window.Emby.Page.show(dest);
+                    } else if (window.Dashboard && window.Dashboard.navigate) {
+                        window.Dashboard.navigate(dest);
+                    } else {
+                        window.location.hash = dest;
+                    }
                 });
                 document.addEventListener('ns-dismiss', async (e) => {
                     const itemId = e.detail;

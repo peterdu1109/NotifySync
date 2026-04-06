@@ -9,6 +9,14 @@
     "supportUrl": "https://github.com/peterdu1109/NotifySync",
     "versions": [
       {
+        "version": "5.5.9.0",
+        "changelog": "<b>🇬🇧 Fix:</b><br>• Fixed theme music not playing when navigating from a notification click. Now uses Jellyfin's internal router (Emby.Page.show) instead of raw hash navigation, ensuring the full page lifecycle triggers correctly (theme songs, backdrops, etc.).<br><br><b>🇫🇷 Correction :</b><br>• Correction de la musique de thème qui ne se lançait pas lors du clic sur une notification. Utilisation du routeur interne de Jellyfin (Emby.Page.show) au lieu de la navigation brute par hash, garantissant le déclenchement complet du cycle de page (thèmes musicaux, arrière-plans, etc.).",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/v5.5.9.0/NotifySync.zip",
+        "checksum": "2A005386D0176F71705B82E56F010B5A",
+        "timestamp": "2026-04-06T12:00:00Z"
+      },
+      {
         "version": "5.5.8.8",
         "changelog": "<b>🇬🇧 Simplification:</b><br>• Simplified upgrade detection — removed deferring and in-memory ID tracking. OnItemUpdated now re-checks deleted history when metadata is available, catching upgrades that ProcessBuffer missed.<br>• Deduplicated quota+trim logic into shared helper.<br>• Fixed collection notifications that couldn't be dismissed (Guid validation was too strict).<br>• ProcessBuffer now skips existing items before any DB query (~1500 queries saved per library rescan).<br><br><b>🇫🇷 Simplification :</b><br>• Simplification de la détection d'upgrade — suppression du deferring et du suivi d'ID en mémoire. OnItemUpdated re-vérifie l'historique de suppression quand les métadonnées sont disponibles, rattrapant les upgrades manqués par ProcessBuffer.<br>• Factorisation de la logique quota+trim en helper partagé.<br>• Correction du dismiss des notifications de collections (validation Guid trop stricte).<br>• ProcessBuffer skip les items existants avant toute requête DB (~1500 requêtes économisées par rescan).",
         "targetAbi": "10.11.0.0",

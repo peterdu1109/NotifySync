@@ -10,7 +10,7 @@
     "versions": [
       {
         "version": "5.5.9.0",
-        "changelog": "<b>🇬🇧 Fix:</b><br>• Fixed theme music not playing when navigating from a notification click. Now uses Jellyfin's internal router (Emby.Page.show) instead of raw hash navigation, ensuring the full page lifecycle triggers correctly (theme songs, backdrops, etc.).<br><br><b>🇫🇷 Correction :</b><br>• Correction de la musique de thème qui ne se lançait pas lors du clic sur une notification. Utilisation du routeur interne de Jellyfin (Emby.Page.show) au lieu de la navigation brute par hash, garantissant le déclenchement complet du cycle de page (thèmes musicaux, arrière-plans, etc.).",
+        "changelog": "<a style='color:white;text-decoration:none' href=\"https://github.com/peterdu1109/NotifySync/releases/tag/v5.5.9.0\">📋 <span style='text-decoration:underline'>Release Notes v5.5.9.0</span></a>",
         "targetAbi": "10.11.0.0",
         "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/v5.5.9.0/NotifySync.zip",
         "checksum": "2A005386D0176F71705B82E56F010B5A",

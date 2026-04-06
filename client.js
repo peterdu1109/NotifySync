@@ -625,7 +625,7 @@
                     closeDropdown();
                     // Use Jellyfin's internal router so theme music and page lifecycle trigger correctly
                     if (window.Emby && window.Emby.Page && window.Emby.Page.show) {
-                        try { window.Emby.Page.show('details?id=' + id); } catch (_) { window.location.hash = '#!/details?id=' + id; }
+                        window.Emby.Page.show('#!/details?id=' + id);
                     } else {
                         window.location.hash = '#!/details?id=' + id;
                     }

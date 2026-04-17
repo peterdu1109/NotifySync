@@ -438,7 +438,7 @@ namespace NotifySync
 
         private void OnItemUpdated(object? sender, ItemChangeEventArgs e)
         {
-            if (e.Item == null)
+            if (e.Item == null || (e.Item.GetType().Name != "Movie" && e.Item.GetType().Name != "Episode" && e.Item.GetType().Name != "Audio"))
             {
                 return;
             }
@@ -480,15 +480,11 @@ namespace NotifySync
                                 updatedNotif.IndexNumber,
                                 updatedNotif.ParentIndexNumber);
 
-                        _logger.LogInformation(
-                            "NotifySync Upgrade Check: {Name} | pathChanged={PathChanged} (old={OldPath}, new={NewPath}) | sizeChanged={SizeChanged} (old={OldSize}, new={NewSize}) | dateChanged={DateChanged} | legacyFallback={Legacy}",
+                        _logger.LogDebug(
+                            "NotifySync Upgrade Check: {Name} | pathChanged={PathChanged} | sizeChanged={SizeChanged} | dateChanged={DateChanged} | legacyFallback={Legacy}",
                             updatedNotif.Name,
                             pathChanged,
-                            existing.FilePath ?? "NULL",
-                            updatedNotif.FilePath ?? "NULL",
                             sizeChanged,
-                            existing.Size?.ToString(CultureInfo.InvariantCulture) ?? "NULL",
-                            updatedNotif.Size?.ToString(CultureInfo.InvariantCulture) ?? "NULL",
                             dateChanged,
                             legacyFallback);
 
@@ -496,6 +492,13 @@ namespace NotifySync
                         {
                             updatedNotif.IsUpgrade = true;
                             updatedNotif.DateCreated = DateTime.UtcNow; // Remonter en tête de liste
+                            _logger.LogInformation(
+                                "NotifySync Upgrade Detected: {Name} | pathChanged={PathChanged} (old={OldPath}, new={NewPath}) | sizeChanged={SizeChanged}",
+                                updatedNotif.Name,
+                                pathChanged,
+                                existing.FilePath ?? "NULL",
+                                updatedNotif.FilePath ?? "NULL",
+                                sizeChanged);
                         }
                         else if (!existing.IsUpgrade
                             && _db.HasRecentDeletedMatch(
@@ -1123,18 +1126,10 @@ namespace NotifySync
 
             if (newNotifications.Count > 0)
             {
-                InjectCollectionNotifications(newNotifications);
+                MergeAndPersistNotifications(newNotifications);
             }
 
             _logger.LogInformation("NotifySync: Collection scan complete. {Count} new notifications.", newNotifications.Count);
-        }
-
-        /// <summary>
-        /// Injects collection-sourced notifications into the in-memory list and persists them.
-        /// </summary>
-        private void InjectCollectionNotifications(List<NotificationItem> newItems)
-        {
-            MergeAndPersistNotifications(newItems);
         }
 
         /// <summary>

@@ -6,6 +6,9 @@ publish/
 # Release archives (upload to GitHub Releases, not in repo)
 *.zip
 
+# Local debug scripts
+*.csx
+
 # Build logs
 build_error*.txt
 

@@ -1,4 +1,4 @@
-/* NOTIFYSYNC V5.5.9.1 */
+/* NOTIFYSYNC V5.5.9.2 */
 (function () {
     let currentData = [];
     let groupedData = [];
@@ -473,7 +473,7 @@
         if (activeFilter !== 'All') filtered = filtered.filter(i => i.Category === activeFilter);
         const cats = new Set(['All']); groupedData.forEach(i => cats.add(i.Category));
         const filterBar = drop.querySelector('.filter-bar');
-        filterBar.innerHTML = Array.from(cats).map(c => `<div class="filter-pill ${activeFilter === c ? 'active' : ''}" data-category="${escapeHtml(c)}" tabindex="0" role="button" onclick="document.dispatchEvent(new CustomEvent('ns-filter', {detail:'${escapeHtml(c)}'}))" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">${T['filter' + c] || escapeHtml(c)}</div>`).join('');
+        filterBar.innerHTML = Array.from(cats).map(c => `<div class="filter-pill ${activeFilter === c ? 'active' : ''}" data-category="${escapeHtml(c)}" tabindex="0" role="button" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">${T['filter' + c] || escapeHtml(c)}</div>`).join('');
 
         if (filtered.length === 0) { container.innerHTML = `<div style="padding:60px 20px;text-align:center;color:#666;font-style:italic;">${T.empty}</div>`; return; }
 
@@ -524,10 +524,10 @@
         });
 
         if (activeFilter === 'All') {
-            htmlParts.push(`<div class="footer-tools" onclick="document.dispatchEvent(new Event('ns-clearall'))">${T.clearAll}</div>`);
+            htmlParts.push(`<div class="footer-tools" data-action="clearall">${T.clearAll}</div>`);
         } else {
             const catLabel = T['filter' + activeFilter] || escapeHtml(activeFilter);
-            htmlParts.push(`<div class="footer-tools" onclick="document.dispatchEvent(new CustomEvent('ns-clearcat', {detail:'${escapeHtml(activeFilter)}'}))">${T.clearCat} ${catLabel}</div>`);
+            htmlParts.push(`<div class="footer-tools" data-action="clearcat" data-category="${escapeHtml(activeFilter)}">${T.clearCat} ${catLabel}</div>`);
         }
         const finalHtml = htmlParts.join('');
         if (container.innerHTML !== finalHtml) {
@@ -536,6 +536,23 @@
             lazyImageObserver = new IntersectionObserver((entries, o) => { entries.forEach(e => { if (e.isIntersecting) { const i = e.target; i.onload = () => i.classList.add('loaded'); i.src = i.dataset.src; o.unobserve(i); } }); });
             container.querySelectorAll('img[data-src]').forEach(i => lazyImageObserver.observe(i));
             initSwipeToDismiss(container);
+        }
+
+        // Wire filter pills via data attributes (avoids inline onclick + entity-decode XSS surface)
+        filterBar.querySelectorAll('.filter-pill').forEach(pill => {
+            pill.onclick = () => document.dispatchEvent(new CustomEvent('ns-filter', { detail: pill.dataset.category }));
+        });
+
+        // Wire footer "Clear" button via data attributes
+        const footer = container.querySelector('.footer-tools');
+        if (footer) {
+            footer.onclick = () => {
+                if (footer.dataset.action === 'clearall') {
+                    document.dispatchEvent(new Event('ns-clearall'));
+                } else if (footer.dataset.action === 'clearcat') {
+                    document.dispatchEvent(new CustomEvent('ns-clearcat', { detail: footer.dataset.category }));
+                }
+            };
         }
     };
 
@@ -725,7 +742,6 @@
     // --- NEW: WebSockets Real-Time Sync ---
     let wsDebounceTimeout = null;
     let wsFollowUp1 = null;
-    let wsFollowUp2 = null;
     const onWebSocketMessage = (e, msg) => {
         if (!msg || !msg.MessageType) return;
 
@@ -734,15 +750,14 @@
             // Reset all timers on each event
             if (wsDebounceTimeout) clearTimeout(wsDebounceTimeout);
             if (wsFollowUp1) clearTimeout(wsFollowUp1);
-            if (wsFollowUp2) clearTimeout(wsFollowUp2);
 
             wsDebounceTimeout = setTimeout(() => {
                 retryDelay = 2000;
                 fetchData();
                 // Jellyfin propagates Played to episodes one-by-one (~15s for a season).
-                // Multi-stage follow-up to catch stragglers.
-                wsFollowUp1 = setTimeout(() => fetchData(), 5000);
-                wsFollowUp2 = setTimeout(() => fetchData(), 12000);
+                // Single follow-up at 8s catches stragglers without spamming the server
+                // (the next viewshow/visibilitychange will catch any final propagation).
+                wsFollowUp1 = setTimeout(() => fetchData(), 8000);
             }, 2000);
         }
     };

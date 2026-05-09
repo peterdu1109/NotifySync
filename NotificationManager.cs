@@ -202,6 +202,20 @@ namespace NotifySync
 
         private string NormalizeUserId(string userId) => IdHelper.NormalizeId(userId);
 
+        /// <summary>
+        /// Wraps <see cref="NotificationDatabase.HasRecentDeletedMatch"/> with a fast short-circuit
+        /// when DeletedItems tracking is disabled — the table is empty/stale and the SQL query is wasted.
+        /// </summary>
+        private bool TryDeletedMatch(string name, string type, int? year, string? seriesName, int? indexNumber, int? parentIndexNumber)
+        {
+            if (Plugin.Instance?.Configuration?.EnableDeletedTracking != true)
+            {
+                return false;
+            }
+
+            return _db.HasRecentDeletedMatch(name, type, year, seriesName, indexNumber, parentIndexNumber);
+        }
+
         private void LoadUserCleared()
         {
             if (!File.Exists(_clearedPath))
@@ -358,6 +372,14 @@ namespace NotifySync
                 return;
             }
 
+            // Fast pre-filter: skip items from libraries the user isn't monitoring.
+            // Avoids enqueueing/dequeueing thousands of items during full library scans
+            // when the server has many libraries but only a few are tracked by NotifySync.
+            if (!IsItemInEnabledLibrary(e.Item))
+            {
+                return;
+            }
+
             _eventBuffer.Enqueue(e.Item);
             if (!_disposeCts.IsCancellationRequested)
             {
@@ -379,9 +401,10 @@ namespace NotifySync
                 return;
             }
 
-            // Log deleted item if tracking is enabled
+            // Log deleted item if tracking is enabled (only for items in monitored libraries
+            // — avoids polluting the admin log with IPTV/Channel/non-tracked deletions)
             var config = Plugin.Instance?.Configuration;
-            if (config != null && config.EnableDeletedTracking && !e.Item.IsFolder && !(e.Item is Folder))
+            if (config != null && config.EnableDeletedTracking && !e.Item.IsFolder && !(e.Item is Folder) && IsItemInEnabledLibrary(e.Item))
             {
                 try
                 {
@@ -472,7 +495,7 @@ namespace NotifySync
                         // Fallback: if existing has no file metadata (pre-5.5.7.3), check deleted history
                         bool legacyFallback = string.IsNullOrEmpty(existing.FilePath)
                             && !existing.Size.HasValue
-                            && _db.HasRecentDeletedMatch(
+                            && TryDeletedMatch(
                                 updatedNotif.Name,
                                 updatedNotif.Type,
                                 updatedNotif.ProductionYear,
@@ -501,7 +524,7 @@ namespace NotifySync
                                 sizeChanged);
                         }
                         else if (!existing.IsUpgrade
-                            && _db.HasRecentDeletedMatch(
+                            && TryDeletedMatch(
                                 updatedNotif.Name,
                                 updatedNotif.Type,
                                 updatedNotif.ProductionYear,
@@ -627,7 +650,7 @@ namespace NotifySync
                         }
 
                         // New item — check deleted history for upgrade detection.
-                        bool deletedMatch = _db.HasRecentDeletedMatch(
+                        bool deletedMatch = TryDeletedMatch(
                             notif.Name,
                             notif.Type,
                             notif.ProductionYear,
@@ -635,7 +658,7 @@ namespace NotifySync
                             notif.IndexNumber,
                             notif.ParentIndexNumber);
 
-                        _logger.LogInformation(
+                        _logger.LogDebug(
                             "NotifySync ProcessBuffer: {Name} Type={Type} Year={Year} | deletedMatch={Match}",
                             notif.Name,
                             notif.Type,
@@ -645,6 +668,9 @@ namespace NotifySync
                         if (!notif.IsUpgrade && deletedMatch)
                         {
                             notif.IsUpgrade = true;
+                            _logger.LogInformation(
+                                "NotifySync Upgrade Detected (ProcessBuffer): {Name} | deletedMatch=True",
+                                notif.Name);
                         }
 
                         newItems.Add(notif);

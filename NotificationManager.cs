@@ -372,14 +372,12 @@ namespace NotifySync
                 return;
             }
 
-            // Fast pre-filter: skip items from libraries the user isn't monitoring.
-            // Avoids enqueueing/dequeueing thousands of items during full library scans
-            // when the server has many libraries but only a few are tracked by NotifySync.
-            if (!IsItemInEnabledLibrary(e.Item))
-            {
-                return;
-            }
-
+            // Note: we intentionally do NOT pre-filter by IsItemInEnabledLibrary here.
+            // At ItemAdded time, the item's parent chain (GetAncestorIds) may not yet be
+            // fully resolved — the library root can be missing from the ancestor list,
+            // causing valid items to be rejected and never reach ProcessBuffer.
+            // The library check is performed downstream in CreateNotificationFromItem
+            // where the ancestry is reliable, even if the cost is one extra dequeue.
             _eventBuffer.Enqueue(e.Item);
             if (!_disposeCts.IsCancellationRequested)
             {

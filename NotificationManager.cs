@@ -401,10 +401,13 @@ namespace NotifySync
                 return;
             }
 
-            // Log deleted item if tracking is enabled (only for items in monitored libraries
-            // — avoids polluting the admin log with IPTV/Channel/non-tracked deletions)
+            // Log deleted item if tracking is enabled.
+            // Note: we intentionally do NOT filter by IsItemInEnabledLibrary here — at remove time
+            // the item is already detached from its library hierarchy, so GetAncestorIds() may
+            // return an incomplete list. Filtering at this point breaks upgrade detection for the
+            // delete+re-import scenario (scenario 2) where the new file lands with a different ID.
             var config = Plugin.Instance?.Configuration;
-            if (config != null && config.EnableDeletedTracking && !e.Item.IsFolder && !(e.Item is Folder) && IsItemInEnabledLibrary(e.Item))
+            if (config != null && config.EnableDeletedTracking && !e.Item.IsFolder && !(e.Item is Folder))
             {
                 try
                 {

@@ -14,7 +14,7 @@
         "targetAbi": "10.11.0.0",
         "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/v5.5.11.0/NotifySync.zip",
         "checksum": "4EBC70D101B115FD1F838B8D817EF879",
-        "timestamp": "2026-05-15T14:00:00Z"
+        "timestamp": "2026-05-14T22:30:00Z"
       },
       {
         "version": "5.5.10.3",
@@ -22,7 +22,7 @@
         "targetAbi": "10.11.0.0",
         "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/v5.5.10.3/NotifySync.zip",
         "checksum": "920D604CC4ACF3C3556410A78006E781",
-        "timestamp": "2026-05-15T11:00:00Z"
+        "timestamp": "2026-05-14T18:00:00Z"
       },
       {
         "version": "5.5.10.2",
@@ -30,7 +30,7 @@
         "targetAbi": "10.11.0.0",
         "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/v5.5.10.2/NotifySync.zip",
         "checksum": "29B600E9F1AC0BE8C9FA512A8C8198BC",
-        "timestamp": "2026-05-15T10:00:00Z"
+        "timestamp": "2026-05-14T17:00:00Z"
       },
       {
         "version": "5.5.10.1",
@@ -38,7 +38,7 @@
         "targetAbi": "10.11.0.0",
         "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/v5.5.10.1/NotifySync.zip",
         "checksum": "BB7F5DA15C082D22464194A948339601",
-        "timestamp": "2026-05-15T08:00:00Z"
+        "timestamp": "2026-05-14T15:00:00Z"
       },
       {
         "version": "5.5.10.0",

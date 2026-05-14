@@ -9,9 +9,9 @@
     <CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
     
     <!-- Versioning & Metadata -->
-    <AssemblyVersion>5.5.11.1</AssemblyVersion>
-    <FileVersion>5.5.11.1</FileVersion>
-    <Version>5.5.11.1</Version>
+    <AssemblyVersion>5.5.11.2</AssemblyVersion>
+    <FileVersion>5.5.11.2</FileVersion>
+    <Version>5.5.11.2</Version>
     <Authors>ElieM, Peterdu1109</Authors>
     <Company>NotifySync</Company>
     <Product>NotifySync</Product>

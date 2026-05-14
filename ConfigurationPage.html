@@ -11,7 +11,13 @@
 
         <style>
             /* ===== NotifySync Admin — Niveau 2 design ===== */
-            .ns-root { max-width: 960px; margin: 0 auto; padding: 0 16px 100px; }
+            .ns-root { max-width: 820px; margin: 0 auto; padding: 0 16px 100px; }
+            /* Force form/panel/card to inherit full width — overrides Jellyfin's
+               default form max-width which would otherwise leave the header & tabs
+               row visibly wider than the cards below. */
+            .ns-root #notifySyncConfigForm,
+            .ns-root .ns-panel,
+            .ns-root .ns-card { width: 100%; box-sizing: border-box; max-width: none; }
 
             :root {
                 --ns-bg: rgba(20, 20, 20, 0.6);
@@ -368,7 +374,7 @@
                         <span class="material-icons ns-header-icon">notifications_active</span>
                         <div class="ns-header-info">
                             <h2>NotifySync</h2>
-                            <span class="ns-version" id="ns-version-badge">v5.5.11.1</span>
+                            <span class="ns-version" id="ns-version-badge">v5.5.11.2</span>
                         </div>
                         <div class="ns-header-links">
                             <a class="ns-header-link" href="https://github.com/peterdu1109/NotifySync" target="_blank" rel="noopener">

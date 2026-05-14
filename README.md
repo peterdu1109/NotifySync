@@ -165,8 +165,8 @@ Feature requests and feedback welcome via [GitHub Issues](https://github.com/pet
 
 NotifySync is maintained by:
 
-- **[Peterdu1109](https://github.com/peterdu1109)** — Original author & project lead
-- **[ElieM](https://github.com/ElieM)** — Co-maintainer
+- **[ElieM](https://github.com/ElieM)** — Original author & project lead
+- **[Peterdu1109](https://github.com/peterdu1109)** — Co-maintainer
 
 Contributions, bug reports, and feature requests are welcome on [GitHub](https://github.com/peterdu1109/NotifySync).
 
@@ -312,8 +312,8 @@ Demandes de fonctionnalités et retours bienvenus via [GitHub Issues](https://gi
 
 NotifySync est maintenu par :
 
-- **[Peterdu1109](https://github.com/peterdu1109)** — Auteur original & lead du projet
-- **[ElieM](https://github.com/ElieM)** — Co-mainteneur
+- **[ElieM](https://github.com/ElieM)** — Auteur original & lead du projet
+- **[Peterdu1109](https://github.com/peterdu1109)** — Co-mainteneur
 
 Contributions, rapports de bugs et demandes de fonctionnalités sont les bienvenus sur [GitHub](https://github.com/peterdu1109/NotifySync).
 

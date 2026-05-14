@@ -8,219 +8,764 @@
 <body>
     <div data-role="page" class="page type-interior pluginConfigurationPage"
         data-require="emby-button,emby-input,emby-checkbox">
+
+        <style>
+            /* ===== NotifySync Admin — Niveau 2 design ===== */
+            .ns-root { max-width: 960px; margin: 0 auto; padding: 0 16px 100px; }
+
+            :root {
+                --ns-bg: rgba(20, 20, 20, 0.6);
+                --ns-card: rgba(255, 255, 255, 0.04);
+                --ns-card-hover: rgba(255, 255, 255, 0.07);
+                --ns-border: rgba(255, 255, 255, 0.1);
+                --ns-text: #f0f0f0;
+                --ns-text-dim: #9aa0a6;
+                --ns-accent: #00a4dc;
+                --ns-accent-2: #2196F3;
+                --ns-success: #4caf50;
+                --ns-error: #e53935;
+                --ns-warn: #ff9800;
+                --ns-radius: 10px;
+                --ns-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            }
+
+            /* Header card */
+            .ns-header {
+                display: flex; align-items: center; gap: 16px;
+                background: linear-gradient(135deg, rgba(0, 164, 220, 0.15), rgba(33, 150, 243, 0.05));
+                border: 1px solid var(--ns-border);
+                border-radius: var(--ns-radius);
+                padding: 18px 22px;
+                margin: 24px 0 16px;
+                box-shadow: var(--ns-shadow);
+            }
+            .ns-header-icon {
+                font-size: 36px !important; color: var(--ns-accent);
+                background: rgba(0, 164, 220, 0.15); border-radius: 50%; padding: 10px;
+            }
+            .ns-header-info { flex: 1; }
+            .ns-header-info h2 { margin: 0; font-size: 22px; font-weight: 700; color: var(--ns-text); }
+            .ns-version {
+                display: inline-block; margin-top: 4px;
+                padding: 2px 8px; border-radius: 12px;
+                background: rgba(255, 255, 255, 0.1); color: var(--ns-text-dim);
+                font-size: 11px; font-weight: 600; letter-spacing: 0.3px;
+            }
+            .ns-header-links { display: flex; gap: 10px; }
+            .ns-header-link {
+                display: inline-flex; align-items: center; gap: 6px;
+                padding: 8px 14px; border-radius: 6px;
+                background: rgba(255, 255, 255, 0.08); color: var(--ns-text);
+                text-decoration: none; font-size: 13px; font-weight: 500;
+                transition: background 0.2s;
+            }
+            .ns-header-link:hover { background: rgba(255, 255, 255, 0.16); }
+            .ns-header-link .material-icons { font-size: 16px !important; }
+
+            /* Tabs */
+            .ns-tabs {
+                display: flex; gap: 4px; border-bottom: 1px solid var(--ns-border);
+                margin-bottom: 20px; overflow-x: auto; -webkit-overflow-scrolling: touch;
+            }
+            .ns-tab {
+                background: transparent; border: none; color: var(--ns-text-dim);
+                padding: 12px 18px; font-size: 14px; font-weight: 500; cursor: pointer;
+                border-bottom: 2px solid transparent; transition: all 0.2s;
+                white-space: nowrap; display: inline-flex; align-items: center; gap: 6px;
+            }
+            .ns-tab:hover { color: var(--ns-text); background: rgba(255, 255, 255, 0.04); }
+            .ns-tab.active { color: var(--ns-accent); border-bottom-color: var(--ns-accent); }
+            .ns-tab .ns-tab-count {
+                font-size: 11px; background: var(--ns-card); padding: 1px 7px;
+                border-radius: 10px; color: var(--ns-text-dim); font-weight: 600;
+            }
+            .ns-tab.active .ns-tab-count { background: rgba(0, 164, 220, 0.2); color: var(--ns-accent); }
+
+            /* Panels */
+            .ns-panel { display: none; animation: fadein 0.2s ease; }
+            .ns-panel.active { display: block; }
+            @keyframes fadein { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+            /* Cards (panel sections) */
+            .ns-card {
+                background: var(--ns-card); border: 1px solid var(--ns-border);
+                border-radius: var(--ns-radius); padding: 18px 20px; margin-bottom: 16px;
+            }
+            .ns-card-title {
+                display: flex; align-items: center; gap: 8px;
+                font-size: 16px; font-weight: 600; color: var(--ns-text);
+                margin: 0 0 4px;
+            }
+            .ns-card-title .material-icons { font-size: 18px !important; color: var(--ns-accent); }
+            .ns-card-desc { color: var(--ns-text-dim); font-size: 13px; margin-bottom: 14px; line-height: 1.4; }
+
+            /* Quota slider */
+            .ns-slider-row { display: flex; align-items: center; gap: 14px; }
+            .ns-slider { flex: 1; -webkit-appearance: none; height: 6px; border-radius: 3px;
+                background: rgba(255, 255, 255, 0.1); outline: none; }
+            .ns-slider::-webkit-slider-thumb {
+                -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%;
+                background: var(--ns-accent); cursor: pointer;
+                box-shadow: 0 0 0 4px rgba(0, 164, 220, 0.15); transition: box-shadow 0.2s;
+            }
+            .ns-slider::-webkit-slider-thumb:hover { box-shadow: 0 0 0 7px rgba(0, 164, 220, 0.25); }
+            .ns-slider::-moz-range-thumb {
+                width: 18px; height: 18px; border-radius: 50%; border: none;
+                background: var(--ns-accent); cursor: pointer;
+                box-shadow: 0 0 0 4px rgba(0, 164, 220, 0.15);
+            }
+            .ns-slider-value {
+                min-width: 50px; text-align: center;
+                background: var(--ns-card-hover); border: 1px solid var(--ns-border);
+                border-radius: 6px; padding: 6px 10px; font-weight: 600; font-size: 14px;
+                color: var(--ns-text);
+            }
+
+            /* Search input */
+            .ns-search {
+                width: 100%; padding: 10px 14px; padding-left: 38px;
+                background: var(--ns-card-hover); border: 1px solid var(--ns-border);
+                border-radius: 6px; color: var(--ns-text); font-size: 13px;
+                box-sizing: border-box; transition: border-color 0.2s;
+            }
+            .ns-search:focus { outline: none; border-color: var(--ns-accent); }
+            .ns-search-wrap { position: relative; margin-bottom: 12px; }
+            .ns-search-wrap .material-icons {
+                position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+                color: var(--ns-text-dim); font-size: 18px !important; pointer-events: none;
+            }
+
+            /* List actions row */
+            .ns-list-actions {
+                display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; align-items: center;
+            }
+            .ns-list-actions .ns-counter { color: var(--ns-text-dim); font-size: 12px; margin-right: auto; }
+            .ns-mini-btn {
+                background: var(--ns-card-hover); border: 1px solid var(--ns-border);
+                color: var(--ns-text); padding: 5px 10px; border-radius: 5px; font-size: 12px;
+                cursor: pointer; transition: all 0.15s;
+            }
+            .ns-mini-btn:hover { background: rgba(0, 164, 220, 0.15); border-color: var(--ns-accent); }
+
+            /* Checkboxes list */
+            .ns-checklist {
+                background: rgba(0, 0, 0, 0.2); border-radius: 6px;
+                padding: 8px; min-height: 60px; max-height: 360px; overflow-y: auto;
+            }
+            .ns-check-row {
+                display: flex; align-items: center; padding: 8px 10px;
+                border-radius: 5px; transition: background 0.15s; cursor: pointer;
+            }
+            .ns-check-row:hover { background: rgba(255, 255, 255, 0.05); }
+            .ns-check-row.hidden { display: none; }
+            .ns-check-row input[type="checkbox"] { margin: 0 10px 0 0; }
+            .ns-check-row-name { color: var(--ns-text); font-size: 13px; flex: 1; }
+            .ns-check-row-meta { color: var(--ns-text-dim); font-size: 11px; }
+
+            /* Empty states */
+            .ns-empty {
+                text-align: center; padding: 30px 20px; color: var(--ns-text-dim);
+                font-size: 13px; font-style: italic;
+            }
+            .ns-empty .material-icons {
+                font-size: 36px !important; opacity: 0.4; display: block; margin: 0 auto 8px;
+            }
+
+            /* Mappings list */
+            .ns-mapping-form {
+                display: flex; gap: 10px; margin-bottom: 14px; align-items: flex-end;
+                flex-wrap: wrap;
+            }
+            .ns-mapping-form > * { flex: 1; min-width: 140px; }
+            .ns-mapping-form button { flex: 0 0 auto; min-width: 100px; }
+            .ns-mapping-row {
+                display: flex; align-items: center; padding: 10px 12px;
+                background: rgba(0, 0, 0, 0.2); border-radius: 6px; margin-bottom: 6px;
+                gap: 12px; transition: background 0.15s; cursor: grab;
+            }
+            .ns-mapping-row:hover { background: rgba(255, 255, 255, 0.06); }
+            .ns-mapping-row.dragging { opacity: 0.4; }
+            .ns-mapping-row.drop-target { border: 2px dashed var(--ns-accent); padding: 8px 10px; }
+            .ns-drag-handle { color: var(--ns-text-dim); cursor: grab; user-select: none; }
+            .ns-drag-handle:active { cursor: grabbing; }
+            .ns-mapping-info { flex: 1; color: var(--ns-text); font-size: 13px; }
+            .ns-mapping-arrow { color: var(--ns-text-dim); margin: 0 6px; }
+            .ns-mapping-cat { color: var(--ns-accent); font-weight: 600; }
+            .ns-icon-btn {
+                background: transparent; border: none; color: var(--ns-text-dim);
+                cursor: pointer; padding: 6px; border-radius: 4px; transition: all 0.15s;
+            }
+            .ns-icon-btn:hover { background: rgba(229, 57, 53, 0.15); color: var(--ns-error); }
+            .ns-icon-btn .material-icons { font-size: 18px !important; }
+
+            /* Toggle switch */
+            .ns-toggle-row {
+                display: flex; align-items: center; justify-content: space-between;
+                padding: 10px 0; gap: 16px;
+            }
+            .ns-toggle-row label { color: var(--ns-text); font-size: 14px; flex: 1; }
+            .ns-toggle {
+                position: relative; width: 44px; height: 24px;
+                background: rgba(255, 255, 255, 0.15); border-radius: 12px; cursor: pointer;
+                transition: background 0.2s; flex-shrink: 0;
+            }
+            .ns-toggle::after {
+                content: ''; position: absolute; top: 2px; left: 2px;
+                width: 20px; height: 20px; background: #fff; border-radius: 50%;
+                transition: transform 0.2s;
+            }
+            .ns-toggle.on { background: var(--ns-accent); }
+            .ns-toggle.on::after { transform: translateX(20px); }
+
+            /* Settings rows */
+            .ns-setting-row { margin-bottom: 16px; }
+            .ns-setting-row:last-child { margin-bottom: 0; }
+            .ns-setting-label { display: block; color: var(--ns-text); font-size: 14px; font-weight: 500; margin-bottom: 6px; }
+            .ns-setting-help { color: var(--ns-text-dim); font-size: 12px; margin-top: 4px; line-height: 1.4; }
+            .ns-number-input {
+                width: 100px; padding: 8px 12px;
+                background: var(--ns-card-hover); border: 1px solid var(--ns-border);
+                border-radius: 6px; color: var(--ns-text); font-size: 14px;
+            }
+            .ns-number-input:focus { outline: none; border-color: var(--ns-accent); }
+            .ns-textarea {
+                width: 100%; padding: 10px 14px; min-height: 70px;
+                background: var(--ns-card-hover); border: 1px solid var(--ns-border);
+                border-radius: 6px; color: var(--ns-text); font-size: 13px;
+                font-family: inherit; resize: vertical; box-sizing: border-box;
+            }
+            .ns-textarea:focus { outline: none; border-color: var(--ns-accent); }
+            .ns-select-input {
+                width: 100%; padding: 8px 12px;
+                background: var(--ns-card-hover); border: 1px solid var(--ns-border);
+                border-radius: 6px; color: var(--ns-text); font-size: 13px;
+                box-sizing: border-box;
+            }
+
+            /* Deletion history table */
+            .ns-table-wrap {
+                background: rgba(0, 0, 0, 0.2); border-radius: 6px; overflow: hidden;
+                margin-top: 10px;
+            }
+            .ns-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+            .ns-table th {
+                text-align: left; padding: 10px 12px; color: var(--ns-text-dim);
+                font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;
+                background: rgba(0, 0, 0, 0.3); border-bottom: 1px solid var(--ns-border);
+                cursor: pointer; user-select: none; white-space: nowrap;
+            }
+            .ns-table th:hover { color: var(--ns-text); }
+            .ns-table th .sort-icon {
+                font-size: 14px !important; vertical-align: middle; opacity: 0.4; margin-left: 2px;
+            }
+            .ns-table th.sorted .sort-icon { opacity: 1; color: var(--ns-accent); }
+            .ns-table td {
+                padding: 8px 12px; color: var(--ns-text);
+                border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            }
+            .ns-table tbody tr:hover { background: rgba(255, 255, 255, 0.03); }
+            .ns-type-badge {
+                display: inline-block; padding: 2px 8px; border-radius: 10px;
+                font-size: 10px; font-weight: 600; text-transform: uppercase;
+                background: rgba(0, 164, 220, 0.15); color: var(--ns-accent);
+            }
+            .ns-type-badge.movie { background: rgba(229, 57, 53, 0.15); color: #ff8a80; }
+            .ns-type-badge.episode { background: rgba(33, 150, 243, 0.15); color: #82b1ff; }
+            .ns-type-badge.audio { background: rgba(156, 39, 176, 0.15); color: #ce93d8; }
+
+            /* Pagination */
+            .ns-pagination {
+                display: flex; align-items: center; justify-content: center; gap: 8px;
+                margin-top: 12px;
+            }
+            .ns-pagination button {
+                background: var(--ns-card-hover); border: 1px solid var(--ns-border);
+                color: var(--ns-text); padding: 5px 10px; border-radius: 5px; font-size: 12px;
+                cursor: pointer; min-width: 32px; transition: all 0.15s;
+            }
+            .ns-pagination button:hover:not(:disabled) { border-color: var(--ns-accent); }
+            .ns-pagination button:disabled { opacity: 0.4; cursor: default; }
+            .ns-pagination .ns-page-info { color: var(--ns-text-dim); font-size: 12px; padding: 0 6px; }
+
+            /* Action buttons */
+            .ns-action-btn {
+                display: inline-flex; align-items: center; gap: 8px;
+                padding: 10px 18px; border-radius: 6px; cursor: pointer;
+                font-size: 14px; font-weight: 500; transition: all 0.15s;
+                border: 1px solid transparent;
+            }
+            .ns-action-btn.primary { background: var(--ns-accent); color: #fff; }
+            .ns-action-btn.primary:hover { background: #0084b3; }
+            .ns-action-btn.secondary {
+                background: transparent; border-color: var(--ns-border); color: var(--ns-text);
+            }
+            .ns-action-btn.secondary:hover { background: var(--ns-card-hover); border-color: var(--ns-accent); }
+            .ns-action-btn .material-icons { font-size: 16px !important; }
+
+            /* Sticky save bar */
+            .ns-save-bar {
+                position: fixed; bottom: 20px; right: 30px; z-index: 1000;
+                display: flex; gap: 10px;
+            }
+            .ns-save-btn {
+                display: inline-flex; align-items: center; gap: 8px;
+                padding: 12px 22px; background: var(--ns-accent); color: #fff;
+                border: none; border-radius: 30px; cursor: pointer;
+                font-size: 14px; font-weight: 600; box-shadow: 0 4px 14px rgba(0, 164, 220, 0.4);
+                transition: all 0.2s;
+            }
+            .ns-save-btn:hover { background: #0084b3; transform: translateY(-2px); box-shadow: 0 6px 18px rgba(0, 164, 220, 0.5); }
+            .ns-save-btn:active { transform: translateY(0); }
+            .ns-save-btn .material-icons { font-size: 18px !important; }
+
+            /* Toast notification */
+            .ns-toast {
+                position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%) translateY(20px);
+                background: rgba(20, 20, 20, 0.95); border: 1px solid var(--ns-border);
+                color: var(--ns-text); padding: 12px 22px; border-radius: 30px;
+                font-size: 14px; font-weight: 500; opacity: 0; pointer-events: none;
+                transition: all 0.3s ease; z-index: 1100; box-shadow: var(--ns-shadow);
+                display: inline-flex; align-items: center; gap: 10px;
+            }
+            .ns-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+            .ns-toast.success { border-color: var(--ns-success); }
+            .ns-toast.success .material-icons { color: var(--ns-success); }
+            .ns-toast.error { border-color: var(--ns-error); }
+            .ns-toast.error .material-icons { color: var(--ns-error); }
+            .ns-toast.warn { border-color: var(--ns-warn); }
+            .ns-toast.warn .material-icons { color: var(--ns-warn); }
+
+            /* Confirmation modal */
+            .ns-modal-backdrop {
+                position: fixed; inset: 0; background: rgba(0, 0, 0, 0.6);
+                display: none; align-items: center; justify-content: center; z-index: 1200;
+            }
+            .ns-modal-backdrop.show { display: flex; }
+            .ns-modal {
+                background: #1a1a1a; border: 1px solid var(--ns-border);
+                border-radius: var(--ns-radius); padding: 22px 24px; max-width: 380px;
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+            }
+            .ns-modal h3 { margin: 0 0 10px; color: var(--ns-text); font-size: 16px; }
+            .ns-modal p { margin: 0 0 18px; color: var(--ns-text-dim); font-size: 13px; line-height: 1.4; }
+            .ns-modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
+
+            /* Responsive */
+            @media (max-width: 600px) {
+                .ns-header { flex-direction: column; align-items: flex-start; }
+                .ns-tabs { flex-wrap: nowrap; }
+                .ns-save-bar { bottom: 12px; right: 12px; }
+                .ns-mapping-form > * { min-width: 100%; }
+            }
+        </style>
+
         <div data-role="content">
             <div class="content-primary">
-                <form id="notifySyncConfigForm">
-                    <div class="verticalSection">
-                        <div class="sectionTitleContainer">
-                            <h2 class="sectionTitle" id="i18n-title"></h2>
-                            <p id="i18n-desc"></p>
-                        </div>
+                <div class="ns-root">
 
-                        <div class="inputContainer">
-                            <label class="inputLabel" for="maxItems" id="i18n-quotaLabel"></label>
-                            <input is="emby-input" type="number" id="maxItems" name="maxItems" min="1" max="50" />
-                            <div class="fieldDescription" id="i18n-quotaDesc"></div>
+                    <!-- Header card -->
+                    <div class="ns-header">
+                        <span class="material-icons ns-header-icon">notifications_active</span>
+                        <div class="ns-header-info">
+                            <h2>NotifySync</h2>
+                            <span class="ns-version" id="ns-version-badge">v5.5.11.0</span>
                         </div>
-
-                        <div class="inputContainer">
-                            <h3 class="sectionTitle" id="i18n-libTitle"></h3>
-                            <div class="fieldDescription" id="i18n-libDesc"></div>
-                            <div id="libraryCheckboxes"
-                                style="margin-top:10px; padding: 10px; background: rgba(0,0,0,0.2); min-height:50px;">
-                            </div>
+                        <div class="ns-header-links">
+                            <a class="ns-header-link" href="https://github.com/peterdu1109/NotifySync" target="_blank" rel="noopener">
+                                <span class="material-icons">open_in_new</span> GitHub
+                            </a>
                         </div>
+                    </div>
 
-                        <div class="inputContainer">
-                            <h3 class="sectionTitle" id="i18n-colTitle"></h3>
-                            <div class="fieldDescription" id="i18n-colDesc"></div>
-                            <div id="collectionCheckboxes"
-                                style="margin-top:10px; padding: 10px; background: rgba(0,0,0,0.2); min-height:50px;">
-                            </div>
-                        </div>
+                    <!-- Tab navigation -->
+                    <div class="ns-tabs" role="tablist">
+                        <button type="button" class="ns-tab active" data-tab="settings" role="tab">
+                            <span class="material-icons">tune</span>
+                            <span id="i18n-tabSettings">Settings</span>
+                        </button>
+                        <button type="button" class="ns-tab" data-tab="libraries" role="tab">
+                            <span class="material-icons">video_library</span>
+                            <span id="i18n-tabLibraries">Libraries</span>
+                            <span class="ns-tab-count" id="ns-count-libs">0</span>
+                        </button>
+                        <button type="button" class="ns-tab" data-tab="collections" role="tab">
+                            <span class="material-icons">collections_bookmark</span>
+                            <span id="i18n-tabCollections">Collections</span>
+                            <span class="ns-tab-count" id="ns-count-cols">0</span>
+                        </button>
+                        <button type="button" class="ns-tab" data-tab="categories" role="tab">
+                            <span class="material-icons">label</span>
+                            <span id="i18n-tabCategories">Categories</span>
+                            <span class="ns-tab-count" id="ns-count-maps">0</span>
+                        </button>
+                        <button type="button" class="ns-tab" data-tab="deletions" role="tab">
+                            <span class="material-icons">delete_sweep</span>
+                            <span id="i18n-tabDeletions">Deletions</span>
+                        </button>
+                    </div>
 
-                        <div class="inputContainer">
-                            <h3 class="sectionTitle" id="i18n-mapTitle"></h3>
-                            <div class="fieldDescription" id="i18n-mapDesc"></div>
-                            <div style="display:flex; gap:10px; margin-bottom:10px; align-items:flex-end;">
-                                <div style="flex-grow:1;">
-                                    <label class="inputLabel" id="i18n-mapLibLabel"></label>
-                                    <select id="mappingLibrarySelect" is="emby-select" style="width:100%;"></select>
+                    <form id="notifySyncConfigForm">
+
+                        <!-- Tab: Settings -->
+                        <div class="ns-panel active" data-panel="settings" role="tabpanel">
+
+                            <div class="ns-card">
+                                <h3 class="ns-card-title">
+                                    <span class="material-icons">filter_list</span>
+                                    <span id="i18n-quotaTitle">Quota per Category</span>
+                                </h3>
+                                <p class="ns-card-desc" id="i18n-quotaDesc"></p>
+                                <div class="ns-slider-row">
+                                    <input type="range" id="maxItemsSlider" class="ns-slider" min="1" max="50" value="10" />
+                                    <div class="ns-slider-value" id="maxItemsValue">10</div>
                                 </div>
-                                <div style="flex-grow:1;">
-                                    <label class="inputLabel" id="i18n-mapCatLabel"></label>
-                                    <input is="emby-input" id="mappingCategoryInput" />
-                                </div>
-                                <button type="button" is="emby-button" class="raised button-accent"
-                                    id="i18n-addBtn" onclick="NotifySyncConf.addMapping()" style="margin-bottom:5px;">
+                            </div>
+
+                            <div class="ns-card">
+                                <h3 class="ns-card-title">
+                                    <span class="material-icons">add_circle_outline</span>
+                                    <span id="i18n-manualTitle">Manual Library IDs</span>
+                                </h3>
+                                <p class="ns-card-desc" id="i18n-manualDesc"></p>
+                                <textarea id="manualLibraryIds" class="ns-textarea" rows="2"
+                                    placeholder="ID or library name, comma-separated"></textarea>
+                            </div>
+
+                            <div class="ns-card">
+                                <h3 class="ns-card-title">
+                                    <span class="material-icons">build</span>
+                                    <span id="i18n-maintTitle">Maintenance</span>
+                                </h3>
+                                <p class="ns-card-desc" id="i18n-maintDesc"></p>
+                                <button type="button" class="ns-action-btn secondary" onclick="NotifySyncConf.refreshHistory()">
+                                    <span class="material-icons">refresh</span>
+                                    <span id="i18n-refreshBtn">Regenerate history</span>
                                 </button>
                             </div>
-                            <div id="mappingList"
-                                style="background: rgba(0,0,0,0.1); border-radius: 4px; overflow:hidden;"></div>
+
                         </div>
 
-                        <div class="inputContainer">
-                            <h3 class="sectionTitle" id="i18n-manualTitle"></h3>
-                            <div class="fieldDescription" id="i18n-manualDesc"></div>
-                            <textarea is="emby-textarea" id="manualLibraryIds" name="manualLibraryIds"
-                                rows="2"></textarea>
-                        </div>
+                        <!-- Tab: Libraries -->
+                        <div class="ns-panel" data-panel="libraries" role="tabpanel">
+                            <div class="ns-card">
+                                <h3 class="ns-card-title">
+                                    <span class="material-icons">video_library</span>
+                                    <span id="i18n-libTitle">Monitored Libraries</span>
+                                </h3>
+                                <p class="ns-card-desc" id="i18n-libDesc"></p>
 
-                        <div style="margin-top:30px;">
-                            <button is="emby-button" type="submit" class="raised button-submit block"
-                                id="i18n-saveBtn" style="margin-bottom:20px;">
-                            </button>
-
-                            <h3 class="sectionTitle" id="i18n-maintTitle"></h3>
-                            <p class="fieldDescription" id="i18n-maintDesc"></p>
-                            <button is="emby-button" type="button" class="raised button-cancel block"
-                                id="i18n-refreshBtn" onclick="NotifySyncConf.refreshHistory()">
-                            </button>
-                        </div>
-
-                        <div style="margin-top:30px;">
-                            <h3 class="sectionTitle" id="i18n-delTitle"></h3>
-                            <p class="fieldDescription" id="i18n-delDesc"></p>
-
-                            <div style="display:flex; gap:20px; align-items:center; margin:10px 0;">
-                                <label style="display:flex; align-items:center;">
-                                    <input type="checkbox" is="emby-checkbox" id="enableDeletedTracking" />
-                                    <span style="margin-left:8px;" id="i18n-delEnable"></span>
-                                </label>
-                                <div>
-                                    <label class="inputLabel" for="deletedRetentionDays" id="i18n-delRetLabel"></label>
-                                    <input is="emby-input" type="number" id="deletedRetentionDays" min="1" max="365"
-                                        style="width:80px;" />
+                                <div class="ns-search-wrap">
+                                    <span class="material-icons">search</span>
+                                    <input type="text" class="ns-search" id="libSearch"
+                                        placeholder="Filter libraries…" />
                                 </div>
-                            </div>
 
-                            <div id="deletedItemsTable"
-                                style="margin-top:10px; background: rgba(0,0,0,0.2); border-radius:4px; max-height:400px; overflow-y:auto;">
+                                <div class="ns-list-actions">
+                                    <span class="ns-counter" id="libCounter">0 / 0</span>
+                                    <button type="button" class="ns-mini-btn" onclick="NotifySyncConf.toggleAll('libs', true)">
+                                        <span id="i18n-selectAll">Select all</span>
+                                    </button>
+                                    <button type="button" class="ns-mini-btn" onclick="NotifySyncConf.toggleAll('libs', false)">
+                                        <span id="i18n-clearAll">Clear all</span>
+                                    </button>
+                                </div>
+
+                                <div id="libraryCheckboxes" class="ns-checklist"></div>
+                            </div>
+                        </div>
+
+                        <!-- Tab: Collections -->
+                        <div class="ns-panel" data-panel="collections" role="tabpanel">
+                            <div class="ns-card">
+                                <h3 class="ns-card-title">
+                                    <span class="material-icons">collections_bookmark</span>
+                                    <span id="i18n-colTitle">Monitored Collections</span>
+                                </h3>
+                                <p class="ns-card-desc" id="i18n-colDesc"></p>
+
+                                <div class="ns-search-wrap">
+                                    <span class="material-icons">search</span>
+                                    <input type="text" class="ns-search" id="colSearch"
+                                        placeholder="Filter collections…" />
+                                </div>
+
+                                <div class="ns-list-actions">
+                                    <span class="ns-counter" id="colCounter">0 / 0</span>
+                                    <button type="button" class="ns-mini-btn" onclick="NotifySyncConf.toggleAll('cols', true)">
+                                        <span class="ns-i18n-selectAll">Select all</span>
+                                    </button>
+                                    <button type="button" class="ns-mini-btn" onclick="NotifySyncConf.toggleAll('cols', false)">
+                                        <span class="ns-i18n-clearAll">Clear all</span>
+                                    </button>
+                                </div>
+
+                                <div id="collectionCheckboxes" class="ns-checklist"></div>
+                            </div>
+                        </div>
+
+                        <!-- Tab: Categories -->
+                        <div class="ns-panel" data-panel="categories" role="tabpanel">
+                            <div class="ns-card">
+                                <h3 class="ns-card-title">
+                                    <span class="material-icons">label</span>
+                                    <span id="i18n-mapTitle">Category Mapping</span>
+                                </h3>
+                                <p class="ns-card-desc" id="i18n-mapDesc"></p>
+
+                                <div class="ns-mapping-form">
+                                    <div>
+                                        <label class="ns-setting-label" id="i18n-mapLibLabel">Source library</label>
+                                        <select id="mappingLibrarySelect" class="ns-select-input"></select>
+                                    </div>
+                                    <div>
+                                        <label class="ns-setting-label" id="i18n-mapCatLabel">Target category</label>
+                                        <input type="text" id="mappingCategoryInput" class="ns-select-input"
+                                            placeholder="e.g., Anime" />
+                                    </div>
+                                    <button type="button" class="ns-action-btn primary" onclick="NotifySyncConf.addMapping()">
+                                        <span class="material-icons">add</span>
+                                        <span id="i18n-addBtn">Add</span>
+                                    </button>
+                                </div>
+
+                                <div id="mappingList"></div>
+                            </div>
+                        </div>
+
+                        <!-- Tab: Deletions -->
+                        <div class="ns-panel" data-panel="deletions" role="tabpanel">
+                            <div class="ns-card">
+                                <h3 class="ns-card-title">
+                                    <span class="material-icons">delete_sweep</span>
+                                    <span id="i18n-delTitle">Deletion History</span>
+                                </h3>
+                                <p class="ns-card-desc" id="i18n-delDesc"></p>
+
+                                <div class="ns-toggle-row">
+                                    <label id="i18n-delEnable">Enable deletion tracking</label>
+                                    <div id="enableDeletedToggle" class="ns-toggle" onclick="NotifySyncConf.toggleDeletedTracking()"></div>
+                                </div>
+
+                                <div class="ns-setting-row">
+                                    <label class="ns-setting-label" id="i18n-delRetLabel">Retention (days)</label>
+                                    <input type="number" id="deletedRetentionDays" class="ns-number-input"
+                                        min="1" max="365" value="30" />
+                                </div>
+
+                                <div class="ns-search-wrap" style="margin-top: 16px;">
+                                    <span class="material-icons">search</span>
+                                    <input type="text" class="ns-search" id="delSearch"
+                                        placeholder="Filter deletions…" />
+                                </div>
+
+                                <div id="deletedItemsTable"></div>
+                            </div>
+                        </div>
+
+                    </form>
+
+                    <!-- Sticky save bar -->
+                    <div class="ns-save-bar">
+                        <button type="button" class="ns-save-btn" onclick="NotifySyncConf.save()">
+                            <span class="material-icons">save</span>
+                            <span id="i18n-saveBtn">Save</span>
+                        </button>
+                    </div>
+
+                    <!-- Toast notification -->
+                    <div id="ns-toast" class="ns-toast">
+                        <span class="material-icons">check_circle</span>
+                        <span class="ns-toast-msg"></span>
+                    </div>
+
+                    <!-- Confirmation modal -->
+                    <div id="ns-modal-backdrop" class="ns-modal-backdrop">
+                        <div class="ns-modal">
+                            <h3 id="ns-modal-title">Confirm</h3>
+                            <p id="ns-modal-message"></p>
+                            <div class="ns-modal-actions">
+                                <button type="button" class="ns-action-btn secondary" id="ns-modal-cancel">
+                                    <span id="i18n-cancel">Cancel</span>
+                                </button>
+                                <button type="button" class="ns-action-btn primary" id="ns-modal-confirm">
+                                    <span id="i18n-confirm">Confirm</span>
+                                </button>
                             </div>
                         </div>
                     </div>
-                </form>
+
+                </div>
             </div>
         </div>
 
         <script type="text/javascript">
             const cfgStrings = {
                 fr: {
-                    title: "Configuration NotifySync",
-                    desc: "Gérez les notifications et les catégories de la cloche.",
-                    quotaLabel: "Quota par Catégorie",
-                    quotaDesc: "Définit le nombre d'éléments à garder pour CHAQUE type (ex: 5 Films + 5 Animes + 5 Musiques).",
-                    libTitle: "Bibliothèques Surveillées",
-                    libDesc: "Cochez les bibliothèques à afficher dans la cloche.",
-                    loading: "Chargement...",
-                    mapTitle: "Mappage des Catégories",
-                    mapDesc: "Créez vos propres catégories (ex: Documentaires, Animes).",
+                    tabSettings: "Paramètres", tabLibraries: "Bibliothèques", tabCollections: "Collections",
+                    tabCategories: "Catégories", tabDeletions: "Suppressions",
+                    quotaTitle: "Quota par catégorie",
+                    quotaDesc: "Nombre maximum d'éléments à garder pour chaque catégorie (Films, Séries, Musique…).",
+                    libTitle: "Bibliothèques surveillées",
+                    libDesc: "Cochez les bibliothèques qui doivent apparaître dans la cloche de notifications.",
+                    colTitle: "Collections surveillées",
+                    colDesc: "Sélectionnez les collections Jellyfin (BoxSets) à suivre. Scan toutes les 15 min.",
+                    mapTitle: "Mappage des catégories",
+                    mapDesc: "Créez vos propres catégories (ex. Documentaires, Animes). Glissez-déposez pour réordonner.",
                     mapLibLabel: "Bibliothèque source",
                     mapCatLabel: "Nom de la catégorie cible",
-                    mapPlaceholder: "ex: Animes",
+                    mapPlaceholder: "ex. Animes",
                     addBtn: "Ajouter",
-                    manualTitle: "Sélection Manuelle (IDs ou Noms)",
-                    manualDesc: "Si les cases ci-dessus ne fonctionnent pas, entrez ici l'ID ou le nom exact du dossier.",
-                    saveBtn: "Sauvegarder la configuration",
+                    manualTitle: "Sélection manuelle (IDs ou noms)",
+                    manualDesc: "Pour les configurations avancées (Channels, XFusion). Séparez par des virgules.",
+                    manualPlaceholder: "ID ou nom de bibliothèque, séparés par des virgules",
+                    saveBtn: "Sauvegarder",
                     maintTitle: "Maintenance",
-                    maintDesc: "Cliquez ici après avoir changé les bibliothèques pour forcer le scan.",
-                    refreshBtn: "🔄 Régénérer l'historique et appliquer les filtres",
-                    successMsg: "Historique régénéré ! Vérifiez la cloche.",
-                    successTitle: "Succès",
-                    rateLimitMsg: "Veuillez patienter 30 secondes entre chaque rafraîchissement.",
-                    rateLimitTitle: "Patience",
-                    errorMsg: "Erreur régénération.",
-                    errorTitle: "Erreur",
-                    fetching: "Récupération...",
+                    maintDesc: "Force un scan complet de l'historique après modification des bibliothèques.",
+                    refreshBtn: "Régénérer l'historique",
+                    successMsg: "Configuration sauvegardée.",
+                    refreshSuccessMsg: "Historique régénéré ! Vérifiez la cloche.",
+                    rateLimitMsg: "Patientez 30 secondes entre chaque régénération.",
+                    errorMsg: "Erreur. Réessayez.",
+                    fetching: "Chargement…",
                     selectLib: "-- Choisir une bibliothèque --",
-                    noLibs: "Aucune bibliothèque trouvée via API.",
+                    noLibs: "Aucune bibliothèque trouvée via l'API.",
+                    noCollections: "Aucune collection trouvée.",
                     noMappings: "Aucune catégorie personnalisée définie.",
                     libPrefix: "Bibliothèque ",
-                    deleteBtn: "Supprimer",
-                    colTitle: "Collections Surveillées",
-                    colDesc: "Cochez les collections pour recevoir une notification lors de nouveaux ajouts (scan toutes les 15 min).",
-                    noCollections: "Aucune collection trouvée.",
-                    delTitle: "Historique des Suppressions",
-                    delDesc: "Consultez les médias récemment supprimés de vos bibliothèques.",
+                    selectAll: "Tout cocher", clearAll: "Tout décocher",
+                    counter: "{checked} / {total} sélectionnés",
+                    delTitle: "Historique des suppressions",
+                    delDesc: "Consultez les médias récemment supprimés des bibliothèques surveillées.",
                     delEnable: "Activer le suivi des suppressions",
                     delRetLabel: "Rétention (jours)",
                     delEmpty: "Aucune suppression enregistrée.",
-                    delColName: "Nom",
-                    delColType: "Type",
-                    delColSeries: "Série",
-                    delColYear: "Année",
-                    delColDate: "Supprimé le"
+                    delSearchPlaceholder: "Filtrer les suppressions…",
+                    libSearchPlaceholder: "Filtrer les bibliothèques…",
+                    colSearchPlaceholder: "Filtrer les collections…",
+                    delColName: "Nom", delColType: "Type", delColSeries: "Série",
+                    delColYear: "Année", delColDate: "Supprimé le",
+                    confirmDeleteMappingTitle: "Supprimer le mappage ?",
+                    confirmDeleteMappingMsg: "La catégorie \"{cat}\" pour cette bibliothèque sera supprimée.",
+                    cancel: "Annuler", confirm: "Confirmer",
+                    pageInfo: "Page {page} sur {total}",
+                    prevPage: "Précédent", nextPage: "Suivant"
                 },
                 en: {
-                    title: "NotifySync Configuration",
-                    desc: "Manage notifications and bell categories.",
-                    quotaLabel: "Quota per Category",
-                    quotaDesc: "Number of items to keep for EACH type (e.g., 5 Movies + 5 Anime + 5 Music).",
+                    tabSettings: "Settings", tabLibraries: "Libraries", tabCollections: "Collections",
+                    tabCategories: "Categories", tabDeletions: "Deletions",
+                    quotaTitle: "Quota per Category",
+                    quotaDesc: "Maximum number of items to keep for each category (Movies, Series, Music…).",
                     libTitle: "Monitored Libraries",
-                    libDesc: "Check the libraries to display in the bell.",
-                    loading: "Loading...",
+                    libDesc: "Check the libraries that should appear in the notification bell.",
+                    colTitle: "Monitored Collections",
+                    colDesc: "Select Jellyfin collections (BoxSets) to track. Scanned every 15 min.",
                     mapTitle: "Category Mapping",
-                    mapDesc: "Create your own categories (e.g., Documentaries, Anime).",
+                    mapDesc: "Create your own categories (e.g. Documentaries, Anime). Drag to reorder.",
                     mapLibLabel: "Source library",
                     mapCatLabel: "Target category name",
                     mapPlaceholder: "e.g., Anime",
                     addBtn: "Add",
                     manualTitle: "Manual Selection (IDs or Names)",
-                    manualDesc: "If the checkboxes above don't work, enter the exact ID or folder name here.",
-                    saveBtn: "Save configuration",
+                    manualDesc: "For advanced setups (Channels, XFusion). Separate values with commas.",
+                    manualPlaceholder: "ID or library name, comma-separated",
+                    saveBtn: "Save",
                     maintTitle: "Maintenance",
-                    maintDesc: "Click here after changing libraries to force a scan.",
-                    refreshBtn: "🔄 Regenerate history and apply filters",
-                    successMsg: "History regenerated! Check the bell.",
-                    successTitle: "Success",
-                    rateLimitMsg: "Please wait 30 seconds between refreshes.",
-                    rateLimitTitle: "Please wait",
-                    errorMsg: "Regeneration error.",
-                    errorTitle: "Error",
-                    fetching: "Fetching...",
+                    maintDesc: "Force a full history scan after changing libraries.",
+                    refreshBtn: "Regenerate history",
+                    successMsg: "Configuration saved.",
+                    refreshSuccessMsg: "History regenerated! Check the bell.",
+                    rateLimitMsg: "Please wait 30 seconds between regenerations.",
+                    errorMsg: "Error. Please try again.",
+                    fetching: "Loading…",
                     selectLib: "-- Choose a library --",
                     noLibs: "No libraries found via API.",
+                    noCollections: "No collections found.",
                     noMappings: "No custom categories defined.",
                     libPrefix: "Library ",
-                    deleteBtn: "Delete",
-                    colTitle: "Monitored Collections",
-                    colDesc: "Check collections to receive notifications when items are added (scanned every 15 min).",
-                    noCollections: "No collections found.",
+                    selectAll: "Select all", clearAll: "Clear all",
+                    counter: "{checked} / {total} selected",
                     delTitle: "Deletion History",
-                    delDesc: "View recently deleted media from your libraries.",
+                    delDesc: "View recently deleted media from monitored libraries.",
                     delEnable: "Enable deletion tracking",
                     delRetLabel: "Retention (days)",
                     delEmpty: "No deletions recorded.",
-                    delColName: "Name",
-                    delColType: "Type",
-                    delColSeries: "Series",
-                    delColYear: "Year",
-                    delColDate: "Deleted on"
+                    delSearchPlaceholder: "Filter deletions…",
+                    libSearchPlaceholder: "Filter libraries…",
+                    colSearchPlaceholder: "Filter collections…",
+                    delColName: "Name", delColType: "Type", delColSeries: "Series",
+                    delColYear: "Year", delColDate: "Deleted on",
+                    confirmDeleteMappingTitle: "Delete this mapping?",
+                    confirmDeleteMappingMsg: "The category \"{cat}\" for this library will be removed.",
+                    cancel: "Cancel", confirm: "Confirm",
+                    pageInfo: "Page {page} of {total}",
+                    prevPage: "Previous", nextPage: "Next"
                 }
             };
 
             let CT = cfgStrings[(navigator.language || 'en').startsWith('fr') ? 'fr' : 'en'];
 
             function applyTranslations(page) {
-                const ids = ['title', 'desc', 'quotaLabel', 'quotaDesc', 'libTitle', 'libDesc',
-                    'colTitle', 'colDesc',
+                const ids = ['tabSettings', 'tabLibraries', 'tabCollections', 'tabCategories', 'tabDeletions',
+                    'quotaTitle', 'quotaDesc', 'libTitle', 'libDesc', 'colTitle', 'colDesc',
                     'mapTitle', 'mapDesc', 'mapLibLabel', 'mapCatLabel', 'addBtn',
                     'manualTitle', 'manualDesc', 'saveBtn', 'maintTitle', 'maintDesc', 'refreshBtn',
-                    'delTitle', 'delDesc', 'delEnable', 'delRetLabel'];
+                    'delTitle', 'delDesc', 'delEnable', 'delRetLabel',
+                    'selectAll', 'clearAll', 'cancel', 'confirm'];
                 ids.forEach(id => {
                     const el = page.querySelector('#i18n-' + id);
                     if (el) el.textContent = CT[id];
                 });
+                // Update class-based duplicates (e.g. Select All on Collections panel)
+                page.querySelectorAll('.ns-i18n-selectAll').forEach(el => el.textContent = CT.selectAll);
+                page.querySelectorAll('.ns-i18n-clearAll').forEach(el => el.textContent = CT.clearAll);
+                // Placeholders
                 const catInput = page.querySelector('#mappingCategoryInput');
                 if (catInput) catInput.placeholder = CT.mapPlaceholder;
+                const manualInput = page.querySelector('#manualLibraryIds');
+                if (manualInput) manualInput.placeholder = CT.manualPlaceholder;
+                const libSearch = page.querySelector('#libSearch');
+                if (libSearch) libSearch.placeholder = CT.libSearchPlaceholder;
+                const colSearch = page.querySelector('#colSearch');
+                if (colSearch) colSearch.placeholder = CT.colSearchPlaceholder;
+                const delSearch = page.querySelector('#delSearch');
+                if (delSearch) delSearch.placeholder = CT.delSearchPlaceholder;
+            }
+
+            // Toast helper
+            function showToast(message, type) {
+                const toast = document.getElementById('ns-toast');
+                if (!toast) return;
+                toast.className = 'ns-toast show ' + (type || 'success');
+                const icons = { success: 'check_circle', error: 'error', warn: 'warning' };
+                toast.querySelector('.material-icons').textContent = icons[type] || 'check_circle';
+                toast.querySelector('.ns-toast-msg').textContent = message;
+                clearTimeout(showToast._t);
+                showToast._t = setTimeout(() => { toast.classList.remove('show'); }, 3500);
+            }
+
+            // Confirmation modal
+            function showConfirm(title, message, onConfirm) {
+                const page = document.querySelector('.pluginConfigurationPage');
+                const backdrop = page.querySelector('#ns-modal-backdrop');
+                page.querySelector('#ns-modal-title').textContent = title;
+                page.querySelector('#ns-modal-message').textContent = message;
+                backdrop.classList.add('show');
+                const close = () => backdrop.classList.remove('show');
+                page.querySelector('#ns-modal-cancel').onclick = close;
+                page.querySelector('#ns-modal-confirm').onclick = () => { close(); onConfirm(); };
             }
 
             const NotifySyncConf = {
                 pluginId: "95655672-2342-4321-8291-321312312312",
                 config: {},
+                allLibraries: [],
+                allCollections: [],
+                allDeleted: [],
+                delSort: { col: 'DeletedAt', dir: 'desc' },
+                delPage: 1,
+                delPageSize: 20,
 
                 load: async function (page) {
-                    // Apply browser-based translations immediately (no flash of empty labels)
                     applyTranslations(page);
                     Dashboard.showLoadingMsg();
                     try {
@@ -242,195 +787,200 @@
                         this.config.ManualLibraryIds = this.config.ManualLibraryIds || [];
                         this.config.EnabledCollections = this.config.EnabledCollections || [];
 
-                        page.querySelector('#maxItems').value = this.config.MaxItems || 5;
+                        // Quota
+                        const max = this.config.MaxItems || 10;
+                        page.querySelector('#maxItemsSlider').value = max;
+                        page.querySelector('#maxItemsValue').textContent = max;
+                        page.querySelector('#maxItemsSlider').oninput = (e) => {
+                            page.querySelector('#maxItemsValue').textContent = e.target.value;
+                        };
+
+                        // Manual IDs
                         page.querySelector('#manualLibraryIds').value = this.config.ManualLibraryIds.join(', ');
-                        page.querySelector('#enableDeletedTracking').checked = this.config.EnableDeletedTracking !== false;
+
+                        // Deletion tracking toggle
+                        const tracking = this.config.EnableDeletedTracking !== false;
+                        const toggle = page.querySelector('#enableDeletedToggle');
+                        toggle.classList.toggle('on', tracking);
+                        toggle.setAttribute('aria-checked', tracking);
                         page.querySelector('#deletedRetentionDays').value = this.config.DeletedRetentionDays || 30;
+
+                        // Tabs
+                        page.querySelectorAll('.ns-tab').forEach(tab => {
+                            tab.onclick = () => this.switchTab(page, tab.dataset.tab);
+                        });
+
+                        // Search inputs
+                        page.querySelector('#libSearch').oninput = (e) => this.filterList(page, 'libs', e.target.value);
+                        page.querySelector('#colSearch').oninput = (e) => this.filterList(page, 'cols', e.target.value);
+                        page.querySelector('#delSearch').oninput = (e) => this.renderDeletedItems(page);
 
                         await this.renderLibs(page);
                         await this.renderCollections(page);
                         this.renderMap(page);
-                        await this.renderDeletedItems(page);
+                        await this.loadDeletedItems(page);
                     } catch (err) {
                         console.error('NotifySync config load error', err);
+                        showToast(CT.errorMsg, 'error');
                     } finally {
                         Dashboard.hideLoadingMsg();
                     }
                 },
 
-                refreshHistory: async function () {
-                    Dashboard.showLoadingMsg();
-                    try {
-                        await ApiClient.ajax({ type: "POST", url: "/NotifySync/Refresh" });
-                        Dashboard.hideLoadingMsg();
-                        Dashboard.alert({ message: CT.successMsg, title: CT.successTitle });
-                    } catch (err) {
-                        Dashboard.hideLoadingMsg();
-                        if (err && err.status === 429) {
-                            Dashboard.alert({ message: CT.rateLimitMsg, title: CT.rateLimitTitle });
-                        } else {
-                            Dashboard.alert({ message: CT.errorMsg, title: CT.errorTitle });
-                        }
-                    }
+                switchTab: function (page, tabName) {
+                    page.querySelectorAll('.ns-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tabName));
+                    page.querySelectorAll('.ns-panel').forEach(p => p.classList.toggle('active', p.dataset.panel === tabName));
+                },
+
+                updateCounters: function (page) {
+                    const libsChecked = page.querySelectorAll('#libraryCheckboxes input[type="checkbox"]:checked').length;
+                    const libsTotal = page.querySelectorAll('#libraryCheckboxes input[type="checkbox"]').length;
+                    const colsChecked = page.querySelectorAll('#collectionCheckboxes input[type="checkbox"]:checked').length;
+                    const colsTotal = page.querySelectorAll('#collectionCheckboxes input[type="checkbox"]').length;
+
+                    page.querySelector('#libCounter').textContent = CT.counter.replace('{checked}', libsChecked).replace('{total}', libsTotal);
+                    page.querySelector('#colCounter').textContent = CT.counter.replace('{checked}', colsChecked).replace('{total}', colsTotal);
+                    page.querySelector('#ns-count-libs').textContent = libsChecked;
+                    page.querySelector('#ns-count-cols').textContent = colsChecked;
+                    page.querySelector('#ns-count-maps').textContent = this.config.CategoryMappings.length;
+                },
+
+                filterList: function (page, kind, query) {
+                    const containerId = kind === 'libs' ? '#libraryCheckboxes' : '#collectionCheckboxes';
+                    const q = (query || '').toLowerCase().trim();
+                    page.querySelectorAll(containerId + ' .ns-check-row').forEach(row => {
+                        const name = (row.dataset.name || '').toLowerCase();
+                        row.classList.toggle('hidden', q && !name.includes(q));
+                    });
+                },
+
+                toggleAll: function (kind, checked) {
+                    const page = document.querySelector('.pluginConfigurationPage');
+                    const containerId = kind === 'libs' ? '#libraryCheckboxes' : '#collectionCheckboxes';
+                    page.querySelectorAll(containerId + ' .ns-check-row:not(.hidden) input[type="checkbox"]').forEach(cb => {
+                        cb.checked = checked;
+                    });
+                    this.updateCounters(page);
+                },
+
+                toggleDeletedTracking: function () {
+                    const page = document.querySelector('.pluginConfigurationPage');
+                    const toggle = page.querySelector('#enableDeletedToggle');
+                    toggle.classList.toggle('on');
+                    toggle.setAttribute('aria-checked', toggle.classList.contains('on'));
                 },
 
                 renderLibs: async function (page) {
                     const container = page.querySelector('#libraryCheckboxes');
                     const select = page.querySelector('#mappingLibrarySelect');
-                    container.innerHTML = CT.fetching;
+                    container.innerHTML = '<div class="ns-empty">' + CT.fetching + '</div>';
 
                     try {
                         const result = await ApiClient.getUserViews({}, ApiClient.getCurrentUserId());
-                        const items = result.Items || [];
+                        const items = (result.Items || []).filter(it =>
+                            it.CollectionType !== 'boxsets' && it.CollectionType !== 'playlists');
+                        items.sort((a, b) => a.Name.localeCompare(b.Name));
+                        this.allLibraries = items;
+
                         container.innerHTML = '';
                         select.innerHTML = '<option value="">' + CT.selectLib + '</option>';
 
                         if (items.length === 0) {
-                            container.innerHTML = CT.noLibs;
+                            container.innerHTML = '<div class="ns-empty"><span class="material-icons">video_library</span>' + CT.noLibs + '</div>';
+                            this.updateCounters(page);
                             return;
                         }
 
-                        items.sort((a, b) => a.Name.localeCompare(b.Name));
-
-                        for (const item of items) {
-                            if (item.CollectionType === 'boxsets' || item.CollectionType === 'playlists') continue;
-
+                        items.forEach(item => {
                             const isChecked = this.config.EnabledLibraries.includes(item.Id);
-
-                            const div = document.createElement('div');
-                            div.style.marginBottom = "5px";
-
-                            const label = document.createElement('label');
-                            label.style.display = "flex";
-                            label.style.alignItems = "center";
+                            const row = document.createElement('label');
+                            row.className = 'ns-check-row';
+                            row.dataset.name = item.Name;
 
                             const checkbox = document.createElement('input');
                             checkbox.type = 'checkbox';
-                            checkbox.setAttribute('is', 'emby-checkbox');
                             checkbox.name = 'enabledLibs';
                             checkbox.value = item.Id;
-                            if (isChecked) checkbox.checked = true;
+                            checkbox.checked = isChecked;
+                            checkbox.onchange = () => this.updateCounters(page);
 
-                            const span = document.createElement('span');
-                            span.style.marginLeft = "8px";
-                            span.innerText = item.Name;
+                            const name = document.createElement('span');
+                            name.className = 'ns-check-row-name';
+                            name.textContent = item.Name;
 
-                            label.appendChild(checkbox);
-                            label.appendChild(span);
-                            div.appendChild(label);
-                            container.appendChild(div);
+                            row.appendChild(checkbox);
+                            row.appendChild(name);
+
+                            if (item.CollectionType) {
+                                const meta = document.createElement('span');
+                                meta.className = 'ns-check-row-meta';
+                                meta.textContent = item.CollectionType;
+                                row.appendChild(meta);
+                            }
+
+                            container.appendChild(row);
 
                             const option = document.createElement('option');
                             option.value = item.Id;
-                            option.innerText = item.Name;
+                            option.textContent = item.Name;
                             select.appendChild(option);
-                        }
+                        });
+
+                        this.updateCounters(page);
                     } catch (err) {
                         console.error('getUserViews API error', err);
+                        container.innerHTML = '<div class="ns-empty"><span class="material-icons">error</span>' + CT.errorMsg + '</div>';
                     }
                 },
 
                 renderCollections: async function (page) {
                     const container = page.querySelector('#collectionCheckboxes');
-                    container.innerHTML = CT.fetching;
+                    container.innerHTML = '<div class="ns-empty">' + CT.fetching + '</div>';
 
                     try {
                         const userId = ApiClient.getCurrentUserId();
                         const result = await ApiClient.getItems(userId, {
-                            IncludeItemTypes: 'BoxSet',
-                            Recursive: true,
-                            SortBy: 'SortName',
-                            SortOrder: 'Ascending'
+                            IncludeItemTypes: 'BoxSet', Recursive: true,
+                            SortBy: 'SortName', SortOrder: 'Ascending'
                         });
                         const items = result.Items || [];
+                        this.allCollections = items;
+
                         container.innerHTML = '';
 
                         if (items.length === 0) {
-                            container.innerHTML = CT.noCollections;
+                            container.innerHTML = '<div class="ns-empty"><span class="material-icons">collections_bookmark</span>' + CT.noCollections + '</div>';
+                            this.updateCounters(page);
                             return;
                         }
 
-                        for (const item of items) {
+                        items.forEach(item => {
                             const isChecked = this.config.EnabledCollections.includes(item.Id);
-
-                            const div = document.createElement('div');
-                            div.style.marginBottom = "5px";
-
-                            const label = document.createElement('label');
-                            label.style.display = "flex";
-                            label.style.alignItems = "center";
+                            const row = document.createElement('label');
+                            row.className = 'ns-check-row';
+                            row.dataset.name = item.Name;
 
                             const checkbox = document.createElement('input');
                             checkbox.type = 'checkbox';
-                            checkbox.setAttribute('is', 'emby-checkbox');
                             checkbox.name = 'enabledCollections';
                             checkbox.value = item.Id;
-                            if (isChecked) checkbox.checked = true;
+                            checkbox.checked = isChecked;
+                            checkbox.onchange = () => this.updateCounters(page);
 
-                            const span = document.createElement('span');
-                            span.style.marginLeft = "8px";
-                            span.innerText = item.Name;
+                            const name = document.createElement('span');
+                            name.className = 'ns-check-row-name';
+                            name.textContent = item.Name;
 
-                            label.appendChild(checkbox);
-                            label.appendChild(span);
-                            div.appendChild(label);
-                            container.appendChild(div);
-                        }
-                    } catch (err) {
-                        console.error('getItems BoxSet API error', err);
-                        container.innerHTML = CT.noCollections;
-                    }
-                },
+                            row.appendChild(checkbox);
+                            row.appendChild(name);
 
-                renderDeletedItems: async function (page) {
-                    const container = page.querySelector('#deletedItemsTable');
-                    container.textContent = CT.fetching || '...';
-
-                    try {
-                        const resp = await ApiClient.ajax({ type: 'GET', url: '/NotifySync/DeletedItems', dataType: 'json' });
-                        const items = resp || [];
-                        container.innerHTML = '';
-
-                        if (items.length === 0) {
-                            const emptyDiv = document.createElement('div');
-                            emptyDiv.style.cssText = 'padding:10px; color:#888; font-style:italic;';
-                            emptyDiv.textContent = CT.delEmpty;
-                            container.appendChild(emptyDiv);
-                            return;
-                        }
-
-                        const table = document.createElement('table');
-                        table.style.cssText = 'width:100%; border-collapse:collapse; font-size:13px;';
-                        const thead = table.createTHead();
-                        const headerRow = thead.insertRow();
-                        [CT.delColName, CT.delColType, CT.delColSeries, CT.delColYear, CT.delColDate].forEach(text => {
-                            const th = document.createElement('th');
-                            th.style.cssText = 'padding:8px; text-align:left; border-bottom:1px solid #444;';
-                            th.textContent = text;
-                            headerRow.appendChild(th);
+                            container.appendChild(row);
                         });
 
-                        const tbody = table.createTBody();
-                        for (const item of items) {
-                            const row = tbody.insertRow();
-                            row.style.borderBottom = '1px solid #333';
-                            const delDate = new Date(item.DeletedAt);
-                            const dateStr = delDate.toLocaleString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-                            [item.Name || '', item.Type || '', item.SeriesName || '-', item.ProductionYear || '-', dateStr].forEach(text => {
-                                const td = row.insertCell();
-                                td.style.cssText = 'padding:6px 8px;';
-                                td.textContent = String(text);
-                            });
-                        }
-
-                        container.appendChild(table);
+                        this.updateCounters(page);
                     } catch (err) {
-                        console.error('NotifySync: Failed to load deleted items', err);
-                        const errDiv = document.createElement('div');
-                        errDiv.style.cssText = 'padding:10px; color:#c00;';
-                        errDiv.textContent = CT.errorMsg;
-                        container.innerHTML = '';
-                        container.appendChild(errDiv);
+                        console.error('getItems BoxSet API error', err);
+                        container.innerHTML = '<div class="ns-empty"><span class="material-icons">error</span>' + CT.noCollections + '</div>';
                     }
                 },
 
@@ -439,7 +989,8 @@
                     list.innerHTML = '';
 
                     if (this.config.CategoryMappings.length === 0) {
-                        list.innerHTML = '<div style="padding:10px; color:#888; font-style:italic;">' + CT.noMappings + '</div>';
+                        list.innerHTML = '<div class="ns-empty"><span class="material-icons">label_off</span>' + CT.noMappings + '</div>';
+                        this.updateCounters(page);
                         return;
                     }
 
@@ -448,47 +999,74 @@
                     this.config.CategoryMappings.forEach((mapping, index) => {
                         let libName = mapping.LibraryId;
                         if (select) {
-                            const option = Array.from(select.options).find(opt => opt.value === mapping.LibraryId);
-                            if (option) libName = option.textContent || option.innerText || mapping.LibraryId;
+                            const opt = Array.from(select.options).find(o => o.value === mapping.LibraryId);
+                            if (opt) libName = opt.textContent || mapping.LibraryId;
                         }
 
-                        const div = document.createElement('div');
-                        div.style.padding = "10px";
-                        div.style.borderBottom = "1px solid #333";
-                        div.style.display = "flex";
-                        div.style.justifyContent = "space-between";
-                        div.style.alignItems = "center";
+                        const row = document.createElement('div');
+                        row.className = 'ns-mapping-row';
+                        row.draggable = true;
+                        row.dataset.index = index;
 
-                        const span = document.createElement('span');
-                        const libBold = document.createElement('b');
-                        libBold.textContent = libName;
-                        const catBold = document.createElement('b');
-                        catBold.style.color = '#00a4dc';
-                        catBold.textContent = mapping.CategoryName;
-                        span.appendChild(document.createTextNode(CT.libPrefix));
-                        span.appendChild(libBold);
-                        span.appendChild(document.createTextNode(' \u2192 '));
-                        span.appendChild(catBold);
-                        div.appendChild(span);
+                        row.innerHTML =
+                            '<span class="material-icons ns-drag-handle">drag_indicator</span>' +
+                            '<div class="ns-mapping-info">' +
+                            '<b></b><span class="ns-mapping-arrow">→</span><span class="ns-mapping-cat"></span>' +
+                            '</div>' +
+                            '<button type="button" class="ns-icon-btn" aria-label="Delete">' +
+                            '<span class="material-icons">delete</span>' +
+                            '</button>';
 
-                        const btn = document.createElement('button');
-                        btn.type = 'button';
-                        btn.innerText = CT.deleteBtn;
-                        btn.style.color = 'red';
-                        btn.setAttribute('data-index', index);
-                        btn.onclick = (e) => {
-                            this.delMap(parseInt(e.target.getAttribute('data-index')));
+                        row.querySelector('.ns-mapping-info b').textContent = libName;
+                        row.querySelector('.ns-mapping-cat').textContent = mapping.CategoryName;
+
+                        row.querySelector('.ns-icon-btn').onclick = (e) => {
+                            e.stopPropagation();
+                            showConfirm(
+                                CT.confirmDeleteMappingTitle,
+                                CT.confirmDeleteMappingMsg.replace('{cat}', mapping.CategoryName),
+                                () => this.delMap(index)
+                            );
                         };
-                        div.appendChild(btn);
-                        list.appendChild(div);
+
+                        // Drag and drop handlers
+                        row.ondragstart = (e) => {
+                            row.classList.add('dragging');
+                            e.dataTransfer.effectAllowed = 'move';
+                            e.dataTransfer.setData('text/plain', index.toString());
+                        };
+                        row.ondragend = () => {
+                            row.classList.remove('dragging');
+                            list.querySelectorAll('.drop-target').forEach(r => r.classList.remove('drop-target'));
+                        };
+                        row.ondragover = (e) => {
+                            e.preventDefault();
+                            e.dataTransfer.dropEffect = 'move';
+                            list.querySelectorAll('.drop-target').forEach(r => r.classList.remove('drop-target'));
+                            if (row.classList.contains('dragging')) return;
+                            row.classList.add('drop-target');
+                        };
+                        row.ondrop = (e) => {
+                            e.preventDefault();
+                            row.classList.remove('drop-target');
+                            const fromIdx = parseInt(e.dataTransfer.getData('text/plain'), 10);
+                            const toIdx = parseInt(row.dataset.index, 10);
+                            if (fromIdx === toIdx) return;
+                            const item = this.config.CategoryMappings.splice(fromIdx, 1)[0];
+                            this.config.CategoryMappings.splice(toIdx, 0, item);
+                            this.renderMap(page);
+                        };
+
+                        list.appendChild(row);
                     });
+
+                    this.updateCounters(page);
                 },
 
                 addMapping: function () {
                     const page = document.querySelector('.pluginConfigurationPage');
                     const lib = page.querySelector('#mappingLibrarySelect').value;
-                    const cat = page.querySelector('#mappingCategoryInput').value;
-
+                    const cat = page.querySelector('#mappingCategoryInput').value.trim();
                     if (lib && cat) {
                         this.config.CategoryMappings.push({ LibraryId: lib, CategoryName: cat });
                         this.renderMap(page);
@@ -501,20 +1079,172 @@
                     this.renderMap(document.querySelector('.pluginConfigurationPage'));
                 },
 
+                loadDeletedItems: async function (page) {
+                    const container = page.querySelector('#deletedItemsTable');
+                    container.innerHTML = '<div class="ns-empty">' + CT.fetching + '</div>';
+
+                    try {
+                        const resp = await ApiClient.ajax({ type: 'GET', url: '/NotifySync/DeletedItems', dataType: 'json' });
+                        this.allDeleted = resp || [];
+                        this.delPage = 1;
+                        this.renderDeletedItems(page);
+                    } catch (err) {
+                        console.error('NotifySync: Failed to load deleted items', err);
+                        container.innerHTML = '<div class="ns-empty"><span class="material-icons">error</span>' + CT.errorMsg + '</div>';
+                    }
+                },
+
+                renderDeletedItems: function (page) {
+                    const container = page.querySelector('#deletedItemsTable');
+                    const query = (page.querySelector('#delSearch').value || '').toLowerCase().trim();
+
+                    // Filter by search query
+                    let filtered = this.allDeleted;
+                    if (query) {
+                        filtered = filtered.filter(it =>
+                            (it.Name || '').toLowerCase().includes(query) ||
+                            (it.SeriesName || '').toLowerCase().includes(query) ||
+                            (it.Type || '').toLowerCase().includes(query));
+                    }
+
+                    // Sort
+                    const { col, dir } = this.delSort;
+                    filtered = filtered.slice().sort((a, b) => {
+                        let av = a[col] || '';
+                        let bv = b[col] || '';
+                        if (col === 'DeletedAt') {
+                            av = new Date(av).getTime() || 0;
+                            bv = new Date(bv).getTime() || 0;
+                        } else if (col === 'ProductionYear') {
+                            av = av || 0;
+                            bv = bv || 0;
+                        } else {
+                            av = av.toString().toLowerCase();
+                            bv = bv.toString().toLowerCase();
+                        }
+                        if (av < bv) return dir === 'asc' ? -1 : 1;
+                        if (av > bv) return dir === 'asc' ? 1 : -1;
+                        return 0;
+                    });
+
+                    // Paginate
+                    const total = filtered.length;
+                    const totalPages = Math.max(1, Math.ceil(total / this.delPageSize));
+                    if (this.delPage > totalPages) this.delPage = totalPages;
+                    const start = (this.delPage - 1) * this.delPageSize;
+                    const pageItems = filtered.slice(start, start + this.delPageSize);
+
+                    if (total === 0) {
+                        container.innerHTML = '<div class="ns-empty"><span class="material-icons">delete_outline</span>' + CT.delEmpty + '</div>';
+                        return;
+                    }
+
+                    // Build table
+                    const sortIcon = (c) => {
+                        if (c !== col) return '<span class="material-icons sort-icon">unfold_more</span>';
+                        return '<span class="material-icons sort-icon">' + (dir === 'asc' ? 'arrow_drop_up' : 'arrow_drop_down') + '</span>';
+                    };
+                    const sortedCls = (c) => c === col ? 'sorted' : '';
+
+                    let html = '<div class="ns-table-wrap"><table class="ns-table"><thead><tr>';
+                    html += '<th class="' + sortedCls('Name') + '" data-col="Name">' + CT.delColName + sortIcon('Name') + '</th>';
+                    html += '<th class="' + sortedCls('Type') + '" data-col="Type">' + CT.delColType + sortIcon('Type') + '</th>';
+                    html += '<th class="' + sortedCls('SeriesName') + '" data-col="SeriesName">' + CT.delColSeries + sortIcon('SeriesName') + '</th>';
+                    html += '<th class="' + sortedCls('ProductionYear') + '" data-col="ProductionYear">' + CT.delColYear + sortIcon('ProductionYear') + '</th>';
+                    html += '<th class="' + sortedCls('DeletedAt') + '" data-col="DeletedAt">' + CT.delColDate + sortIcon('DeletedAt') + '</th>';
+                    html += '</tr></thead><tbody>';
+
+                    pageItems.forEach(item => {
+                        const typeLower = (item.Type || '').toLowerCase();
+                        const dateStr = new Date(item.DeletedAt).toLocaleString(undefined, {
+                            year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+                        });
+                        html += '<tr>';
+                        html += '<td></td>';
+                        html += '<td><span class="ns-type-badge ' + typeLower + '"></span></td>';
+                        html += '<td class="ns-series"></td>';
+                        html += '<td class="ns-year"></td>';
+                        html += '<td class="ns-date"></td>';
+                        html += '</tr>';
+                    });
+                    html += '</tbody></table></div>';
+
+                    // Pagination
+                    if (totalPages > 1) {
+                        html += '<div class="ns-pagination">';
+                        html += '<button type="button" id="ns-page-prev"' + (this.delPage <= 1 ? ' disabled' : '') + '>' + CT.prevPage + '</button>';
+                        html += '<span class="ns-page-info">' + CT.pageInfo.replace('{page}', this.delPage).replace('{total}', totalPages) + '</span>';
+                        html += '<button type="button" id="ns-page-next"' + (this.delPage >= totalPages ? ' disabled' : '') + '>' + CT.nextPage + '</button>';
+                        html += '</div>';
+                    }
+
+                    container.innerHTML = html;
+
+                    // Fill cells safely (textContent — no XSS surface from filename)
+                    const rows = container.querySelectorAll('tbody tr');
+                    pageItems.forEach((item, i) => {
+                        const r = rows[i];
+                        r.children[0].textContent = item.Name || '';
+                        r.children[1].querySelector('.ns-type-badge').textContent = item.Type || '';
+                        r.querySelector('.ns-series').textContent = item.SeriesName || '—';
+                        r.querySelector('.ns-year').textContent = item.ProductionYear || '—';
+                        r.querySelector('.ns-date').textContent = new Date(item.DeletedAt).toLocaleString(undefined, {
+                            year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+                        });
+                    });
+
+                    // Wire sort handlers
+                    container.querySelectorAll('th[data-col]').forEach(th => {
+                        th.onclick = () => {
+                            const newCol = th.dataset.col;
+                            if (this.delSort.col === newCol) {
+                                this.delSort.dir = this.delSort.dir === 'asc' ? 'desc' : 'asc';
+                            } else {
+                                this.delSort.col = newCol;
+                                this.delSort.dir = newCol === 'DeletedAt' || newCol === 'ProductionYear' ? 'desc' : 'asc';
+                            }
+                            this.renderDeletedItems(page);
+                        };
+                    });
+
+                    // Pagination handlers
+                    const prevBtn = container.querySelector('#ns-page-prev');
+                    if (prevBtn) prevBtn.onclick = () => { this.delPage--; this.renderDeletedItems(page); };
+                    const nextBtn = container.querySelector('#ns-page-next');
+                    if (nextBtn) nextBtn.onclick = () => { this.delPage++; this.renderDeletedItems(page); };
+                },
+
+                refreshHistory: async function () {
+                    Dashboard.showLoadingMsg();
+                    try {
+                        await ApiClient.ajax({ type: "POST", url: "/NotifySync/Refresh" });
+                        Dashboard.hideLoadingMsg();
+                        showToast(CT.refreshSuccessMsg, 'success');
+                    } catch (err) {
+                        Dashboard.hideLoadingMsg();
+                        if (err && err.status === 429) {
+                            showToast(CT.rateLimitMsg, 'warn');
+                        } else {
+                            showToast(CT.errorMsg, 'error');
+                        }
+                    }
+                },
+
                 save: async function () {
                     Dashboard.showLoadingMsg();
                     try {
                         const page = document.querySelector('.pluginConfigurationPage');
-                        const rawMax = parseInt(page.querySelector('#maxItems').value, 10);
+
+                        const rawMax = parseInt(page.querySelector('#maxItemsSlider').value, 10);
                         this.config.MaxItems = (isNaN(rawMax) || rawMax < 1) ? 10 : Math.min(rawMax, 50);
 
                         const checkboxes = page.querySelectorAll('input[name="enabledLibs"]:checked');
-                        this.config.EnabledLibraries = Array.from(checkboxes).map(checkbox => checkbox.value);
+                        this.config.EnabledLibraries = Array.from(checkboxes).map(cb => cb.value);
 
                         const colCheckboxes = page.querySelectorAll('input[name="enabledCollections"]:checked');
                         this.config.EnabledCollections = Array.from(colCheckboxes).map(cb => cb.value);
 
-                        this.config.EnableDeletedTracking = page.querySelector('#enableDeletedTracking').checked;
+                        this.config.EnableDeletedTracking = page.querySelector('#enableDeletedToggle').classList.contains('on');
                         const rawRet = parseInt(page.querySelector('#deletedRetentionDays').value, 10);
                         this.config.DeletedRetentionDays = (isNaN(rawRet) || rawRet < 1) ? 30 : Math.min(rawRet, 365);
 
@@ -525,8 +1255,10 @@
 
                         const response = await ApiClient.updatePluginConfiguration(this.pluginId, this.config);
                         Dashboard.processPluginConfigurationUpdateResult(response);
+                        showToast(CT.successMsg, 'success');
                     } catch (err) {
                         console.error('updatePluginConfiguration error', err);
+                        showToast(CT.errorMsg, 'error');
                     } finally {
                         Dashboard.hideLoadingMsg();
                     }

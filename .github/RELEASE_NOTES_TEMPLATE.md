@@ -4,7 +4,7 @@
 
 ## Philosophy
 
-- **TL;DR first** — one sentence, plain language. If the reader stops here, they should still know what changed.
+- **Summary first** — one sentence, plain language. If the reader stops here, they should still know what changed.
 - **Action items second** — what they need to do (update, restart, reconfigure).
 - **Details third** — concrete examples, tables, comparisons. No code symbols.
 - **Technical details last** — collapsible `<details>` section for the curious. Internal class names, schema changes, regex patterns go here.
@@ -14,11 +14,11 @@
 ```markdown
 ## 🇬🇧 English
 
-### 🎉 TL;DR
+### 📝 In Short
 
 [One sentence. What the user sees / experiences differently after this release.]
 
-### 👉 What You Need to Do
+### ⬆️ How to Update
 
 1. **Plugins → Catalog → Update NotifySync**
 2. **Restart Jellyfin**
@@ -48,11 +48,11 @@ regex patterns, performance numbers, edge cases.]
 
 ## 🇫🇷 Français
 
-### 🎉 TL;DR
+### 📝 En bref
 
 [Une phrase. Ce que l'utilisateur voit / vit différemment après cette release.]
 
-### 👉 Ce Que Tu Dois Faire
+### ⬆️ Comment mettre à jour
 
 1. **Extensions → Catalogue → Mettre à jour NotifySync**
 2. **Redémarrer Jellyfin**

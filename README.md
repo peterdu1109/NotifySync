@@ -34,7 +34,7 @@ NotifySync transforms the Jellyfin interface by adding a native notification bel
 *   **Smart Grouping** — Episodes of the same series are grouped together (e.g. *"3 new episodes"*). Music tracks are grouped by album.
 *   **Category Filters** — Quick filters (All / Movies / Series / Music / custom) to focus on what matters to you.
 *   **Dismiss Notifications** — Remove any notification with a click, or swipe it left on mobile. The button at the bottom adapts to your filter: clear everything, or just the selected category.
-*   **File Upgrade Badge** — When you replace a media file (quality upgrade, re-encode), the notification comes back to the top with a blue **UPD** badge instead of **NEW**.
+*   **Smart Upgrade Detection** — When you replace a media file, the notification comes back to the top with a blue **UPD** badge instead of **NEW**, and tells you *what* changed: **Quality** (real upgrade), **Codec** (re-encode), **Audio** (dubbing added), or **Minor** (subtitle / metadata refresh). No more guessing whether it's worth re-watching.
 *   **Collection Monitoring** — Track your Jellyfin collections (BoxSets): new additions to a monitored collection trigger a notification.
 *   **Deletion History** — Administrators can see a log of recently deleted media in the configuration page, with configurable retention.
 *   **Synced Across Devices** — Read/unread status is saved on the server and stays in sync across all your browsers and devices.
@@ -134,7 +134,7 @@ NotifySync transforme l'interface Jellyfin en y ajoutant une cloche de notificat
 *   **Regroupement Intelligent** — Les épisodes d'une même série sont groupés (ex. *"3 nouveaux épisodes"*). Les musiques sont groupées par album.
 *   **Filtres par Catégorie** — Des filtres rapides (Tout / Films / Séries / Musique / personnalisé) pour cibler ce qui vous intéresse.
 *   **Supprimer des Notifications** — Retirez une notification d'un clic, ou glissez-la vers la gauche sur mobile. Le bouton en bas s'adapte à votre filtre : vider tout, ou seulement la catégorie sélectionnée.
-*   **Badge MAJ (Mise à Jour de Fichier)** — Quand vous remplacez un fichier média (upgrade qualité, ré-encodage), la notification remonte en haut avec un badge bleu **MAJ** au lieu de **NOUVEAU**.
+*   **Détection Intelligente des Mises à Jour** — Quand vous remplacez un fichier média, la notification remonte en haut avec un badge bleu **MAJ** au lieu de **NOUVEAU**, et vous indique *ce qui* a changé : **Qualité** (vraie amélioration), **Codec** (ré-encodage), **Audio** (doublage ajouté), ou **Mineur** (sous-titre / refresh metadata). Plus besoin de deviner si ça vaut la peine de re-regarder.
 *   **Surveillance des Collections** — Suivez vos collections Jellyfin (BoxSets) : les nouveaux ajouts dans une collection surveillée déclenchent une notification.
 *   **Historique des Suppressions** — Les administrateurs peuvent consulter les médias récemment supprimés dans la page de configuration, avec rétention paramétrable.
 *   **Synchronisé entre Appareils** — L'état lu/non-lu est sauvegardé sur le serveur et reste synchronisé sur tous vos navigateurs et appareils.

@@ -30,10 +30,6 @@
 - **[Feature/Fix Title]** — Plain-language description. Concrete example if possible.
 - **[Feature/Fix Title]** — ...
 
-### 💬 Background (optional)
-
-[Why this release exists — user feedback, observed bug, etc. Keep it short.]
-
 ---
 
 <details>
@@ -61,10 +57,6 @@ regex patterns, performance numbers, edge cases.]
 
 - **[Titre Feature/Fix]** — Description en langage humain. Exemple concret si possible.
 - **[Titre Feature/Fix]** — ...
-
-### 💬 Contexte (optionnel)
-
-[Pourquoi cette release existe — retour utilisateur, bug observé, etc. Garder court.]
 
 ---
 

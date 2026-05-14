@@ -41,7 +41,6 @@ namespace NotifySync
         private static readonly string[] ResolutionUpTokens4K = { "2160p", "4k", "uhd" };
         private static readonly string[] ResolutionUpTokens1080 = { "1080p" };
         private static readonly string[] SourceBetterTokens = { "bluray", "blu-ray", "remux", "blueray" };
-        private static readonly string[] CodecNewTokens = { "hevc", "x265", "h265", "h.265", "av1" };
         private static readonly string[] DubbedTokens = { "vff", "vfq", "vfi", "vf", "truefrench", "french", "multi", "dubbed", "dub" };
 
         private readonly ILibraryManager _libraryManager;
@@ -232,13 +231,10 @@ namespace NotifySync
             long oldSize = existing.Size ?? 0;
             long newSize = updated.Size ?? 0;
             bool pathChanged = !string.IsNullOrEmpty(oldPath) && oldPath != newPath;
+            long sizeDelta = Math.Abs(newSize - oldSize);
+            double sizeRatio = oldSize > 0 ? (double)sizeDelta / oldSize : 0;
 
-            // 1. Quality — significant size jump, or resolution/source upgrade in filename
-            if (oldSize > 0 && newSize > (long)(oldSize * 1.5))
-            {
-                return KindQuality;
-            }
-
+            // 1. Quality — path indicates resolution or source upgrade
             if (pathChanged)
             {
                 bool oldHas4K = ContainsAnyTag(oldPath, ResolutionUpTokens4K);
@@ -259,16 +255,37 @@ namespace NotifySync
                 {
                     return KindQuality;
                 }
+            }
 
-                // 2. Codec — new codec marker (HEVC/x265/AV1) and size is not bigger
-                bool oldHasNewCodec = ContainsAnyTag(oldPath, CodecNewTokens);
-                bool newHasNewCodec = ContainsAnyTag(newPath, CodecNewTokens);
-                if (!oldHasNewCodec && newHasNewCodec && (oldSize == 0 || newSize <= oldSize * 1.1))
-                {
-                    return KindCodec;
-                }
+            // Standalone large size growth (no path-based signal, but content much bigger).
+            // Require both >50% growth AND >500 MB absolute growth to avoid false positives
+            // on small files or codec re-encodes that happen to grow modestly.
+            if (oldSize > 0 && newSize > (long)(oldSize * 1.5) && (newSize - oldSize) > 500_000_000L)
+            {
+                return KindQuality;
+            }
 
-                // 3. Audio — went from subtitled-only to dubbed, or got MULTI track
+            // 2. Codec — codec family changed between old and new path
+            //    Catches transitions in any direction (x264→HEVC, AV1↔x265, etc.) — the previous
+            //    "only when arriving at a codec from no codec" check missed common upgrades.
+            string? oldCodec = DetectCodec(oldPath);
+            string? newCodec = DetectCodec(newPath);
+            if (oldCodec != newCodec && (oldCodec != null || newCodec != null))
+            {
+                return KindCodec;
+            }
+
+            // Path unchanged but size moved significantly → likely in-place re-encode
+            // (Sonarr/Radarr "atomic move" workflows or post-processing tools that rewrite
+            //  the file while keeping the same filename).
+            if (!pathChanged && newSize > 0 && (sizeRatio > 0.10 || sizeDelta > 50_000_000L))
+            {
+                return KindCodec;
+            }
+
+            // 3. Audio — dubbing tokens appeared in the filename (path change only)
+            if (pathChanged)
+            {
                 bool oldHasDub = ContainsAnyTag(oldPath, DubbedTokens);
                 bool newHasDub = ContainsAnyTag(newPath, DubbedTokens);
                 if (!oldHasDub && newHasDub)
@@ -277,16 +294,45 @@ namespace NotifySync
                 }
             }
 
-            // 4. Minor — same path, small delta, no signal otherwise
-            //    (typically: external subtitle file added, metadata refresh that touched the file,
-            //     small audio track re-mux without rename)
-            long sizeDelta = Math.Abs(newSize - oldSize);
-            if (!pathChanged && sizeDelta < 50_000_000L)
+            // 4. Minor — same path AND very small delta (< 10 MB)
+            //    Typically: external subtitle file added, metadata refresh that touched
+            //    the date but not the content, tiny re-mux.
+            if (!pathChanged && sizeDelta < 10_000_000L)
             {
                 return KindMinor;
             }
 
             // 5. No pattern matched — let the client render plain "MAJ"/"UPD"
+            return null;
+        }
+
+        /// <summary>
+        /// Extracts the dominant video codec family from a filename path.
+        /// Returns "av1", "hevc", "x264", or null if no codec marker is present.
+        /// Used by <see cref="ClassifyUpgrade"/> to detect codec transitions in any direction.
+        /// </summary>
+        private static string? DetectCodec(string path)
+        {
+            if (string.IsNullOrEmpty(path))
+            {
+                return null;
+            }
+
+            if (ContainsTag(path, "av1"))
+            {
+                return "av1";
+            }
+
+            if (ContainsTag(path, "hevc") || ContainsTag(path, "x265") || ContainsTag(path, "h265") || ContainsTag(path, "h.265"))
+            {
+                return "hevc";
+            }
+
+            if (ContainsTag(path, "x264") || ContainsTag(path, "h264") || ContainsTag(path, "h.264") || ContainsTag(path, "avc"))
+            {
+                return "x264";
+            }
+
             return null;
         }
 

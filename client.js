@@ -1,4 +1,4 @@
-/* NOTIFYSYNC V5.5.9.4 */
+/* NOTIFYSYNC V5.5.10.0 */
 (function () {
     let currentData = [];
     let groupedData = [];
@@ -50,8 +50,8 @@
 
     let userLang = navigator.language || 'en';
     const strings = {
-        fr: { header: "Quoi de neuf ?", empty: "Vous êtes à jour !", clearAll: "Vider la liste", clearCat: "Vider", dismiss: "Retirer", badgeNew: "NOUVEAU", badgeUpgrade: "MAJ", newEps: "nouveaux épisodes", eps: "épisodes", updEps: "épisodes mis à jour", newTracks: "nouvelles pistes", tracks: "pistes", updTracks: "pistes mises à jour", filterAll: "Tout", filterMovie: "Films", filterSeries: "Séries", filterMusic: "Musique" },
-        en: { header: "What's New?", empty: "You're all caught up!", clearAll: "Clear list", clearCat: "Clear", dismiss: "Dismiss", badgeNew: "NEW", badgeUpgrade: "UPD", newEps: "new episodes", eps: "episodes", updEps: "updated episodes", newTracks: "new tracks", tracks: "tracks", updTracks: "updated tracks", filterAll: "All", filterMovie: "Movies", filterSeries: "Series", filterMusic: "Music" }
+        fr: { header: "Quoi de neuf ?", empty: "Vous êtes à jour !", clearAll: "Vider la liste", clearCat: "Vider", dismiss: "Retirer", badgeNew: "NOUVEAU", badgeUpgrade: "MAJ", newEps: "nouveaux épisodes", eps: "épisodes", updEps: "épisodes mis à jour", newTracks: "nouvelles pistes", tracks: "pistes", updTracks: "pistes mises à jour", filterAll: "Tout", filterMovie: "Films", filterSeries: "Séries", filterMusic: "Musique", kindQuality: "Qualité", kindCodec: "Codec", kindAudio: "Audio", kindMinor: "Mineur" },
+        en: { header: "What's New?", empty: "You're all caught up!", clearAll: "Clear list", clearCat: "Clear", dismiss: "Dismiss", badgeNew: "NEW", badgeUpgrade: "UPD", newEps: "new episodes", eps: "episodes", updEps: "updated episodes", newTracks: "new tracks", tracks: "tracks", updTracks: "updated tracks", filterAll: "All", filterMovie: "Movies", filterSeries: "Series", filterMusic: "Music", kindQuality: "Quality", kindCodec: "Codec", kindAudio: "Audio", kindMinor: "Minor" }
     };
     let T = strings[userLang.startsWith('fr') ? 'fr' : 'en'];
 
@@ -458,6 +458,13 @@
         else { badge.classList.remove('visible'); }
     };
 
+    // Returns a localized label for the upgrade kind (e.g. "Qualité"), or "" if none.
+    const upgradeKindLabel = (item) => {
+        if (!item.IsUpgrade || !item.UpgradeKind) return '';
+        const map = { quality: T.kindQuality, codec: T.kindCodec, audio: T.kindAudio, minor: T.kindMinor };
+        return map[item.UpgradeKind] || '';
+    };
+
     const formatEpisodeTitle = (item) => {
         const s = item.ParentIndexNumber ? `S${item.ParentIndexNumber.toString().padStart(2, '0')}` : '';
         const e = item.IndexNumber ? `E${item.IndexNumber.toString().padStart(2, '0')}` : '';
@@ -501,7 +508,9 @@
             const safeHeroId = escapeHtml(hero.Id);
             const heroNavId = escapeHtml(hero.RealItemId || hero.Id);
             const heroFallbackImg = client.getUrl(`Items/${encodeURIComponent(hero.SeriesId || hero.Id)}/Images/Primary?quality=70&fillWidth=380&fillHeight=160&format=webp`);
-            htmlParts.push(`<div class="hero-section" onclick="document.dispatchEvent(new CustomEvent('ns-navigate', {detail: '${heroNavId}'}))"><div class="hero-bg"><img src="${escapeHtml(heroImg)}" alt="" style="width:100%;height:100%;object-fit:cover;" onerror="if(this.dataset.fb){this.src=this.dataset.fb;this.removeAttribute('data-fb')}else{this.style.display='none'}" data-fb="${escapeHtml(heroFallbackImg)}"></div><div class="hero-overlay"></div><button class="dismiss-btn" title="${T.dismiss}" aria-label="${T.dismiss}" onclick="event.stopPropagation(); document.dispatchEvent(new CustomEvent('ns-dismiss', {detail: '${safeHeroId}'}))">close</button><div class="hero-content">${hero.IsUpgrade && hero.ShowBadge ? `<span class="hero-badge-upgrade">${T.badgeUpgrade}</span>` : hero.ShowBadge ? `<span class="hero-badge">${T.badgeNew}</span>` : ''}<div style="font-size:18px;font-weight:700;text-shadow:0 2px 4px #000;line-height:1.2;">${heroTitle}</div><div style="font-size:12px;opacity:0.8;margin-top:4px">${timeAgo(hero.DateCreated)} &bull; ${heroSub}</div></div></div>`);
+            const heroKindLabel = upgradeKindLabel(hero);
+            const heroSubFinal = heroKindLabel ? `${heroSub} &bull; ${escapeHtml(heroKindLabel)}` : heroSub;
+            htmlParts.push(`<div class="hero-section" onclick="document.dispatchEvent(new CustomEvent('ns-navigate', {detail: '${heroNavId}'}))"><div class="hero-bg"><img src="${escapeHtml(heroImg)}" alt="" style="width:100%;height:100%;object-fit:cover;" onerror="if(this.dataset.fb){this.src=this.dataset.fb;this.removeAttribute('data-fb')}else{this.style.display='none'}" data-fb="${escapeHtml(heroFallbackImg)}"></div><div class="hero-overlay"></div><button class="dismiss-btn" title="${T.dismiss}" aria-label="${T.dismiss}" onclick="event.stopPropagation(); document.dispatchEvent(new CustomEvent('ns-dismiss', {detail: '${safeHeroId}'}))">close</button><div class="hero-content">${hero.IsUpgrade && hero.ShowBadge ? `<span class="hero-badge-upgrade">${T.badgeUpgrade}</span>` : hero.ShowBadge ? `<span class="hero-badge">${T.badgeNew}</span>` : ''}<div style="font-size:18px;font-weight:700;text-shadow:0 2px 4px #000;line-height:1.2;">${heroTitle}</div><div style="font-size:12px;opacity:0.8;margin-top:4px">${timeAgo(hero.DateCreated)} &bull; ${heroSubFinal}</div></div></div>`);
         }
 
         filtered.filter(x => x !== hero).forEach(item => {
@@ -520,7 +529,9 @@
             const safeId = escapeHtml(item.Id);
             const navId = escapeHtml(item.RealItemId || item.Id);
             const badgeHtml = item.ShowBadge ? `<span class="item-badge">${item.IsUpgrade ? T.badgeUpgrade : T.badgeNew}</span>` : '';
-            htmlParts.push(`<div class="dropdown-item ${item.IsUpgrade && item.ShowBadge ? 'style-upgrade' : item.ShowBadge ? 'style-new' : 'style-seen'}" data-item-id="${safeId}" onclick="document.dispatchEvent(new CustomEvent('ns-navigate', {detail: '${navId}'}))"><button class="dismiss-btn" title="${T.dismiss}" aria-label="${T.dismiss}" onclick="event.stopPropagation(); document.dispatchEvent(new CustomEvent('ns-dismiss', {detail: '${safeId}'}))">close</button><div class="swipe-delete">${T.dismiss}</div><div class="thumb-wrapper"><img data-src="${imgUrl}" decoding="async" class="dropdown-thumb ${isMusic ? 'music' : ''}" loading="lazy" onerror="if(this.dataset.fallback){this.src=this.dataset.fallback;this.removeAttribute('data-fallback')}else{this.style.display='none'}" data-fallback="${fallbackUrl}"><span class="material-icons" style="color:#555;font-size:24px;">${isMusic ? 'album' : 'movie'}</span></div><div class="dropdown-info">${badgeHtml}<div class="dropdown-title" title="${title}">${title}</div><div class="dropdown-subtitle" title="${sub}"><span class="sub-time">${timeAgo(item.DateCreated)} &bull;</span><span class="sub-text">${sub}</span></div></div></div>`);
+            const itemKindLabel = upgradeKindLabel(item);
+            const itemSubFinal = itemKindLabel ? `${sub} &bull; ${escapeHtml(itemKindLabel)}` : sub;
+            htmlParts.push(`<div class="dropdown-item ${item.IsUpgrade && item.ShowBadge ? 'style-upgrade' : item.ShowBadge ? 'style-new' : 'style-seen'}" data-item-id="${safeId}" onclick="document.dispatchEvent(new CustomEvent('ns-navigate', {detail: '${navId}'}))"><button class="dismiss-btn" title="${T.dismiss}" aria-label="${T.dismiss}" onclick="event.stopPropagation(); document.dispatchEvent(new CustomEvent('ns-dismiss', {detail: '${safeId}'}))">close</button><div class="swipe-delete">${T.dismiss}</div><div class="thumb-wrapper"><img data-src="${imgUrl}" decoding="async" class="dropdown-thumb ${isMusic ? 'music' : ''}" loading="lazy" onerror="if(this.dataset.fallback){this.src=this.dataset.fallback;this.removeAttribute('data-fallback')}else{this.style.display='none'}" data-fallback="${fallbackUrl}"><span class="material-icons" style="color:#555;font-size:24px;">${isMusic ? 'album' : 'movie'}</span></div><div class="dropdown-info">${badgeHtml}<div class="dropdown-title" title="${title}">${title}</div><div class="dropdown-subtitle" title="${sub}"><span class="sub-time">${timeAgo(item.DateCreated)} &bull;</span><span class="sub-text">${itemSubFinal}</span></div></div></div>`);
         });
 
         if (activeFilter === 'All') {

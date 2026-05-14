@@ -7,6 +7,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Data.Enums;
@@ -26,6 +27,23 @@ namespace NotifySync
     {
         private const int DatabaseCategoryLimit = 100;
         private const int GlobalRetentionLimit = 2000;
+
+        // Upgrade kind constants. Stored in NotificationItem.UpgradeKind and read by the
+        // client to render a precise sub-label next to the UPD/MAJ badge.
+        private const string KindQuality = "quality";
+        private const string KindCodec = "codec";
+        private const string KindAudio = "audio";
+        private const string KindMinor = "minor";
+
+        // Path tokens (lowercase) used to detect upgrade type from filename conventions.
+        // Tokens are matched as standalone tags surrounded by non-alphanumeric separators
+        // (dots, dashes, underscores, spaces) — see ContainsTag for the exact rule.
+        private static readonly string[] ResolutionUpTokens4K = { "2160p", "4k", "uhd" };
+        private static readonly string[] ResolutionUpTokens1080 = { "1080p" };
+        private static readonly string[] SourceBetterTokens = { "bluray", "blu-ray", "remux", "blueray" };
+        private static readonly string[] CodecNewTokens = { "hevc", "x265", "h265", "h.265", "av1" };
+        private static readonly string[] DubbedTokens = { "vff", "vfq", "vfi", "vf", "truefrench", "french", "multi", "dubbed", "dub" };
+
         private readonly ILibraryManager _libraryManager;
         private readonly IUserDataManager _userDataManager;
         private readonly ILogger<NotificationManager> _logger;
@@ -201,6 +219,103 @@ namespace NotifySync
         }
 
         private string NormalizeUserId(string userId) => IdHelper.NormalizeId(userId);
+
+        /// <summary>
+        /// Classifies the type of upgrade detected when replacing an existing notification's
+        /// media file. Returns one of the <c>Kind*</c> constants or <c>null</c> if no pattern
+        /// matched (the client will then render just "MAJ"/"UPD" without a sub-label).
+        /// </summary>
+        private static string? ClassifyUpgrade(NotificationItem existing, NotificationItem updated)
+        {
+            string oldPath = (existing.FilePath ?? string.Empty).ToLowerInvariant();
+            string newPath = (updated.FilePath ?? string.Empty).ToLowerInvariant();
+            long oldSize = existing.Size ?? 0;
+            long newSize = updated.Size ?? 0;
+            bool pathChanged = !string.IsNullOrEmpty(oldPath) && oldPath != newPath;
+
+            // 1. Quality — significant size jump, or resolution/source upgrade in filename
+            if (oldSize > 0 && newSize > (long)(oldSize * 1.5))
+            {
+                return KindQuality;
+            }
+
+            if (pathChanged)
+            {
+                bool oldHas4K = ContainsAnyTag(oldPath, ResolutionUpTokens4K);
+                bool newHas4K = ContainsAnyTag(newPath, ResolutionUpTokens4K);
+                bool oldHas1080 = ContainsAnyTag(oldPath, ResolutionUpTokens1080);
+                bool newHas1080 = ContainsAnyTag(newPath, ResolutionUpTokens1080);
+                bool oldHasBetterSource = ContainsAnyTag(oldPath, SourceBetterTokens);
+                bool newHasBetterSource = ContainsAnyTag(newPath, SourceBetterTokens);
+
+                // Resolution went up (no→4K, or no→1080 while not already 4K)
+                if ((!oldHas4K && newHas4K) || (!oldHas1080 && newHas1080 && !oldHas4K))
+                {
+                    return KindQuality;
+                }
+
+                // Source went up (WEB/HDTV → BluRay/REMUX)
+                if (!oldHasBetterSource && newHasBetterSource)
+                {
+                    return KindQuality;
+                }
+
+                // 2. Codec — new codec marker (HEVC/x265/AV1) and size is not bigger
+                bool oldHasNewCodec = ContainsAnyTag(oldPath, CodecNewTokens);
+                bool newHasNewCodec = ContainsAnyTag(newPath, CodecNewTokens);
+                if (!oldHasNewCodec && newHasNewCodec && (oldSize == 0 || newSize <= oldSize * 1.1))
+                {
+                    return KindCodec;
+                }
+
+                // 3. Audio — went from subtitled-only to dubbed, or got MULTI track
+                bool oldHasDub = ContainsAnyTag(oldPath, DubbedTokens);
+                bool newHasDub = ContainsAnyTag(newPath, DubbedTokens);
+                if (!oldHasDub && newHasDub)
+                {
+                    return KindAudio;
+                }
+            }
+
+            // 4. Minor — same path, small delta, no signal otherwise
+            //    (typically: external subtitle file added, metadata refresh that touched the file,
+            //     small audio track re-mux without rename)
+            long sizeDelta = Math.Abs(newSize - oldSize);
+            if (!pathChanged && sizeDelta < 50_000_000L)
+            {
+                return KindMinor;
+            }
+
+            // 5. No pattern matched — let the client render plain "MAJ"/"UPD"
+            return null;
+        }
+
+        /// <summary>
+        /// Returns true if <paramref name="path"/> contains any of the given <paramref name="tags"/>
+        /// as a standalone token (delimited by start/end of string or non-alphanumeric separators).
+        /// Prevents false matches like "vf" inside "movie name vfx" (extras).
+        /// </summary>
+        private static bool ContainsAnyTag(string path, string[] tags)
+        {
+            foreach (var tag in tags)
+            {
+                if (ContainsTag(path, tag))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Single-tag word-boundary match (case-insensitive — caller normalizes to lowercase).
+        /// </summary>
+        private static bool ContainsTag(string path, string tag)
+        {
+            string pattern = $"(?:^|[^a-z0-9]){Regex.Escape(tag)}(?:$|[^a-z0-9])";
+            return Regex.IsMatch(path, pattern, RegexOptions.CultureInvariant);
+        }
 
         /// <summary>
         /// Wraps <see cref="NotificationDatabase.HasRecentDeletedMatch"/> with a fast short-circuit
@@ -515,10 +630,12 @@ namespace NotifySync
                         if (pathChanged || (sizeChanged && dateChanged) || legacyFallback)
                         {
                             updatedNotif.IsUpgrade = true;
+                            updatedNotif.UpgradeKind = ClassifyUpgrade(existing, updatedNotif);
                             updatedNotif.DateCreated = DateTime.UtcNow; // Remonter en tête de liste
                             _logger.LogInformation(
-                                "NotifySync Upgrade Detected: {Name} | pathChanged={PathChanged} (old={OldPath}, new={NewPath}) | sizeChanged={SizeChanged}",
+                                "NotifySync Upgrade Detected: {Name} | kind={Kind} | pathChanged={PathChanged} (old={OldPath}, new={NewPath}) | sizeChanged={SizeChanged}",
                                 updatedNotif.Name,
+                                updatedNotif.UpgradeKind ?? "unspecified",
                                 pathChanged,
                                 existing.FilePath ?? "NULL",
                                 updatedNotif.FilePath ?? "NULL",
@@ -536,15 +653,18 @@ namespace NotifySync
                             // Metadata now available — re-check deleted history for upgrade detection.
                             // ProcessBuffer may have missed it due to null SeriesName at ItemAdded time.
                             updatedNotif.IsUpgrade = true;
+                            updatedNotif.UpgradeKind = ClassifyUpgrade(existing, updatedNotif);
                             updatedNotif.DateCreated = DateTime.UtcNow;
                             _logger.LogInformation(
-                                "NotifySync Upgrade Check: {Name} | deletedMatch=True (detected on metadata refresh)",
-                                updatedNotif.Name);
+                                "NotifySync Upgrade Check: {Name} | kind={Kind} | deletedMatch=True (detected on metadata refresh)",
+                                updatedNotif.Name,
+                                updatedNotif.UpgradeKind ?? "unspecified");
                         }
                         else
                         {
                             updatedNotif.DateCreated = existing.DateCreated;
                             updatedNotif.IsUpgrade = existing.IsUpgrade;
+                            updatedNotif.UpgradeKind = existing.UpgradeKind;
                         }
 
                         _notifications[existingIndex] = updatedNotif;

@@ -96,6 +96,14 @@ namespace NotifySync
         public bool IsUpgrade { get; set; }
 
         /// <summary>
+        /// Gets or sets the kind of upgrade detected for this item, used by the client to render
+        /// a precise label next to the UPD/MAJ badge (e.g. "quality", "codec", "audio", "minor").
+        /// Null when the upgrade type couldn't be classified.
+        /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string? UpgradeKind { get; set; }
+
+        /// <summary>
         /// Gets or sets the file modification ticks used for upgrade detection.
         /// Internal only — not exposed in the API response.
         /// </summary>

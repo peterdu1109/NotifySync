@@ -84,7 +84,8 @@ namespace NotifySync
                             IsUpgrade INTEGER NOT NULL DEFAULT 0,
                             DateModifiedTicks INTEGER,
                             Size INTEGER,
-                            FilePath TEXT
+                            FilePath TEXT,
+                            UpgradeKind TEXT
                         );
                         CREATE INDEX IF NOT EXISTS idx_notifications_date ON Notifications(DateCreated DESC);
 
@@ -128,12 +129,29 @@ namespace NotifySync
                 MigrateAddColumn(connection, "Notifications", "DateModifiedTicks", "INTEGER");
                 MigrateAddColumn(connection, "Notifications", "Size", "INTEGER");
                 MigrateAddColumn(connection, "Notifications", "FilePath", "TEXT");
+                MigrateAddColumn(connection, "Notifications", "UpgradeKind", "TEXT");
                 MigrateAddColumn(connection, "DeletedItems", "IndexNumber", "INTEGER");
                 MigrateAddColumn(connection, "DeletedItems", "ParentIndexNumber", "INTEGER");
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error initializing SQLite database.");
+            }
+        }
+
+        /// <summary>
+        /// Returns the column ordinal for the given name, or -1 if the column doesn't exist
+        /// (handles pre-migration databases gracefully).
+        /// </summary>
+        private static int TryGetOrdinal(SqliteDataReader reader, string columnName)
+        {
+            try
+            {
+                return reader.GetOrdinal(columnName);
+            }
+            catch (IndexOutOfRangeException)
+            {
+                return -1;
             }
         }
 
@@ -171,12 +189,12 @@ namespace NotifySync
                     Id, Name, Category, SeriesName, SeriesId, DateCreated,
                     Type, RunTimeTicks, ProductionYear, BackdropImageTags,
                     PrimaryImageTag, IndexNumber, ParentIndexNumber,
-                    IsUpgrade, DateModifiedTicks, Size, FilePath
+                    IsUpgrade, DateModifiedTicks, Size, FilePath, UpgradeKind
                 ) VALUES (
                     @Id, @Name, @Category, @SeriesName, @SeriesId, @DateCreated,
                     @Type, @RunTimeTicks, @ProductionYear, @Backdrop,
                     @Primary, @Index, @ParentIndex,
-                    @IsUpgrade, @DateModifiedTicks, @Size, @FilePath
+                    @IsUpgrade, @DateModifiedTicks, @Size, @FilePath, @UpgradeKind
                 )";
 
             var pId = cmd.Parameters.Add("@Id", SqliteType.Text);
@@ -196,6 +214,7 @@ namespace NotifySync
             var pDateMod = cmd.Parameters.Add("@DateModifiedTicks", SqliteType.Integer);
             var pSize = cmd.Parameters.Add("@Size", SqliteType.Integer);
             var pFilePath = cmd.Parameters.Add("@FilePath", SqliteType.Text);
+            var pUpgradeKind = cmd.Parameters.Add("@UpgradeKind", SqliteType.Text);
 
             void Bind(NotificationItem item)
             {
@@ -216,6 +235,7 @@ namespace NotifySync
                 pDateMod.Value = (object?)item.DateModifiedTicks ?? DBNull.Value;
                 pSize.Value = (object?)item.Size ?? DBNull.Value;
                 pFilePath.Value = (object?)item.FilePath ?? DBNull.Value;
+                pUpgradeKind.Value = (object?)item.UpgradeKind ?? DBNull.Value;
             }
 
             return (cmd, Bind);
@@ -433,6 +453,7 @@ namespace NotifySync
                 int oDateModTicks = reader.GetOrdinal("DateModifiedTicks");
                 int oSize = reader.GetOrdinal("Size");
                 int oFilePath = reader.GetOrdinal("FilePath");
+                int oUpgradeKind = TryGetOrdinal(reader, "UpgradeKind");
 
                 while (reader.Read())
                 {
@@ -454,7 +475,8 @@ namespace NotifySync
                         IsUpgrade = !reader.IsDBNull(oIsUpgrade) && reader.GetInt32(oIsUpgrade) != 0,
                         DateModifiedTicks = reader.IsDBNull(oDateModTicks) ? null : reader.GetInt64(oDateModTicks),
                         Size = reader.IsDBNull(oSize) ? null : reader.GetInt64(oSize),
-                        FilePath = reader.IsDBNull(oFilePath) ? null : reader.GetString(oFilePath)
+                        FilePath = reader.IsDBNull(oFilePath) ? null : reader.GetString(oFilePath),
+                        UpgradeKind = (oUpgradeKind < 0 || reader.IsDBNull(oUpgradeKind)) ? null : reader.GetString(oUpgradeKind)
                     });
                 }
             }

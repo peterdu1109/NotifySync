@@ -12,11 +12,11 @@
     <AssemblyVersion>5.5.10.0</AssemblyVersion>
     <FileVersion>5.5.10.0</FileVersion>
     <Version>5.5.10.0</Version>
-    <Authors>Peterdu1109, ElieM</Authors>
+    <Authors>ElieM, Peterdu1109</Authors>
     <Company>NotifySync</Company>
     <Product>NotifySync</Product>
     <Description>NotifySync transforme l'interface de Jellyfin en ajoutant une icône de notification (cloche) native. Il permet à vos utilisateurs de voir instantanément les derniers ajouts (Films, Séries, Musique) sans quitter leur page actuelle.</Description>
-    <Copyright>Copyright © 2026 Peterdu1109 &amp; ElieM</Copyright>
+    <Copyright>Copyright © 2026 ElieM &amp; Peterdu1109</Copyright>
     
     <!-- Optimizations -->
     <TieredPGO>true</TieredPGO>

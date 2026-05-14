@@ -74,7 +74,8 @@ namespace NotifySync
                 new PluginPageInfo
                 {
                     Name = "NotifySync",
-                    EmbeddedResourcePath = GetType().Namespace + ".ConfigurationPage.html"
+                    EmbeddedResourcePath = GetType().Namespace + ".ConfigurationPage.html",
+                    MenuIcon = "notifications"
                 }
             };
         }

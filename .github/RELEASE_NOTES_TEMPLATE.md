@@ -5,9 +5,10 @@
 ## Philosophy
 
 - **Summary first** — one sentence, plain language. If the reader stops here, they should still know what changed.
-- **Action items second** — what they need to do (update, restart, reconfigure).
-- **Details third** — concrete examples, tables, comparisons. No code symbols.
+- **Details next** — concrete examples, tables, comparisons. No code symbols.
 - **Technical details last** — collapsible `<details>` section for the curious. Internal class names, schema changes, regex patterns go here.
+
+The standard update procedure (Plugins → Catalog → Update → Restart Jellyfin) is the same for every release and lives in the README. Don't repeat it in release notes unless this release has a non-standard migration step.
 
 ## Format (copy-paste this)
 
@@ -17,13 +18,6 @@
 ### 📝 In Short
 
 [One sentence. What the user sees / experiences differently after this release.]
-
-### ⬆️ How to Update
-
-1. **Plugins → Catalog → Update NotifySync**
-2. **Restart Jellyfin**
-
-[Add any extra step only if truly required — reconfiguration, manual action, etc.]
 
 ### ✨ What's New / 🐛 What's Fixed
 
@@ -47,11 +41,6 @@ regex patterns, performance numbers, edge cases.]
 ### 📝 En bref
 
 [Une phrase. Ce que l'utilisateur voit / vit différemment après cette release.]
-
-### ⬆️ Comment mettre à jour
-
-1. **Extensions → Catalogue → Mettre à jour NotifySync**
-2. **Redémarrer Jellyfin**
 
 ### ✨ Quoi de Neuf / 🐛 Corrections
 

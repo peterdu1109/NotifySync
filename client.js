@@ -1,4 +1,4 @@
-/* NOTIFYSYNC V5.5.11.7 */
+/* NOTIFYSYNC V5.5.11.8 */
 (function () {
     let currentData = [];
     let groupedData = [];
@@ -740,35 +740,29 @@
         fetchData();
     };
 
-    // Swap the default folder icon Jellyfin renders next to NotifySync in the admin sidebar
-    // for a bell (Material "notifications"). Same approach as Jellyfin Enhanced's Sidebar
-    // Custom Links — but scoped to NotifySync's own entry and using *replace* rather than
-    // *add*, so no duplicate icons.
+    // Swap Jellyfin's default folder icon next to NotifySync in the admin sidebar for a bell.
+    // Modern Jellyfin (10.11+) uses Material-UI (React) which renders icons as inline <svg><path>
+    // rather than <span class="material-icons">. We rewrite the path data, which is the cleanest
+    // way to replace the glyph in place (no extra DOM nodes, no duplicate icons, re-applied
+    // automatically by the MutationObserver if React re-renders).
+    const NS_NOTIFICATIONS_PATH = 'M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z';
     const installAdminSidebarIcon = () => {
-        const links = document.querySelectorAll('a');
+        const links = document.querySelectorAll('a[href*="configurationpage"]');
         for (let i = 0; i < links.length; i++) {
             const link = links[i];
-            if (link.dataset.nsIconDone) continue;
             const href = (link.getAttribute('href') || '').toLowerCase();
             if (href.indexOf('notifysync') < 0) continue;
-            // Configurationpage links only — skip details/dashboard navigation
-            if (href.indexOf('configurationpage') < 0 && href.indexOf('plugins') < 0) continue;
+            // Idempotent check — re-runs cheaply on every MutationObserver tick, only
+            // touches the DOM when the path actually differs.
+            const path = link.querySelector('svg path');
+            if (path && path.getAttribute('d') !== NS_NOTIFICATIONS_PATH) {
+                path.setAttribute('d', NS_NOTIFICATIONS_PATH);
+                continue;
+            }
+            // Fallback for older themes that still render <span class="material-icons">…</span>
             const iconSpan = link.querySelector('.material-icons');
-            if (iconSpan) {
-                if (iconSpan.textContent.trim() === 'notifications') {
-                    link.dataset.nsIconDone = '1';
-                    continue;
-                }
+            if (iconSpan && iconSpan.textContent.trim() !== 'notifications') {
                 iconSpan.textContent = 'notifications';
-                link.dataset.nsIconDone = '1';
-            } else {
-                const icon = document.createElement('span');
-                icon.className = 'material-icons';
-                icon.textContent = 'notifications';
-                icon.style.cssText = 'margin-right:8px; vertical-align:middle; font-size:20px;';
-                icon.setAttribute('aria-hidden', 'true');
-                link.insertBefore(icon, link.firstChild);
-                link.dataset.nsIconDone = '1';
             }
         }
     };

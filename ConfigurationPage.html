@@ -374,7 +374,7 @@
                         <span class="material-icons ns-header-icon">notifications_active</span>
                         <div class="ns-header-info">
                             <h2>NotifySync</h2>
-                            <span class="ns-version" id="ns-version-badge">v5.5.11.8</span>
+                            <span class="ns-version" id="ns-version-badge">v5.5.11.9</span>
                         </div>
                         <div class="ns-header-links">
                             <a class="ns-header-link" href="https://github.com/peterdu1109/NotifySync" target="_blank" rel="noopener">
@@ -772,65 +772,96 @@
                 delPageSize: 20,
 
                 load: async function (page) {
+                    // Concurrency guard: Jellyfin's SPA can fire `pageshow` multiple times in
+                    // quick succession when navigating between plugin pages. Two overlapping
+                    // load() runs would race on the same DOM + ApiClient state and at least one
+                    // would throw. Skip if already loading.
+                    if (this._loading) return;
+                    this._loading = true;
+
                     applyTranslations(page);
                     Dashboard.showLoadingMsg();
-                    try {
-                        // Override with Jellyfin user language if different
-                        try {
-                            const userId = ApiClient.getCurrentUserId();
-                            const jfLang = userId ? (localStorage.getItem(userId + '-language') || navigator.language || 'en') : (navigator.language || 'en');
-                            const newCT = cfgStrings[jfLang.startsWith('fr') ? 'fr' : 'en'];
-                            if (newCT !== CT) {
-                                CT = newCT;
-                                applyTranslations(page);
-                            }
-                        } catch (e) { /* keep browser lang */ }
 
+                    // Each section is wrapped in its own try/catch so a failure in one (e.g.
+                    // transient network blip on /DeletedItems) doesn't cascade into a global
+                    // error toast — the page is still useful even with one section missing.
+                    const safe = async (label, fn) => {
+                        try { await fn(); } catch (e) { console.error('NotifySync: ' + label + ' failed', e); }
+                    };
+
+                    // Language detection (best-effort)
+                    try {
+                        const userId = ApiClient.getCurrentUserId();
+                        const jfLang = userId ? (localStorage.getItem(userId + '-language') || navigator.language || 'en') : (navigator.language || 'en');
+                        const newCT = cfgStrings[jfLang.startsWith('fr') ? 'fr' : 'en'];
+                        if (newCT !== CT) {
+                            CT = newCT;
+                            applyTranslations(page);
+                        }
+                    } catch (e) { /* keep browser lang */ }
+
+                    // Plugin config fetch — this one is required; if it fails, abort load gracefully.
+                    try {
                         const cfg = await ApiClient.getPluginConfiguration(this.pluginId);
                         this.config = cfg || {};
                         this.config.EnabledLibraries = this.config.EnabledLibraries || [];
                         this.config.CategoryMappings = this.config.CategoryMappings || [];
                         this.config.ManualLibraryIds = this.config.ManualLibraryIds || [];
                         this.config.EnabledCollections = this.config.EnabledCollections || [];
+                    } catch (e) {
+                        console.error('NotifySync: getPluginConfiguration failed', e);
+                        this._loading = false;
+                        Dashboard.hideLoadingMsg();
+                        return;
+                    }
 
-                        // Quota
+                    // Settings panel DOM wiring — each operation guarded so a missing element
+                    // (race with SPA mount) doesn't kill the whole load.
+                    try {
+                        const slider = page.querySelector('#maxItemsSlider');
+                        const sliderValue = page.querySelector('#maxItemsValue');
                         const max = this.config.MaxItems || 10;
-                        page.querySelector('#maxItemsSlider').value = max;
-                        page.querySelector('#maxItemsValue').textContent = max;
-                        page.querySelector('#maxItemsSlider').oninput = (e) => {
-                            page.querySelector('#maxItemsValue').textContent = e.target.value;
-                        };
+                        if (slider) {
+                            slider.value = max;
+                            slider.oninput = (e) => { if (sliderValue) sliderValue.textContent = e.target.value; };
+                        }
+                        if (sliderValue) sliderValue.textContent = max;
 
-                        // Manual IDs
-                        page.querySelector('#manualLibraryIds').value = this.config.ManualLibraryIds.join(', ');
+                        const manual = page.querySelector('#manualLibraryIds');
+                        if (manual) manual.value = this.config.ManualLibraryIds.join(', ');
 
-                        // Deletion tracking toggle
                         const tracking = this.config.EnableDeletedTracking !== false;
                         const toggle = page.querySelector('#enableDeletedToggle');
-                        toggle.classList.toggle('on', tracking);
-                        toggle.setAttribute('aria-checked', tracking);
-                        page.querySelector('#deletedRetentionDays').value = this.config.DeletedRetentionDays || 30;
+                        if (toggle) {
+                            toggle.classList.toggle('on', tracking);
+                            toggle.setAttribute('aria-checked', tracking);
+                        }
+                        const retention = page.querySelector('#deletedRetentionDays');
+                        if (retention) retention.value = this.config.DeletedRetentionDays || 30;
 
-                        // Tabs
                         page.querySelectorAll('.ns-tab').forEach(tab => {
                             tab.onclick = () => this.switchTab(page, tab.dataset.tab);
                         });
 
-                        // Search inputs
-                        page.querySelector('#libSearch').oninput = (e) => this.filterList(page, 'libs', e.target.value);
-                        page.querySelector('#colSearch').oninput = (e) => this.filterList(page, 'cols', e.target.value);
-                        page.querySelector('#delSearch').oninput = (e) => this.renderDeletedItems(page);
-
-                        await this.renderLibs(page);
-                        await this.renderCollections(page);
-                        this.renderMap(page);
-                        await this.loadDeletedItems(page);
-                    } catch (err) {
-                        console.error('NotifySync config load error', err);
-                        showToast(CT.errorMsg, 'error');
-                    } finally {
-                        Dashboard.hideLoadingMsg();
+                        const libSearch = page.querySelector('#libSearch');
+                        if (libSearch) libSearch.oninput = (e) => this.filterList(page, 'libs', e.target.value);
+                        const colSearch = page.querySelector('#colSearch');
+                        if (colSearch) colSearch.oninput = (e) => this.filterList(page, 'cols', e.target.value);
+                        const delSearch = page.querySelector('#delSearch');
+                        if (delSearch) delSearch.oninput = () => this.renderDeletedItems(page);
+                    } catch (e) {
+                        console.error('NotifySync: settings DOM wiring failed', e);
                     }
+
+                    // Each section now runs independently — a failure here is logged and the
+                    // user still sees the rest of the page rendered. No global error toast.
+                    await safe('renderLibs', () => this.renderLibs(page));
+                    await safe('renderCollections', () => this.renderCollections(page));
+                    safe('renderMap', () => this.renderMap(page));
+                    await safe('loadDeletedItems', () => this.loadDeletedItems(page));
+
+                    this._loading = false;
+                    Dashboard.hideLoadingMsg();
                 },
 
                 switchTab: function (page, tabName) {

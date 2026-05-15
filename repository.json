@@ -10,6 +10,14 @@
     "imageUrl": "https://raw.githubusercontent.com/peterdu1109/NotifySync/main/icon.svg",
     "versions": [
       {
+        "version": "5.5.11.6",
+        "changelog": "<a style='color:white;text-decoration:none' href=\"https://github.com/peterdu1109/NotifySync/releases/tag/v5.5.11.6\">📋 <span style='text-decoration:underline'>Release Notes v5.5.11.6</span></a>",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/v5.5.11.6/NotifySync.zip",
+        "checksum": "03AC7CD1D673E5C9DFEDEDC6A7451EAF",
+        "timestamp": "2026-05-15T10:58:00Z"
+      },
+      {
         "version": "5.5.11.5",
         "changelog": "<a style='color:white;text-decoration:none' href=\"https://github.com/peterdu1109/NotifySync/releases/tag/v5.5.11.5\">📋 <span style='text-decoration:underline'>Release Notes v5.5.11.5</span></a>",
         "targetAbi": "10.11.0.0",

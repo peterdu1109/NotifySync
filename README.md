@@ -1,7 +1,7 @@
 <h1 align="center">🔔 NotifySync</h1>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-5.5.11.11-blue" alt="Version">
+  <img src="https://img.shields.io/badge/version-5.5.11.12-blue" alt="Version">
   <img src="https://img.shields.io/badge/.NET-9.0-purple" alt=".NET Framework">
   <img src="https://img.shields.io/badge/Jellyfin-10.11.X-blueviolet" alt="Jellyfin">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="License">
@@ -37,7 +37,6 @@ NotifySync transforms the Jellyfin interface by adding a native notification bel
 - [✨ Key Features](#-key-features)
 - [📦 Installation](#-installation)
 - [⚙️ Configuration](#️-configuration)
-- [🗺️ Roadmap](#️-roadmap)
 - [❓ Troubleshooting](#-troubleshooting)
 - [👥 Authors & Credits](#-authors--credits)
 
@@ -135,16 +134,6 @@ Go to **Dashboard > Plugins > NotifySync**.
 | **Deletion Retention** | `30 days` | Number of days to keep deleted item records (1–365). |
 | **Regenerate History** | — | Force a full rescan after changing libraries or quotas. |
 
-## 🗺️ Roadmap
-
-What's planned for upcoming releases:
-
-- **Phase B — MediaStreams enrichment**: precise upgrade labels like *"UPD • Video (1080p H.264 → 4K HEVC HDR)"* or *"UPD • Audio (+FR Atmos)"* based on actual stream metadata instead of filename heuristics.
-- **Admin config page refresh** (Niveau 2): tabs, search inputs for large library lists, drag-and-drop category priority, sortable/paginated deletion history table.
-- **Optional filter for Minor updates**: admin toggle to silence the *"UPD • Minor"* notifications (subtitle additions, metadata refreshes) if they prove too noisy in practice.
-
-Feature requests and feedback welcome via [GitHub Issues](https://github.com/peterdu1109/NotifySync/issues).
-
 ## ❓ Troubleshooting
 
 | Issue | Solution |
@@ -185,7 +174,6 @@ NotifySync transforme l'interface Jellyfin en y ajoutant une cloche de notificat
 - [✨ Fonctionnalités](#-fonctionnalités)
 - [📦 Installation](#-installation-1)
 - [⚙️ Configuration](#️-configuration-1)
-- [🗺️ Feuille de Route](#️-feuille-de-route)
 - [❓ Dépannage](#-dépannage)
 - [👥 Auteurs & Crédits](#-auteurs--crédits)
 
@@ -281,16 +269,6 @@ Allez dans **Tableau de bord > Extensions > NotifySync**.
 | **Suivi des Suppressions** | `activé` | Activer/désactiver le journal des suppressions. **Requis pour la détection MAJ complète** sur les remplacements Sonarr/Radarr (scénario delete+ré-import). |
 | **Rétention des Suppressions** | `30 jours` | Nombre de jours de conservation des éléments supprimés (1–365). |
 | **Régénérer l'Historique** | — | Force un scan complet après modification des bibliothèques ou quotas. |
-
-## 🗺️ Feuille de Route
-
-Ce qui est prévu pour les prochaines releases :
-
-- **Phase B — Enrichissement MediaStreams** : labels MAJ précis comme *"MAJ • Vidéo (1080p H.264 → 4K HEVC HDR)"* ou *"MAJ • Audio (+FR Atmos)"* basés sur les vraies métadonnées des streams au lieu des heuristiques de filename.
-- **Refonte de la page admin** (Niveau 2) : tabs, search input pour les grandes listes de bibliothèques, drag & drop pour la priorité des catégories, table d'historique des suppressions triable et paginée.
-- **Filtre optionnel des MAJ Mineures** : toggle admin pour masquer les notifications *"MAJ • Mineur"* (ajouts de sous-titres, refresh metadata) si elles s'avèrent trop bruyantes en pratique.
-
-Demandes de fonctionnalités et retours bienvenus via [GitHub Issues](https://github.com/peterdu1109/NotifySync/issues).
 
 ## ❓ Dépannage
 

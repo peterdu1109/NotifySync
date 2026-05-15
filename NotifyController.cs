@@ -242,8 +242,12 @@ namespace NotifySync
 
                     if (item == null)
                     {
+                        // Item was deleted from Jellyfin but the notification is still in DB.
+                        // We cannot enforce the visibility check on a missing item, so showing
+                        // the notification would leak its metadata (title, year, series, etc.)
+                        // to every user — including those who never had access to that library.
+                        // Skip orphans entirely.
                         itemNotFound++;
-                        filtered.Add(n);
                         continue;
                     }
 

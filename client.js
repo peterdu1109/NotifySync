@@ -1,4 +1,4 @@
-/* NOTIFYSYNC V5.5.11.6 */
+/* NOTIFYSYNC V5.5.11.7 */
 (function () {
     let currentData = [];
     let groupedData = [];
@@ -740,6 +740,39 @@
         fetchData();
     };
 
+    // Swap the default folder icon Jellyfin renders next to NotifySync in the admin sidebar
+    // for a bell (Material "notifications"). Same approach as Jellyfin Enhanced's Sidebar
+    // Custom Links — but scoped to NotifySync's own entry and using *replace* rather than
+    // *add*, so no duplicate icons.
+    const installAdminSidebarIcon = () => {
+        const links = document.querySelectorAll('a');
+        for (let i = 0; i < links.length; i++) {
+            const link = links[i];
+            if (link.dataset.nsIconDone) continue;
+            const href = (link.getAttribute('href') || '').toLowerCase();
+            if (href.indexOf('notifysync') < 0) continue;
+            // Configurationpage links only — skip details/dashboard navigation
+            if (href.indexOf('configurationpage') < 0 && href.indexOf('plugins') < 0) continue;
+            const iconSpan = link.querySelector('.material-icons');
+            if (iconSpan) {
+                if (iconSpan.textContent.trim() === 'notifications') {
+                    link.dataset.nsIconDone = '1';
+                    continue;
+                }
+                iconSpan.textContent = 'notifications';
+                link.dataset.nsIconDone = '1';
+            } else {
+                const icon = document.createElement('span');
+                icon.className = 'material-icons';
+                icon.textContent = 'notifications';
+                icon.style.cssText = 'margin-right:8px; vertical-align:middle; font-size:20px;';
+                icon.setAttribute('aria-hidden', 'true');
+                link.insertBefore(icon, link.firstChild);
+                link.dataset.nsIconDone = '1';
+            }
+        }
+    };
+
     const monitorBellDisappearance = () => {
         const obs = new MutationObserver(() => { if (!document.getElementById('netflix-bell')) { obs.disconnect(); startMainObserver(); } });
         obs.observe(document.body, { childList: true, subtree: true });
@@ -749,10 +782,14 @@
     const startMainObserver = () => {
         observerInstance = new MutationObserver(() => {
             if (_installDebounce) clearTimeout(_installDebounce);
-            _installDebounce = setTimeout(installBell, 200);
+            _installDebounce = setTimeout(() => {
+                installBell();
+                installAdminSidebarIcon();
+            }, 200);
         });
         observerInstance.observe(document.body, { childList: true, subtree: true });
         installBell();
+        installAdminSidebarIcon();
     };
 
     // --- NEW: WebSockets Real-Time Sync ---

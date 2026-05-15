@@ -75,7 +75,8 @@ namespace NotifySync
                 {
                     Name = "NotifySync",
                     EmbeddedResourcePath = GetType().Namespace + ".ConfigurationPage.html",
-                    MenuIcon = "notifications"
+                    MenuIcon = "notifications",
+                    EnableInMainMenu = true
                 }
             };
         }

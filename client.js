@@ -1,4 +1,4 @@
-/* NOTIFYSYNC V5.5.11.10 */
+/* NOTIFYSYNC V5.5.11.11 */
 (function () {
     let currentData = [];
     let groupedData = [];
@@ -781,7 +781,17 @@
                 installAdminSidebarIcon();
             }, 200);
         });
-        observerInstance.observe(document.body, { childList: true, subtree: true });
+        // childList: catches node add/remove (SPA navigation, lazy renders).
+        // attributes + attributeFilter[d]: catches in-place SVG path updates when
+        // React/MUI re-renders the sidebar icon on resize without replacing the node.
+        // Without this, the folder glyph re-appears whenever React patches the existing
+        // <svg><path> instead of remounting it.
+        observerInstance.observe(document.body, {
+            childList: true,
+            subtree: true,
+            attributes: true,
+            attributeFilter: ['d']
+        });
         installBell();
         installAdminSidebarIcon();
     };

@@ -57,27 +57,31 @@
                 background: rgba(255, 255, 255, 0.1); color: var(--ns-text-dim);
                 font-size: 11px; font-weight: 600; letter-spacing: 0.3px;
             }
-            .ns-header-links { display: flex; gap: 10px; }
-            .ns-header-link {
-                display: inline-flex; align-items: center; gap: 6px;
-                padding: 8px 14px; border-radius: 6px;
-                background: rgba(255, 255, 255, 0.08); color: var(--ns-text);
-                text-decoration: none; font-size: 13px; font-weight: 500;
-                transition: background 0.2s;
+            .ns-version-link {
+                display: inline-flex; align-items: center; gap: 5px;
+                text-decoration: none; color: inherit;
+                margin-top: 4px;
             }
-            .ns-header-link:hover { background: rgba(255, 255, 255, 0.16); }
-            .ns-header-link .material-icons { font-size: 16px !important; }
+            .ns-version-link .ns-version { margin-top: 0; transition: background 0.2s, color 0.2s; }
+            .ns-version-link:hover .ns-version { background: rgba(0, 164, 220, 0.2); color: var(--ns-accent); }
+            .ns-version-icon {
+                font-size: 13px !important; opacity: 0.4; color: var(--ns-text-dim);
+                transition: opacity 0.2s, color 0.2s;
+            }
+            .ns-version-link:hover .ns-version-icon { opacity: 1; color: var(--ns-accent); }
 
             /* Tabs */
             .ns-tabs {
                 display: flex; gap: 4px; border-bottom: 1px solid var(--ns-border);
                 margin-bottom: 20px; overflow-x: auto; -webkit-overflow-scrolling: touch;
+                scrollbar-width: thin;
             }
             .ns-tab {
                 background: transparent; border: none; color: var(--ns-text-dim);
                 padding: 12px 18px; font-size: 14px; font-weight: 500; cursor: pointer;
                 border-bottom: 2px solid transparent; transition: all 0.2s;
                 white-space: nowrap; display: inline-flex; align-items: center; gap: 6px;
+                flex-shrink: 0;
             }
             .ns-tab:hover { color: var(--ns-text); background: rgba(255, 255, 255, 0.04); }
             .ns-tab.active { color: var(--ns-accent); border-bottom-color: var(--ns-accent); }
@@ -358,8 +362,18 @@
 
             /* Responsive */
             @media (max-width: 600px) {
-                .ns-header { flex-direction: column; align-items: flex-start; }
-                .ns-tabs { flex-wrap: nowrap; }
+                .ns-header { padding: 14px 16px; gap: 12px; }
+                .ns-header-icon { font-size: 28px !important; padding: 8px; }
+                .ns-header-info h2 { font-size: 18px; }
+                /* Subtle fade on the right edge of the tab strip — hints that
+                   more tabs exist off-screen and can be scrolled horizontally. */
+                .ns-tabs {
+                    flex-wrap: nowrap;
+                    mask-image: linear-gradient(to right, black calc(100% - 24px), transparent 100%);
+                    -webkit-mask-image: linear-gradient(to right, black calc(100% - 24px), transparent 100%);
+                }
+                .ns-tab { padding: 10px 14px; font-size: 13px; }
+                .ns-card { padding: 14px 16px; }
                 .ns-save-bar { bottom: 12px; right: 12px; }
                 .ns-mapping-form > * { min-width: 100%; }
             }
@@ -374,11 +388,12 @@
                         <span class="material-icons ns-header-icon">notifications_active</span>
                         <div class="ns-header-info">
                             <h2>NotifySync</h2>
-                            <span class="ns-version" id="ns-version-badge">v5.5.11.9</span>
-                        </div>
-                        <div class="ns-header-links">
-                            <a class="ns-header-link" href="https://github.com/peterdu1109/NotifySync" target="_blank" rel="noopener">
-                                <span class="material-icons">open_in_new</span> GitHub
+                            <a class="ns-version-link" id="ns-version-link"
+                               href="https://github.com/peterdu1109/NotifySync/releases/tag/v5.5.11.10"
+                               target="_blank" rel="noopener"
+                               title="Voir les release notes sur GitHub / View release notes on GitHub">
+                                <span class="ns-version" id="ns-version-badge">v5.5.11.10</span>
+                                <span class="material-icons ns-version-icon">open_in_new</span>
                             </a>
                         </div>
                     </div>
@@ -814,6 +829,17 @@
                         Dashboard.hideLoadingMsg();
                         return;
                     }
+
+                    // Version badge link: build the release notes URL from the displayed version.
+                    // Keeps the link self-updating — only the badge text needs to change on bump.
+                    try {
+                        const versionEl = page.querySelector('#ns-version-badge');
+                        const versionLink = page.querySelector('#ns-version-link');
+                        if (versionEl && versionLink) {
+                            const v = versionEl.textContent.trim().replace(/^v?/, 'v');
+                            versionLink.setAttribute('href', 'https://github.com/peterdu1109/NotifySync/releases/tag/' + v);
+                        }
+                    } catch (e) { /* non-critical */ }
 
                     // Settings panel DOM wiring — each operation guarded so a missing element
                     // (race with SPA mount) doesn't kill the whole load.

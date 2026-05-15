@@ -1,4 +1,4 @@
-/* NOTIFYSYNC V5.5.11.2 */
+/* NOTIFYSYNC V5.5.11.3 */
 (function () {
     let currentData = [];
     let groupedData = [];
@@ -490,6 +490,12 @@
         const filterBar = drop.querySelector('.filter-bar');
         filterBar.innerHTML = Array.from(cats).map(c => `<div class="filter-pill ${activeFilter === c ? 'active' : ''}" data-category="${escapeHtml(c)}" tabindex="0" role="button" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">${T['filter' + c] || escapeHtml(c)}</div>`).join('');
 
+        // Wire filter pills now — must stay clickable even when the current category becomes empty,
+        // otherwise the user is trapped in the empty state and has to close/reopen the dropdown.
+        filterBar.querySelectorAll('.filter-pill').forEach(pill => {
+            pill.onclick = () => document.dispatchEvent(new CustomEvent('ns-filter', { detail: pill.dataset.category }));
+        });
+
         if (filtered.length === 0) { container.innerHTML = `<div style="padding:60px 20px;text-align:center;color:#666;font-style:italic;">${T.empty}</div>`; return; }
 
         const htmlParts = [];
@@ -552,11 +558,6 @@
             container.querySelectorAll('img[data-src]').forEach(i => lazyImageObserver.observe(i));
             initSwipeToDismiss(container);
         }
-
-        // Wire filter pills via data attributes (avoids inline onclick + entity-decode XSS surface)
-        filterBar.querySelectorAll('.filter-pill').forEach(pill => {
-            pill.onclick = () => document.dispatchEvent(new CustomEvent('ns-filter', { detail: pill.dataset.category }));
-        });
 
         // Wire footer "Clear" button via data attributes
         const footer = container.querySelector('.footer-tools');
@@ -739,6 +740,32 @@
         fetchData();
     };
 
+    // Inject a Material "notifications" icon next to the NotifySync entry in the admin
+    // Dashboard sidebar. Jellyfin doesn't render plugin icons natively in that list, so we
+    // DOM-inject one — same approach Jellyfin Enhanced uses, but scoped to NotifySync only.
+    const installAdminSidebarIcon = () => {
+        // Plugin config links are <a> tags pointing to .../configurationpage?name=NotifySync
+        // (or similar). Match by text + href to avoid false hits.
+        const links = document.querySelectorAll('a');
+        for (let i = 0; i < links.length; i++) {
+            const link = links[i];
+            if (link.dataset.nsIconAdded) continue;
+            const text = (link.textContent || '').trim();
+            const href = (link.getAttribute('href') || '').toLowerCase();
+            if (text === 'NotifySync' && href.indexOf('notifysync') >= 0) {
+                // Skip if an icon is already present (e.g. Jellyfin Enhanced added one, or we did)
+                if (link.querySelector('.material-icons')) { link.dataset.nsIconAdded = 'true'; continue; }
+                const icon = document.createElement('span');
+                icon.className = 'material-icons';
+                icon.textContent = 'notifications';
+                icon.style.cssText = 'margin-right:10px; vertical-align:middle; font-size:20px;';
+                icon.setAttribute('aria-hidden', 'true');
+                link.insertBefore(icon, link.firstChild);
+                link.dataset.nsIconAdded = 'true';
+            }
+        }
+    };
+
     const monitorBellDisappearance = () => {
         const obs = new MutationObserver(() => { if (!document.getElementById('netflix-bell')) { obs.disconnect(); startMainObserver(); } });
         obs.observe(document.body, { childList: true, subtree: true });
@@ -748,10 +775,14 @@
     const startMainObserver = () => {
         observerInstance = new MutationObserver(() => {
             if (_installDebounce) clearTimeout(_installDebounce);
-            _installDebounce = setTimeout(installBell, 200);
+            _installDebounce = setTimeout(() => {
+                installBell();
+                installAdminSidebarIcon();
+            }, 200);
         });
         observerInstance.observe(document.body, { childList: true, subtree: true });
         installBell();
+        installAdminSidebarIcon();
     };
 
     // --- NEW: WebSockets Real-Time Sync ---

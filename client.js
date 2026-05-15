@@ -1,4 +1,4 @@
-/* NOTIFYSYNC V5.5.11.5 */
+/* NOTIFYSYNC V5.5.11.6 */
 (function () {
     let currentData = [];
     let groupedData = [];
@@ -740,32 +740,6 @@
         fetchData();
     };
 
-    // Inject a Material "notifications" icon next to the NotifySync entry in the admin
-    // Dashboard sidebar. Jellyfin doesn't render plugin icons natively in that list, so we
-    // DOM-inject one — same approach Jellyfin Enhanced uses, but scoped to NotifySync only.
-    const installAdminSidebarIcon = () => {
-        // Plugin config links are <a> tags pointing to .../configurationpage?name=NotifySync
-        // (or similar). Match by text + href to avoid false hits.
-        const links = document.querySelectorAll('a');
-        for (let i = 0; i < links.length; i++) {
-            const link = links[i];
-            if (link.dataset.nsIconAdded) continue;
-            const text = (link.textContent || '').trim();
-            const href = (link.getAttribute('href') || '').toLowerCase();
-            if (text === 'NotifySync' && href.indexOf('notifysync') >= 0) {
-                // Skip if an icon is already present (e.g. Jellyfin Enhanced added one, or we did)
-                if (link.querySelector('.material-icons')) { link.dataset.nsIconAdded = 'true'; continue; }
-                const icon = document.createElement('span');
-                icon.className = 'material-icons';
-                icon.textContent = 'notifications';
-                icon.style.cssText = 'margin-right:10px; vertical-align:middle; font-size:20px;';
-                icon.setAttribute('aria-hidden', 'true');
-                link.insertBefore(icon, link.firstChild);
-                link.dataset.nsIconAdded = 'true';
-            }
-        }
-    };
-
     const monitorBellDisappearance = () => {
         const obs = new MutationObserver(() => { if (!document.getElementById('netflix-bell')) { obs.disconnect(); startMainObserver(); } });
         obs.observe(document.body, { childList: true, subtree: true });
@@ -775,14 +749,10 @@
     const startMainObserver = () => {
         observerInstance = new MutationObserver(() => {
             if (_installDebounce) clearTimeout(_installDebounce);
-            _installDebounce = setTimeout(() => {
-                installBell();
-                installAdminSidebarIcon();
-            }, 200);
+            _installDebounce = setTimeout(installBell, 200);
         });
         observerInstance.observe(document.body, { childList: true, subtree: true });
         installBell();
-        installAdminSidebarIcon();
     };
 
     // --- NEW: WebSockets Real-Time Sync ---

@@ -1,0 +1,13 @@
+[
+  {
+    "category": "UI",
+    "guid": "95655672-2342-4321-8291-321312312312",
+    "name": "NotifySync (Beta)",
+    "description": "🧪 BETA CHANNEL — Pre-release versions of NotifySync for testers. Use the regular repository for stable installs.\n\nNotifySync transforms the Jellyfin interface by adding a native notification bell, inspired by major streaming platforms. Your users instantly see the latest additions — Movies, Series, Music — without ever leaving their current page.\n\n🧪 CANAL BETA — Versions pré-release de NotifySync pour testeurs. Utilisez le dépôt standard pour les installations stables.",
+    "owner": "ElieM & Peterdu1109",
+    "overview": "🧪 Beta channel for NotifySync. Stable users should use the main repository.\n🧪 Canal beta pour NotifySync. Les utilisateurs en production doivent utiliser le dépôt principal.",
+    "supportUrl": "https://github.com/peterdu1109/NotifySync",
+    "imageUrl": "https://raw.githubusercontent.com/peterdu1109/NotifySync/main/icon.svg",
+    "versions": []
+  }
+]

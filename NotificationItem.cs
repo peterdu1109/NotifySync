@@ -104,21 +104,6 @@ namespace NotifySync
         public string? UpgradeKind { get; set; }
 
         /// <summary>
-        /// Gets or sets the file modification ticks used for upgrade detection.
-        /// Internal only — not exposed in the API response.
-        /// </summary>
-        [JsonIgnore]
-        public long? DateModifiedTicks { get; set; }
-
-        /// <summary>
-        /// Gets or sets the file size in bytes, used for upgrade detection.
-        /// A change in size strongly indicates a replaced source file rather than a metadata refresh.
-        /// Internal only — not exposed in the API response.
-        /// </summary>
-        [JsonIgnore]
-        public long? Size { get; set; }
-
-        /// <summary>
         /// Gets or sets the file path of the media source, used for upgrade detection.
         /// A change in path (e.g. WEBDL → Bluray) is the strongest indicator of a file replacement.
         /// Internal only — not exposed in the API response.

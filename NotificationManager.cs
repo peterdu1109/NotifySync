@@ -251,7 +251,10 @@ namespace NotifySync
                 return null;
             }
 
-            // 1. Quality — resolution or source token went up.
+            // 1. Quality — resolution or source token differs (in either direction).
+            //    We flag any change, not just upgrades, for symmetry with Codec detection.
+            //    Whether 1080p → 4K or 4K → 1080p, the user wants to know that the file
+            //    they had has been replaced with one of a different quality tier.
             bool oldHas4K = ContainsAnyTag(oldPath, ResolutionUpTokens4K);
             bool newHas4K = ContainsAnyTag(newPath, ResolutionUpTokens4K);
             bool oldHas1080 = ContainsAnyTag(oldPath, ResolutionUpTokens1080);
@@ -259,12 +262,12 @@ namespace NotifySync
             bool oldHasBetterSource = ContainsAnyTag(oldPath, SourceBetterTokens);
             bool newHasBetterSource = ContainsAnyTag(newPath, SourceBetterTokens);
 
-            if ((!oldHas4K && newHas4K) || (!oldHas1080 && newHas1080 && !oldHas4K))
+            if (oldHas4K != newHas4K || oldHas1080 != newHas1080)
             {
                 return KindQuality;
             }
 
-            if (!oldHasBetterSource && newHasBetterSource)
+            if (oldHasBetterSource != newHasBetterSource)
             {
                 return KindQuality;
             }
@@ -1387,8 +1390,6 @@ namespace NotifySync
                     PrimaryImageTag = item.ImageInfos.Where(i => i.Type == ImageType.Primary).Select(i => i.DateModified.Ticks.ToString(CultureInfo.InvariantCulture)).FirstOrDefault(),
                     IndexNumber = item.IndexNumber,
                     ParentIndexNumber = item.ParentIndexNumber,
-                    DateModifiedTicks = item.DateModified.Ticks,
-                    Size = item.Size,
                     FilePath = item.Path
                 };
 
@@ -1494,8 +1495,6 @@ namespace NotifySync
                     PrimaryImageTag = item.ImageInfos.Where(i => i.Type == ImageType.Primary).Select(i => i.DateModified.Ticks.ToString(System.Globalization.CultureInfo.InvariantCulture)).FirstOrDefault(),
                     IndexNumber = item.IndexNumber,
                     ParentIndexNumber = item.ParentIndexNumber,
-                    DateModifiedTicks = item.DateModified.Ticks,
-                    Size = item.Size,
                     FilePath = item.Path
                 };
 

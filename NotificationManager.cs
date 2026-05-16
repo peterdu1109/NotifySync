@@ -770,17 +770,34 @@ namespace NotifySync
 
                         if (pathChanged || (sizeChanged && dateChanged) || legacyFallback)
                         {
-                            updatedNotif.IsUpgrade = true;
-                            updatedNotif.UpgradeKind = ClassifyUpgrade(existing, updatedNotif);
-                            updatedNotif.DateCreated = DateTime.UtcNow; // Remonter en tête de liste
-                            _logger.LogInformation(
-                                "NotifySync Upgrade Detected: {Name} | kind={Kind} | pathChanged={PathChanged} (old={OldPath}, new={NewPath}) | sizeChanged={SizeChanged}",
-                                updatedNotif.Name,
-                                updatedNotif.UpgradeKind ?? "unspecified",
-                                pathChanged,
-                                existing.FilePath ?? "NULL",
-                                updatedNotif.FilePath ?? "NULL",
-                                sizeChanged);
+                            var kind = ClassifyUpgrade(existing, updatedNotif);
+                            if (kind == KindMinor)
+                            {
+                                // Subtitle added, metadata refresh, tiny re-mux — nothing the
+                                // user cares about. Keep the item where it is in the list with
+                                // no badge change. Only meaningful upgrades (Quality/Codec/Audio)
+                                // surface as MAJ.
+                                updatedNotif.DateCreated = existing.DateCreated;
+                                updatedNotif.IsUpgrade = existing.IsUpgrade;
+                                updatedNotif.UpgradeKind = existing.UpgradeKind;
+                                _logger.LogDebug(
+                                    "NotifySync Upgrade Suppressed: {Name} | classified as minor — keeping existing state",
+                                    updatedNotif.Name);
+                            }
+                            else
+                            {
+                                updatedNotif.IsUpgrade = true;
+                                updatedNotif.UpgradeKind = kind;
+                                updatedNotif.DateCreated = DateTime.UtcNow; // Remonter en tête de liste
+                                _logger.LogInformation(
+                                    "NotifySync Upgrade Detected: {Name} | kind={Kind} | pathChanged={PathChanged} (old={OldPath}, new={NewPath}) | sizeChanged={SizeChanged}",
+                                    updatedNotif.Name,
+                                    updatedNotif.UpgradeKind ?? "unspecified",
+                                    pathChanged,
+                                    existing.FilePath ?? "NULL",
+                                    updatedNotif.FilePath ?? "NULL",
+                                    sizeChanged);
+                            }
                         }
                         else if (!existing.IsUpgrade
                             && TryDeletedMatch(
@@ -793,13 +810,26 @@ namespace NotifySync
                         {
                             // Metadata now available — re-check deleted history for upgrade detection.
                             // ProcessBuffer may have missed it due to null SeriesName at ItemAdded time.
-                            updatedNotif.IsUpgrade = true;
-                            updatedNotif.UpgradeKind = ClassifyUpgrade(existing, updatedNotif);
-                            updatedNotif.DateCreated = DateTime.UtcNow;
-                            _logger.LogInformation(
-                                "NotifySync Upgrade Check: {Name} | kind={Kind} | deletedMatch=True (detected on metadata refresh)",
-                                updatedNotif.Name,
-                                updatedNotif.UpgradeKind ?? "unspecified");
+                            var kind = ClassifyUpgrade(existing, updatedNotif);
+                            if (kind == KindMinor)
+                            {
+                                updatedNotif.DateCreated = existing.DateCreated;
+                                updatedNotif.IsUpgrade = existing.IsUpgrade;
+                                updatedNotif.UpgradeKind = existing.UpgradeKind;
+                                _logger.LogDebug(
+                                    "NotifySync Upgrade Suppressed (deleted-match path): {Name} | classified as minor",
+                                    updatedNotif.Name);
+                            }
+                            else
+                            {
+                                updatedNotif.IsUpgrade = true;
+                                updatedNotif.UpgradeKind = kind;
+                                updatedNotif.DateCreated = DateTime.UtcNow;
+                                _logger.LogInformation(
+                                    "NotifySync Upgrade Check: {Name} | kind={Kind} | deletedMatch=True (detected on metadata refresh)",
+                                    updatedNotif.Name,
+                                    updatedNotif.UpgradeKind ?? "unspecified");
+                            }
                         }
                         else
                         {
@@ -934,8 +964,6 @@ namespace NotifySync
 
                         if (!notif.IsUpgrade && deletedRecord != null)
                         {
-                            notif.IsUpgrade = true;
-
                             // Build a synthetic "previous" notification from the deleted record
                             // so ClassifyUpgrade has the same shape it expects when called from
                             // OnItemUpdated. Any field the deleted record didn't capture stays null
@@ -950,14 +978,27 @@ namespace NotifySync
                                 Container = deletedRecord.Container,
                                 MediaBitrate = deletedRecord.MediaBitrate
                             };
-                            notif.UpgradeKind = ClassifyUpgrade(deletedAsNotif, notif);
+                            var kind = ClassifyUpgrade(deletedAsNotif, notif);
 
-                            _logger.LogInformation(
-                                "NotifySync Upgrade Detected (ProcessBuffer): {Name} | kind={Kind} | oldPath={Old} | newPath={New}",
-                                notif.Name,
-                                notif.UpgradeKind ?? "unspecified",
-                                deletedRecord.FilePath ?? "NULL",
-                                notif.FilePath ?? "NULL");
+                            if (kind == KindMinor)
+                            {
+                                // User deleted and re-imported what is essentially the same file.
+                                // Don't flag as upgrade — the entry will appear as a normal NEW item.
+                                _logger.LogDebug(
+                                    "NotifySync Upgrade Suppressed (ProcessBuffer): {Name} | classified as minor — treating as plain NEW",
+                                    notif.Name);
+                            }
+                            else
+                            {
+                                notif.IsUpgrade = true;
+                                notif.UpgradeKind = kind;
+                                _logger.LogInformation(
+                                    "NotifySync Upgrade Detected (ProcessBuffer): {Name} | kind={Kind} | oldPath={Old} | newPath={New}",
+                                    notif.Name,
+                                    notif.UpgradeKind ?? "unspecified",
+                                    deletedRecord.FilePath ?? "NULL",
+                                    notif.FilePath ?? "NULL");
+                            }
                         }
 
                         newItems.Add(notif);

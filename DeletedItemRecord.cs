@@ -58,25 +58,5 @@ namespace NotifySync
         /// the old path is the &quot;before&quot; reference for the path-based heuristic.
         /// </summary>
         public string? FilePath { get; set; }
-
-        /// <summary>
-        /// Gets or sets the video width in pixels of the deleted source, for Phase B Lite classification.
-        /// </summary>
-        public int? VideoWidth { get; set; }
-
-        /// <summary>
-        /// Gets or sets the video height in pixels of the deleted source, for Phase B Lite classification.
-        /// </summary>
-        public int? VideoHeight { get; set; }
-
-        /// <summary>
-        /// Gets or sets the media container of the deleted source (mkv, mp4, …).
-        /// </summary>
-        public string? Container { get; set; }
-
-        /// <summary>
-        /// Gets or sets the derived media bitrate of the deleted source in bps.
-        /// </summary>
-        public long? MediaBitrate { get; set; }
     }
 }

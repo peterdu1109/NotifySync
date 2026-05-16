@@ -30,10 +30,11 @@ namespace NotifySync
 
         // Upgrade kind constants. Stored in NotificationItem.UpgradeKind and read by the
         // client to render a precise sub-label next to the UPD/MAJ badge.
+        // We deliberately surface only three kinds; anything that doesn't match one of
+        // these signals is treated as a non-upgrade (item stays in place, no badge).
         private const string KindQuality = "quality";
         private const string KindCodec = "codec";
         private const string KindAudio = "audio";
-        private const string KindMinor = "minor";
 
         // Path tokens (lowercase) used to detect upgrade type from filename conventions.
         // Tokens are matched as standalone tags surrounded by non-alphanumeric separators
@@ -41,14 +42,17 @@ namespace NotifySync
         private static readonly string[] ResolutionUpTokens4K = { "2160p", "4k", "uhd" };
         private static readonly string[] ResolutionUpTokens1080 = { "1080p" };
         private static readonly string[] SourceBetterTokens = { "bluray", "blu-ray", "remux", "blueray" };
-        private static readonly string[] DubbedTokens = { "vff", "vfq", "vfi", "vf", "truefrench", "french", "multi", "dubbed", "dub" };
 
-        // Per-token "audio upgrade arriving" detection. Each token here represents a
-        // dedicated French dub track; transitioning from a release that doesn't carry the
-        // token to one that does counts as an audio upgrade — even when other audio markers
-        // (e.g. "MULTI") were already present. Ordered loosely from strongest to weakest.
-        // VOSTFR is intentionally NOT in this list — it's a subtitle-only release.
-        private static readonly string[] AudioPriorityTokens = { "vff", "vfq", "vfi", "truefrench", "french" };
+        // Audio-track-added tokens: when any of these appears in the new filename but not
+        // in the old one, we flag MAJ • Audio. Covers FR variants (priority for the French
+        // audience), multi-language markers, and generic "dubbed" markers. VOSTFR is NOT
+        // here — it's subtitles-only, not an audio change.
+        private static readonly string[] AudioAddedTokens =
+        {
+            "vff", "vfq", "vfi", "vf", "truefrench", "french",
+            "multi", "dual",
+            "dubbed", "dub"
+        };
 
         private readonly ILibraryManager _libraryManager;
         private readonly IUserDataManager _userDataManager;
@@ -228,72 +232,45 @@ namespace NotifySync
 
         /// <summary>
         /// Classifies the type of upgrade detected when replacing an existing notification's
-        /// media file. Returns one of the <c>Kind*</c> constants or <c>null</c> if no pattern
-        /// matched (the client will then render just "MAJ"/"UPD" without a sub-label).
+        /// media file. Returns one of <see cref="KindQuality"/>, <see cref="KindCodec"/>,
+        /// <see cref="KindAudio"/>, or <c>null</c> when no meaningful change is detected.
+        /// Detection is purely filename-based — release-group naming conventions are the
+        /// only reliable signal here. Size, bitrate, container, and pixel-dimension
+        /// heuristics were tried (Phase B Lite) and produced too many false positives.
         /// </summary>
         private static string? ClassifyUpgrade(NotificationItem existing, NotificationItem updated)
         {
             string oldPath = (existing.FilePath ?? string.Empty).ToLowerInvariant();
             string newPath = (updated.FilePath ?? string.Empty).ToLowerInvariant();
-            long oldSize = existing.Size ?? 0;
-            long newSize = updated.Size ?? 0;
-            bool pathChanged = !string.IsNullOrEmpty(oldPath) && oldPath != newPath;
-            long sizeDelta = Math.Abs(newSize - oldSize);
-            double sizeRatio = oldSize > 0 ? (double)sizeDelta / oldSize : 0;
 
-            // 1. Quality — path indicates resolution or source upgrade
-            if (pathChanged)
+            // No path-based signal possible without a usable old path. The caller will
+            // treat this as "unspecified MAJ" or, on the deleted-match path, decide to
+            // skip the upgrade flag entirely.
+            if (string.IsNullOrEmpty(oldPath) || oldPath == newPath)
             {
-                bool oldHas4K = ContainsAnyTag(oldPath, ResolutionUpTokens4K);
-                bool newHas4K = ContainsAnyTag(newPath, ResolutionUpTokens4K);
-                bool oldHas1080 = ContainsAnyTag(oldPath, ResolutionUpTokens1080);
-                bool newHas1080 = ContainsAnyTag(newPath, ResolutionUpTokens1080);
-                bool oldHasBetterSource = ContainsAnyTag(oldPath, SourceBetterTokens);
-                bool newHasBetterSource = ContainsAnyTag(newPath, SourceBetterTokens);
-
-                // Resolution went up (no→4K, or no→1080 while not already 4K)
-                if ((!oldHas4K && newHas4K) || (!oldHas1080 && newHas1080 && !oldHas4K))
-                {
-                    return KindQuality;
-                }
-
-                // Source went up (WEB/HDTV → BluRay/REMUX)
-                if (!oldHasBetterSource && newHasBetterSource)
-                {
-                    return KindQuality;
-                }
+                return null;
             }
 
-            // 1b. Phase B Lite — pixel-dimension upgrade (Width × Height jumped).
-            //     Catches re-encodes that change resolution without changing the filename
-            //     (e.g. transcoder pipelines that drop a 4K master in place of the 1080p).
-            int oldH = existing.VideoHeight ?? 0;
-            int newH = updated.VideoHeight ?? 0;
-            if (oldH > 0 && newH > 0 && newH > oldH + 100)
+            // 1. Quality — resolution or source token went up.
+            bool oldHas4K = ContainsAnyTag(oldPath, ResolutionUpTokens4K);
+            bool newHas4K = ContainsAnyTag(newPath, ResolutionUpTokens4K);
+            bool oldHas1080 = ContainsAnyTag(oldPath, ResolutionUpTokens1080);
+            bool newHas1080 = ContainsAnyTag(newPath, ResolutionUpTokens1080);
+            bool oldHasBetterSource = ContainsAnyTag(oldPath, SourceBetterTokens);
+            bool newHasBetterSource = ContainsAnyTag(newPath, SourceBetterTokens);
+
+            if ((!oldHas4K && newHas4K) || (!oldHas1080 && newHas1080 && !oldHas4K))
             {
                 return KindQuality;
             }
 
-            // Standalone large size growth (no path-based signal, but content much bigger).
-            // Require both >50% growth AND >500 MB absolute growth to avoid false positives
-            // on small files or codec re-encodes that happen to grow modestly.
-            if (oldSize > 0 && newSize > (long)(oldSize * 1.5) && (newSize - oldSize) > 500_000_000L)
+            if (!oldHasBetterSource && newHasBetterSource)
             {
                 return KindQuality;
             }
 
-            // 1c. Phase B Lite — bitrate growth (>25 %). Final fall-back quality signal
-            //     when dimensions/path don't move but the file is meaningfully denser.
-            long oldBr = existing.MediaBitrate ?? 0;
-            long newBr = updated.MediaBitrate ?? 0;
-            if (oldBr > 0 && newBr > (long)(oldBr * 1.25))
-            {
-                return KindQuality;
-            }
-
-            // 2. Codec — codec family changed between old and new path
-            //    Catches transitions in any direction (x264→HEVC, AV1↔x265, etc.) — the previous
-            //    "only when arriving at a codec from no codec" check missed common upgrades.
+            // 2. Codec — codec family changed between old and new filename.
+            //    Catches transitions in any direction (x264 ↔ HEVC ↔ AV1).
             string? oldCodec = DetectCodec(oldPath);
             string? newCodec = DetectCodec(newPath);
             if (oldCodec != newCodec && (oldCodec != null || newCodec != null))
@@ -301,57 +278,18 @@ namespace NotifySync
                 return KindCodec;
             }
 
-            // 2b. Phase B Lite — container changed (mkv ↔ mp4) with no path signal.
-            //     Often pairs with a transmux/re-encode that the filename doesn't advertise.
-            string? oldContainer = (existing.Container ?? string.Empty).ToLowerInvariant();
-            string? newContainer = (updated.Container ?? string.Empty).ToLowerInvariant();
-            if (!string.IsNullOrEmpty(oldContainer) && !string.IsNullOrEmpty(newContainer)
-                && !string.Equals(oldContainer, newContainer, StringComparison.Ordinal))
+            // 3. Audio — any audio-track-added token appears in the new filename but
+            //    not in the old one (FR variants, multi-language markers, generic dub).
+            foreach (var token in AudioAddedTokens)
             {
-                return KindCodec;
-            }
-
-            // Path unchanged but size moved significantly → likely in-place re-encode
-            // (Sonarr/Radarr "atomic move" workflows or post-processing tools that rewrite
-            //  the file while keeping the same filename).
-            if (!pathChanged && newSize > 0 && (sizeRatio > 0.10 || sizeDelta > 50_000_000L))
-            {
-                return KindCodec;
-            }
-
-            // 3. Audio — per-token detection.
-            //    Detects the arrival of a dedicated French dub (VFF/VFQ/VFI/TRUEFRENCH/FRENCH).
-            //    Transitioning to ANY of these tokens from a release that doesn't carry it
-            //    qualifies as an audio upgrade — even when the old filename had MULTI/DUB.
-            //    This is the user-requested "passage en French ou VFF" detection.
-            if (pathChanged)
-            {
-                foreach (var token in AudioPriorityTokens)
-                {
-                    if (!ContainsTag(oldPath, token) && ContainsTag(newPath, token))
-                    {
-                        return KindAudio;
-                    }
-                }
-
-                // Generic dubbed-tokens fallback (covers MULTI/DUB/DUBBED appearing from a raw release).
-                bool oldHasDub = ContainsAnyTag(oldPath, DubbedTokens);
-                bool newHasDub = ContainsAnyTag(newPath, DubbedTokens);
-                if (!oldHasDub && newHasDub)
+                if (!ContainsTag(oldPath, token) && ContainsTag(newPath, token))
                 {
                     return KindAudio;
                 }
             }
 
-            // 4. Minor — same path AND very small delta (< 10 MB)
-            //    Typically: external subtitle file added, metadata refresh that touched
-            //    the date but not the content, tiny re-mux.
-            if (!pathChanged && sizeDelta < 10_000_000L)
-            {
-                return KindMinor;
-            }
-
-            // 5. No pattern matched — let the client render plain "MAJ"/"UPD"
+            // No filename signal matched. The caller decides whether to still flag this
+            // as a generic MAJ (path changed but reason unclear) or to ignore.
             return null;
         }
 
@@ -413,49 +351,10 @@ namespace NotifySync
         }
 
         /// <summary>
-        /// Derives bitrate in bps from file size (bytes) and runtime (ticks).
-        /// Returns null when either input is missing or non-positive.
-        /// Phase B Lite uses this for the "bitrate jumped &gt;25 %" quality signal.
-        /// </summary>
-        private static long? ComputeBitrate(long? sizeBytes, long? runTimeTicks)
-        {
-            if (!sizeBytes.HasValue || sizeBytes.Value <= 0)
-            {
-                return null;
-            }
-
-            if (!runTimeTicks.HasValue || runTimeTicks.Value <= 0)
-            {
-                return null;
-            }
-
-            // ticks → seconds, bytes → bits
-            double seconds = (double)runTimeTicks.Value / TimeSpan.TicksPerSecond;
-            if (seconds < 1.0)
-            {
-                return null;
-            }
-
-            return (long)((sizeBytes.Value * 8.0) / seconds);
-        }
-
-        /// <summary>
-        /// Wraps <see cref="NotificationDatabase.HasRecentDeletedMatch"/> with a fast short-circuit
-        /// when DeletedItems tracking is disabled — the table is empty/stale and the SQL query is wasted.
-        /// </summary>
-        private bool TryDeletedMatch(string name, string type, int? year, string? seriesName, int? indexNumber, int? parentIndexNumber)
-        {
-            if (Plugin.Instance?.Configuration?.EnableDeletedTracking != true)
-            {
-                return false;
-            }
-
-            return _db.HasRecentDeletedMatch(name, type, year, seriesName, indexNumber, parentIndexNumber);
-        }
-
-        /// <summary>
-        /// Returns the actual deleted record (or null) when DeletedItems tracking is enabled.
-        /// Used by <see cref="ProcessBuffer"/> so ClassifyUpgrade can compare old vs new properties.
+        /// Returns the most recent matching deleted record (or null) when DeletedItems
+        /// tracking is enabled. Used by both <see cref="ProcessBuffer"/> (new-item path)
+        /// and <see cref="OnItemUpdated"/> (metadata-refresh recovery) so ClassifyUpgrade
+        /// can compare the new file against the path of the file that was just deleted.
         /// </summary>
         private DeletedItemRecord? TryGetDeletedMatchRecord(string name, string type, int? year, string? seriesName, int? indexNumber, int? parentIndexNumber)
         {
@@ -667,12 +566,8 @@ namespace NotifySync
                     int? indexNum = item.IndexNumber;
                     int? parentIndexNum = item.ParentIndexNumber;
                     string? filePath = item.Path;
-                    int? vw = item.Width > 0 ? item.Width : null;
-                    int? vh = item.Height > 0 ? item.Height : null;
-                    string? container = string.IsNullOrEmpty(item.Container) ? null : item.Container;
-                    long? bitrate = ComputeBitrate(item.Size, item.RunTimeTicks);
 
-                    _db.SaveDeletedItem(item.Id.ToString(), item.Name ?? "Unknown", type, seriesName, year, indexNum, parentIndexNum, filePath, vw, vh, container, bitrate);
+                    _db.SaveDeletedItem(item.Id.ToString(), item.Name ?? "Unknown", type, seriesName, year, indexNum, parentIndexNum, filePath);
 
                     // Purge at most once per day to avoid unnecessary DB writes
                     var nowTicks = DateTime.UtcNow.Ticks;
@@ -737,98 +632,87 @@ namespace NotifySync
                     updatedNotif = CreateNotificationFromItem(e.Item);
                     if (updatedNotif != null)
                     {
-                        // Detect file replacement (quality upgrade)
-                        // Primary: Path changed = file replaced (strongest indicator)
-                        // Fallback: Size + DateModified changed = file replaced
+                        // Path change is the ONLY upgrade signal we trust. Size, date,
+                        // bitrate, container variations without a path change are too
+                        // noisy (Sonarr atomic moves, metadata refreshes, transcoder
+                        // pipelines all touch them without a meaningful media change).
                         bool pathChanged = !string.IsNullOrEmpty(existing.FilePath)
                             && !string.IsNullOrEmpty(updatedNotif.FilePath)
                             && !string.Equals(existing.FilePath, updatedNotif.FilePath, StringComparison.Ordinal);
-                        bool sizeChanged = existing.Size.HasValue
-                            && updatedNotif.Size.HasValue
-                            && existing.Size.Value != updatedNotif.Size.Value;
-                        bool dateChanged = existing.DateModifiedTicks.HasValue
-                            && updatedNotif.DateModifiedTicks.HasValue
-                            && existing.DateModifiedTicks.Value != updatedNotif.DateModifiedTicks.Value;
-                        // Fallback: if existing has no file metadata (pre-5.5.7.3), check deleted history
-                        bool legacyFallback = string.IsNullOrEmpty(existing.FilePath)
-                            && !existing.Size.HasValue
-                            && TryDeletedMatch(
+
+                        _logger.LogDebug(
+                            "NotifySync Upgrade Check: {Name} | pathChanged={PathChanged}",
+                            updatedNotif.Name,
+                            pathChanged);
+
+                        if (pathChanged)
+                        {
+                            var kind = ClassifyUpgrade(existing, updatedNotif);
+                            if (kind != null)
+                            {
+                                updatedNotif.IsUpgrade = true;
+                                updatedNotif.UpgradeKind = kind;
+                                updatedNotif.DateCreated = DateTime.UtcNow; // remonter en tête de liste
+                                _logger.LogInformation(
+                                    "NotifySync Upgrade Detected: {Name} | kind={Kind} | old={OldPath} new={NewPath}",
+                                    updatedNotif.Name,
+                                    kind,
+                                    existing.FilePath ?? "NULL",
+                                    updatedNotif.FilePath ?? "NULL");
+                            }
+                            else
+                            {
+                                // Path changed but no Quality/Codec/Audio token signal —
+                                // probably a file move or rename without a real upgrade.
+                                // Keep the item where it is, no badge change.
+                                updatedNotif.DateCreated = existing.DateCreated;
+                                updatedNotif.IsUpgrade = existing.IsUpgrade;
+                                updatedNotif.UpgradeKind = existing.UpgradeKind;
+                                _logger.LogDebug(
+                                    "NotifySync Upgrade Skipped: {Name} | path changed but no token signal",
+                                    updatedNotif.Name);
+                            }
+                        }
+                        else if (!existing.IsUpgrade)
+                        {
+                            // ProcessBuffer may have missed a deletion match at ItemAdded
+                            // time (e.g. null SeriesName before metadata was filled in).
+                            // Try once more now that the metadata is complete — compare the
+                            // current file against the deleted record's path, not against
+                            // itself.
+                            var deletedRecord = TryGetDeletedMatchRecord(
                                 updatedNotif.Name,
                                 updatedNotif.Type,
                                 updatedNotif.ProductionYear,
                                 updatedNotif.SeriesName,
                                 updatedNotif.IndexNumber,
                                 updatedNotif.ParentIndexNumber);
-
-                        _logger.LogDebug(
-                            "NotifySync Upgrade Check: {Name} | pathChanged={PathChanged} | sizeChanged={SizeChanged} | dateChanged={DateChanged} | legacyFallback={Legacy}",
-                            updatedNotif.Name,
-                            pathChanged,
-                            sizeChanged,
-                            dateChanged,
-                            legacyFallback);
-
-                        if (pathChanged || (sizeChanged && dateChanged) || legacyFallback)
-                        {
-                            var kind = ClassifyUpgrade(existing, updatedNotif);
-                            if (kind == KindMinor)
+                            if (deletedRecord != null)
                             {
-                                // Subtitle added, metadata refresh, tiny re-mux — nothing the
-                                // user cares about. Keep the item where it is in the list with
-                                // no badge change. Only meaningful upgrades (Quality/Codec/Audio)
-                                // surface as MAJ.
-                                updatedNotif.DateCreated = existing.DateCreated;
-                                updatedNotif.IsUpgrade = existing.IsUpgrade;
-                                updatedNotif.UpgradeKind = existing.UpgradeKind;
-                                _logger.LogDebug(
-                                    "NotifySync Upgrade Suppressed: {Name} | classified as minor — keeping existing state",
-                                    updatedNotif.Name);
+                                var deletedAsNotif = new NotificationItem { FilePath = deletedRecord.FilePath };
+                                var kind = ClassifyUpgrade(deletedAsNotif, updatedNotif);
+                                if (kind != null)
+                                {
+                                    updatedNotif.IsUpgrade = true;
+                                    updatedNotif.UpgradeKind = kind;
+                                    updatedNotif.DateCreated = DateTime.UtcNow;
+                                    _logger.LogInformation(
+                                        "NotifySync Upgrade Check: {Name} | kind={Kind} | deletedMatch=True (recovered on metadata refresh)",
+                                        updatedNotif.Name,
+                                        kind);
+                                }
+                                else
+                                {
+                                    updatedNotif.DateCreated = existing.DateCreated;
+                                    updatedNotif.IsUpgrade = existing.IsUpgrade;
+                                    updatedNotif.UpgradeKind = existing.UpgradeKind;
+                                }
                             }
                             else
-                            {
-                                updatedNotif.IsUpgrade = true;
-                                updatedNotif.UpgradeKind = kind;
-                                updatedNotif.DateCreated = DateTime.UtcNow; // Remonter en tête de liste
-                                _logger.LogInformation(
-                                    "NotifySync Upgrade Detected: {Name} | kind={Kind} | pathChanged={PathChanged} (old={OldPath}, new={NewPath}) | sizeChanged={SizeChanged}",
-                                    updatedNotif.Name,
-                                    updatedNotif.UpgradeKind ?? "unspecified",
-                                    pathChanged,
-                                    existing.FilePath ?? "NULL",
-                                    updatedNotif.FilePath ?? "NULL",
-                                    sizeChanged);
-                            }
-                        }
-                        else if (!existing.IsUpgrade
-                            && TryDeletedMatch(
-                                updatedNotif.Name,
-                                updatedNotif.Type,
-                                updatedNotif.ProductionYear,
-                                updatedNotif.SeriesName,
-                                updatedNotif.IndexNumber,
-                                updatedNotif.ParentIndexNumber))
-                        {
-                            // Metadata now available — re-check deleted history for upgrade detection.
-                            // ProcessBuffer may have missed it due to null SeriesName at ItemAdded time.
-                            var kind = ClassifyUpgrade(existing, updatedNotif);
-                            if (kind == KindMinor)
                             {
                                 updatedNotif.DateCreated = existing.DateCreated;
                                 updatedNotif.IsUpgrade = existing.IsUpgrade;
                                 updatedNotif.UpgradeKind = existing.UpgradeKind;
-                                _logger.LogDebug(
-                                    "NotifySync Upgrade Suppressed (deleted-match path): {Name} | classified as minor",
-                                    updatedNotif.Name);
-                            }
-                            else
-                            {
-                                updatedNotif.IsUpgrade = true;
-                                updatedNotif.UpgradeKind = kind;
-                                updatedNotif.DateCreated = DateTime.UtcNow;
-                                _logger.LogInformation(
-                                    "NotifySync Upgrade Check: {Name} | kind={Kind} | deletedMatch=True (detected on metadata refresh)",
-                                    updatedNotif.Name,
-                                    updatedNotif.UpgradeKind ?? "unspecified");
                             }
                         }
                         else
@@ -943,10 +827,7 @@ namespace NotifySync
 
                         // New item — check deleted history for upgrade detection.
                         // We fetch the actual record (not just a bool) so ClassifyUpgrade
-                        // can compare the new file's path/codec/audio/container/bitrate against
-                        // what was deleted moments ago. Prior versions set IsUpgrade=true but
-                        // never set UpgradeKind, so the UI rendered a generic "MAJ" instead of
-                        // "MAJ — Quality/Codec/Audio".
+                        // can compare the new filename against the deleted file's filename.
                         var deletedRecord = TryGetDeletedMatchRecord(
                             notif.Name,
                             notif.Type,
@@ -964,40 +845,24 @@ namespace NotifySync
 
                         if (!notif.IsUpgrade && deletedRecord != null)
                         {
-                            // Build a synthetic "previous" notification from the deleted record
-                            // so ClassifyUpgrade has the same shape it expects when called from
-                            // OnItemUpdated. Any field the deleted record didn't capture stays null
-                            // and ClassifyUpgrade degrades gracefully.
-                            var deletedAsNotif = new NotificationItem
-                            {
-                                Name = deletedRecord.Name,
-                                Type = deletedRecord.Type,
-                                FilePath = deletedRecord.FilePath,
-                                VideoWidth = deletedRecord.VideoWidth,
-                                VideoHeight = deletedRecord.VideoHeight,
-                                Container = deletedRecord.Container,
-                                MediaBitrate = deletedRecord.MediaBitrate
-                            };
+                            var deletedAsNotif = new NotificationItem { FilePath = deletedRecord.FilePath };
                             var kind = ClassifyUpgrade(deletedAsNotif, notif);
-
-                            if (kind == KindMinor)
-                            {
-                                // User deleted and re-imported what is essentially the same file.
-                                // Don't flag as upgrade — the entry will appear as a normal NEW item.
-                                _logger.LogDebug(
-                                    "NotifySync Upgrade Suppressed (ProcessBuffer): {Name} | classified as minor — treating as plain NEW",
-                                    notif.Name);
-                            }
-                            else
+                            if (kind != null)
                             {
                                 notif.IsUpgrade = true;
                                 notif.UpgradeKind = kind;
                                 _logger.LogInformation(
                                     "NotifySync Upgrade Detected (ProcessBuffer): {Name} | kind={Kind} | oldPath={Old} | newPath={New}",
                                     notif.Name,
-                                    notif.UpgradeKind ?? "unspecified",
+                                    kind,
                                     deletedRecord.FilePath ?? "NULL",
                                     notif.FilePath ?? "NULL");
+                            }
+                            else
+                            {
+                                _logger.LogDebug(
+                                    "NotifySync Upgrade Skipped (ProcessBuffer): {Name} | deleted match found but no Quality/Codec/Audio token signal",
+                                    notif.Name);
                             }
                         }
 
@@ -1524,11 +1389,7 @@ namespace NotifySync
                     ParentIndexNumber = item.ParentIndexNumber,
                     DateModifiedTicks = item.DateModified.Ticks,
                     Size = item.Size,
-                    FilePath = item.Path,
-                    VideoWidth = item.Width > 0 ? item.Width : null,
-                    VideoHeight = item.Height > 0 ? item.Height : null,
-                    Container = string.IsNullOrEmpty(item.Container) ? null : item.Container,
-                    MediaBitrate = ComputeBitrate(item.Size, item.RunTimeTicks)
+                    FilePath = item.Path
                 };
 
                 if (item.GetBaseItemKind() == BaseItemKind.Audio && item is MediaBrowser.Controller.Entities.Audio.Audio audioItem)
@@ -1635,11 +1496,7 @@ namespace NotifySync
                     ParentIndexNumber = item.ParentIndexNumber,
                     DateModifiedTicks = item.DateModified.Ticks,
                     Size = item.Size,
-                    FilePath = item.Path,
-                    VideoWidth = item.Width > 0 ? item.Width : null,
-                    VideoHeight = item.Height > 0 ? item.Height : null,
-                    Container = string.IsNullOrEmpty(item.Container) ? null : item.Container,
-                    MediaBitrate = ComputeBitrate(item.Size, item.RunTimeTicks)
+                    FilePath = item.Path
                 };
 
                 if (item.GetBaseItemKind() == BaseItemKind.Audio && item is MediaBrowser.Controller.Entities.Audio.Audio audioItem)

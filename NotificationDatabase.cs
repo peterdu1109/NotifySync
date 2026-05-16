@@ -85,7 +85,11 @@ namespace NotifySync
                             DateModifiedTicks INTEGER,
                             Size INTEGER,
                             FilePath TEXT,
-                            UpgradeKind TEXT
+                            UpgradeKind TEXT,
+                            VideoWidth INTEGER,
+                            VideoHeight INTEGER,
+                            Container TEXT,
+                            MediaBitrate INTEGER
                         );
                         CREATE INDEX IF NOT EXISTS idx_notifications_date ON Notifications(DateCreated DESC);
 
@@ -117,7 +121,12 @@ namespace NotifySync
                             ProductionYear INTEGER,
                             IndexNumber INTEGER,
                             ParentIndexNumber INTEGER,
-                            DeletedAt TEXT NOT NULL
+                            DeletedAt TEXT NOT NULL,
+                            FilePath TEXT,
+                            VideoWidth INTEGER,
+                            VideoHeight INTEGER,
+                            Container TEXT,
+                            MediaBitrate INTEGER
                         );
                         CREATE INDEX IF NOT EXISTS idx_deleted_date ON DeletedItems(DeletedAt DESC);
                     ";
@@ -130,8 +139,17 @@ namespace NotifySync
                 MigrateAddColumn(connection, "Notifications", "Size", "INTEGER");
                 MigrateAddColumn(connection, "Notifications", "FilePath", "TEXT");
                 MigrateAddColumn(connection, "Notifications", "UpgradeKind", "TEXT");
+                MigrateAddColumn(connection, "Notifications", "VideoWidth", "INTEGER");
+                MigrateAddColumn(connection, "Notifications", "VideoHeight", "INTEGER");
+                MigrateAddColumn(connection, "Notifications", "Container", "TEXT");
+                MigrateAddColumn(connection, "Notifications", "MediaBitrate", "INTEGER");
                 MigrateAddColumn(connection, "DeletedItems", "IndexNumber", "INTEGER");
                 MigrateAddColumn(connection, "DeletedItems", "ParentIndexNumber", "INTEGER");
+                MigrateAddColumn(connection, "DeletedItems", "FilePath", "TEXT");
+                MigrateAddColumn(connection, "DeletedItems", "VideoWidth", "INTEGER");
+                MigrateAddColumn(connection, "DeletedItems", "VideoHeight", "INTEGER");
+                MigrateAddColumn(connection, "DeletedItems", "Container", "TEXT");
+                MigrateAddColumn(connection, "DeletedItems", "MediaBitrate", "INTEGER");
             }
             catch (Exception ex)
             {
@@ -189,12 +207,14 @@ namespace NotifySync
                     Id, Name, Category, SeriesName, SeriesId, DateCreated,
                     Type, RunTimeTicks, ProductionYear, BackdropImageTags,
                     PrimaryImageTag, IndexNumber, ParentIndexNumber,
-                    IsUpgrade, DateModifiedTicks, Size, FilePath, UpgradeKind
+                    IsUpgrade, DateModifiedTicks, Size, FilePath, UpgradeKind,
+                    VideoWidth, VideoHeight, Container, MediaBitrate
                 ) VALUES (
                     @Id, @Name, @Category, @SeriesName, @SeriesId, @DateCreated,
                     @Type, @RunTimeTicks, @ProductionYear, @Backdrop,
                     @Primary, @Index, @ParentIndex,
-                    @IsUpgrade, @DateModifiedTicks, @Size, @FilePath, @UpgradeKind
+                    @IsUpgrade, @DateModifiedTicks, @Size, @FilePath, @UpgradeKind,
+                    @VideoWidth, @VideoHeight, @Container, @MediaBitrate
                 )";
 
             var pId = cmd.Parameters.Add("@Id", SqliteType.Text);
@@ -215,6 +235,10 @@ namespace NotifySync
             var pSize = cmd.Parameters.Add("@Size", SqliteType.Integer);
             var pFilePath = cmd.Parameters.Add("@FilePath", SqliteType.Text);
             var pUpgradeKind = cmd.Parameters.Add("@UpgradeKind", SqliteType.Text);
+            var pVWidth = cmd.Parameters.Add("@VideoWidth", SqliteType.Integer);
+            var pVHeight = cmd.Parameters.Add("@VideoHeight", SqliteType.Integer);
+            var pContainer = cmd.Parameters.Add("@Container", SqliteType.Text);
+            var pBitrate = cmd.Parameters.Add("@MediaBitrate", SqliteType.Integer);
 
             void Bind(NotificationItem item)
             {
@@ -236,6 +260,10 @@ namespace NotifySync
                 pSize.Value = (object?)item.Size ?? DBNull.Value;
                 pFilePath.Value = (object?)item.FilePath ?? DBNull.Value;
                 pUpgradeKind.Value = (object?)item.UpgradeKind ?? DBNull.Value;
+                pVWidth.Value = (object?)item.VideoWidth ?? DBNull.Value;
+                pVHeight.Value = (object?)item.VideoHeight ?? DBNull.Value;
+                pContainer.Value = (object?)item.Container ?? DBNull.Value;
+                pBitrate.Value = (object?)item.MediaBitrate ?? DBNull.Value;
             }
 
             return (cmd, Bind);
@@ -454,6 +482,10 @@ namespace NotifySync
                 int oSize = reader.GetOrdinal("Size");
                 int oFilePath = reader.GetOrdinal("FilePath");
                 int oUpgradeKind = TryGetOrdinal(reader, "UpgradeKind");
+                int oVWidth = TryGetOrdinal(reader, "VideoWidth");
+                int oVHeight = TryGetOrdinal(reader, "VideoHeight");
+                int oContainer = TryGetOrdinal(reader, "Container");
+                int oBitrate = TryGetOrdinal(reader, "MediaBitrate");
 
                 while (reader.Read())
                 {
@@ -476,7 +508,11 @@ namespace NotifySync
                         DateModifiedTicks = reader.IsDBNull(oDateModTicks) ? null : reader.GetInt64(oDateModTicks),
                         Size = reader.IsDBNull(oSize) ? null : reader.GetInt64(oSize),
                         FilePath = reader.IsDBNull(oFilePath) ? null : reader.GetString(oFilePath),
-                        UpgradeKind = (oUpgradeKind < 0 || reader.IsDBNull(oUpgradeKind)) ? null : reader.GetString(oUpgradeKind)
+                        UpgradeKind = (oUpgradeKind < 0 || reader.IsDBNull(oUpgradeKind)) ? null : reader.GetString(oUpgradeKind),
+                        VideoWidth = (oVWidth < 0 || reader.IsDBNull(oVWidth)) ? null : reader.GetInt32(oVWidth),
+                        VideoHeight = (oVHeight < 0 || reader.IsDBNull(oVHeight)) ? null : reader.GetInt32(oVHeight),
+                        Container = (oContainer < 0 || reader.IsDBNull(oContainer)) ? null : reader.GetString(oContainer),
+                        MediaBitrate = (oBitrate < 0 || reader.IsDBNull(oBitrate)) ? null : reader.GetInt64(oBitrate)
                     });
                 }
             }
@@ -826,7 +862,12 @@ namespace NotifySync
         /// <param name="productionYear">The production year, if applicable.</param>
         /// <param name="indexNumber">The episode number, if applicable.</param>
         /// <param name="parentIndexNumber">The season number, if applicable.</param>
-        public void SaveDeletedItem(string itemId, string name, string type, string? seriesName, int? productionYear, int? indexNumber = null, int? parentIndexNumber = null)
+        /// <param name="filePath">The file path of the deleted source, used by ClassifyUpgrade.</param>
+        /// <param name="videoWidth">The video width in pixels (Phase B Lite).</param>
+        /// <param name="videoHeight">The video height in pixels (Phase B Lite).</param>
+        /// <param name="container">The media container (Phase B Lite).</param>
+        /// <param name="mediaBitrate">The derived bitrate in bps (Phase B Lite).</param>
+        public void SaveDeletedItem(string itemId, string name, string type, string? seriesName, int? productionYear, int? indexNumber = null, int? parentIndexNumber = null, string? filePath = null, int? videoWidth = null, int? videoHeight = null, string? container = null, long? mediaBitrate = null)
         {
             try
             {
@@ -834,8 +875,8 @@ namespace NotifySync
                 connection.Open();
                 using var cmd = connection.CreateCommand();
                 cmd.CommandText = @"
-                    INSERT INTO DeletedItems (ItemId, Name, Type, SeriesName, ProductionYear, IndexNumber, ParentIndexNumber, DeletedAt)
-                    VALUES (@ItemId, @Name, @Type, @SeriesName, @ProductionYear, @IndexNumber, @ParentIndexNumber, @DeletedAt)";
+                    INSERT INTO DeletedItems (ItemId, Name, Type, SeriesName, ProductionYear, IndexNumber, ParentIndexNumber, DeletedAt, FilePath, VideoWidth, VideoHeight, Container, MediaBitrate)
+                    VALUES (@ItemId, @Name, @Type, @SeriesName, @ProductionYear, @IndexNumber, @ParentIndexNumber, @DeletedAt, @FilePath, @VideoWidth, @VideoHeight, @Container, @MediaBitrate)";
                 cmd.Parameters.AddWithValue("@ItemId", itemId);
                 cmd.Parameters.AddWithValue("@Name", name);
                 cmd.Parameters.AddWithValue("@Type", type);
@@ -844,6 +885,11 @@ namespace NotifySync
                 cmd.Parameters.AddWithValue("@IndexNumber", (object?)indexNumber ?? DBNull.Value);
                 cmd.Parameters.AddWithValue("@ParentIndexNumber", (object?)parentIndexNumber ?? DBNull.Value);
                 cmd.Parameters.AddWithValue("@DeletedAt", DateTime.UtcNow.ToString("O"));
+                cmd.Parameters.AddWithValue("@FilePath", (object?)filePath ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@VideoWidth", (object?)videoWidth ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@VideoHeight", (object?)videoHeight ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@Container", (object?)container ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@MediaBitrate", (object?)mediaBitrate ?? DBNull.Value);
                 cmd.ExecuteNonQuery();
             }
             catch (Exception ex)
@@ -906,6 +952,22 @@ namespace NotifySync
         /// <returns>True if a matching deleted item was found within the last 7 days.</returns>
         public bool HasRecentDeletedMatch(string name, string type, int? productionYear, string? seriesName = null, int? indexNumber = null, int? parentIndexNumber = null)
         {
+            return TryGetDeletedMatch(name, type, productionYear, seriesName, indexNumber, parentIndexNumber) != null;
+        }
+
+        /// <summary>
+        /// Returns the most recent deleted record that matches the given identity (within 7 days), or null.
+        /// Used by <c>ProcessBuffer</c> to feed ClassifyUpgrade with the &quot;before&quot; file properties.
+        /// </summary>
+        /// <param name="name">The item name.</param>
+        /// <param name="type">The item type.</param>
+        /// <param name="productionYear">The production year.</param>
+        /// <param name="seriesName">The series name (for episodes).</param>
+        /// <param name="indexNumber">The episode number (for episodes).</param>
+        /// <param name="parentIndexNumber">The season number (for episodes).</param>
+        /// <returns>The matched <see cref="DeletedItemRecord"/> or null.</returns>
+        public DeletedItemRecord? TryGetDeletedMatch(string name, string type, int? productionYear, string? seriesName = null, int? indexNumber = null, int? parentIndexNumber = null)
+        {
             try
             {
                 using var connection = new SqliteConnection(_connectionString);
@@ -917,10 +979,12 @@ namespace NotifySync
                 if (type == "Episode" && !string.IsNullOrEmpty(seriesName) && indexNumber.HasValue && parentIndexNumber.HasValue)
                 {
                     cmd.CommandText = @"
-                        SELECT COUNT(*) FROM DeletedItems
+                        SELECT Id, ItemId, Name, Type, SeriesName, ProductionYear, IndexNumber, ParentIndexNumber, DeletedAt, FilePath, VideoWidth, VideoHeight, Container, MediaBitrate
+                        FROM DeletedItems
                         WHERE Type = 'Episode' AND SeriesName = @SeriesName
                         AND IndexNumber = @IndexNumber AND ParentIndexNumber = @ParentIndexNumber
-                        AND DeletedAt > @Cutoff";
+                        AND DeletedAt > @Cutoff
+                        ORDER BY DeletedAt DESC LIMIT 1";
                     cmd.Parameters.AddWithValue("@SeriesName", seriesName);
                     cmd.Parameters.AddWithValue("@IndexNumber", indexNumber.Value);
                     cmd.Parameters.AddWithValue("@ParentIndexNumber", parentIndexNumber.Value);
@@ -928,24 +992,46 @@ namespace NotifySync
                 }
                 else
                 {
-                    // Movies/Audio: match by Name + Type + Year
                     cmd.CommandText = @"
-                        SELECT COUNT(*) FROM DeletedItems
+                        SELECT Id, ItemId, Name, Type, SeriesName, ProductionYear, IndexNumber, ParentIndexNumber, DeletedAt, FilePath, VideoWidth, VideoHeight, Container, MediaBitrate
+                        FROM DeletedItems
                         WHERE Name = @Name AND Type = @Type AND DeletedAt > @Cutoff
-                        AND (@Year IS NULL OR ProductionYear IS NULL OR ProductionYear = @Year)";
+                        AND (@Year IS NULL OR ProductionYear IS NULL OR ProductionYear = @Year)
+                        ORDER BY DeletedAt DESC LIMIT 1";
                     cmd.Parameters.AddWithValue("@Name", name);
                     cmd.Parameters.AddWithValue("@Type", type);
                     cmd.Parameters.AddWithValue("@Cutoff", cutoff);
                     cmd.Parameters.AddWithValue("@Year", (object?)productionYear ?? DBNull.Value);
                 }
 
-                var result = cmd.ExecuteScalar();
-                return result != null && Convert.ToInt64(result, CultureInfo.InvariantCulture) > 0;
+                using var reader = cmd.ExecuteReader();
+                if (!reader.Read())
+                {
+                    return null;
+                }
+
+                return new DeletedItemRecord
+                {
+                    Id = reader.GetInt64(0),
+                    ItemId = reader.GetString(1),
+                    Name = reader.GetString(2),
+                    Type = reader.GetString(3),
+                    SeriesName = reader.IsDBNull(4) ? null : reader.GetString(4),
+                    ProductionYear = reader.IsDBNull(5) ? null : reader.GetInt32(5),
+                    IndexNumber = reader.IsDBNull(6) ? null : reader.GetInt32(6),
+                    ParentIndexNumber = reader.IsDBNull(7) ? null : reader.GetInt32(7),
+                    DeletedAt = DateTime.Parse(reader.GetString(8), CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.RoundtripKind),
+                    FilePath = reader.IsDBNull(9) ? null : reader.GetString(9),
+                    VideoWidth = reader.IsDBNull(10) ? null : reader.GetInt32(10),
+                    VideoHeight = reader.IsDBNull(11) ? null : reader.GetInt32(11),
+                    Container = reader.IsDBNull(12) ? null : reader.GetString(12),
+                    MediaBitrate = reader.IsDBNull(13) ? null : reader.GetInt64(13)
+                };
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "NotifySync: Error checking deleted item match for {Name}.", name);
-                return false;
+                _logger.LogError(ex, "NotifySync: Error fetching deleted item match for {Name}.", name);
+                return null;
             }
         }
 

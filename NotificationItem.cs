@@ -127,6 +127,38 @@ namespace NotifySync
         public string? FilePath { get; set; }
 
         /// <summary>
+        /// Gets or sets the video width in pixels, used for Phase B Lite quality classification.
+        /// A change in width across a re-encode (1920 → 3840) signals a resolution upgrade
+        /// even when the filename does not include a [1080p]/[4K] tag.
+        /// Internal only — not exposed in the API response.
+        /// </summary>
+        [JsonIgnore]
+        public int? VideoWidth { get; set; }
+
+        /// <summary>
+        /// Gets or sets the video height in pixels, used for Phase B Lite quality classification.
+        /// Internal only — not exposed in the API response.
+        /// </summary>
+        [JsonIgnore]
+        public int? VideoHeight { get; set; }
+
+        /// <summary>
+        /// Gets or sets the media container (mkv, mp4, …), used for Phase B Lite source classification.
+        /// A change in container often accompanies a re-mux/re-encode.
+        /// Internal only — not exposed in the API response.
+        /// </summary>
+        [JsonIgnore]
+        public string? Container { get; set; }
+
+        /// <summary>
+        /// Gets or sets the derived media bitrate in bps, used for Phase B Lite quality classification.
+        /// Computed from <c>Size / RunTime</c> when available. A &gt;25 % jump signals a quality upgrade.
+        /// Internal only — not exposed in the API response.
+        /// </summary>
+        [JsonIgnore]
+        public long? MediaBitrate { get; set; }
+
+        /// <summary>
         /// Creates a shallow copy of the current notification item.
         /// </summary>
         /// <returns>A new <see cref="NotificationItem"/>.</returns>

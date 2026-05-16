@@ -41,5 +41,42 @@ namespace NotifySync
         /// Gets or sets the UTC date when the item was deleted.
         /// </summary>
         public DateTime DeletedAt { get; set; }
+
+        /// <summary>
+        /// Gets or sets the episode index number (when the deleted item is an Episode).
+        /// </summary>
+        public int? IndexNumber { get; set; }
+
+        /// <summary>
+        /// Gets or sets the season index number (when the deleted item is an Episode).
+        /// </summary>
+        public int? ParentIndexNumber { get; set; }
+
+        /// <summary>
+        /// Gets or sets the file path of the deleted media source.
+        /// Used by upgrade detection: when a new file arrives with a matching identity,
+        /// the old path is the &quot;before&quot; reference for the path-based heuristic.
+        /// </summary>
+        public string? FilePath { get; set; }
+
+        /// <summary>
+        /// Gets or sets the video width in pixels of the deleted source, for Phase B Lite classification.
+        /// </summary>
+        public int? VideoWidth { get; set; }
+
+        /// <summary>
+        /// Gets or sets the video height in pixels of the deleted source, for Phase B Lite classification.
+        /// </summary>
+        public int? VideoHeight { get; set; }
+
+        /// <summary>
+        /// Gets or sets the media container of the deleted source (mkv, mp4, …).
+        /// </summary>
+        public string? Container { get; set; }
+
+        /// <summary>
+        /// Gets or sets the derived media bitrate of the deleted source in bps.
+        /// </summary>
+        public long? MediaBitrate { get; set; }
     }
 }

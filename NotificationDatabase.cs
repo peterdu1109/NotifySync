@@ -82,8 +82,6 @@ namespace NotifySync
                             IndexNumber INTEGER,
                             ParentIndexNumber INTEGER,
                             IsUpgrade INTEGER NOT NULL DEFAULT 0,
-                            DateModifiedTicks INTEGER,
-                            Size INTEGER,
                             FilePath TEXT,
                             UpgradeKind TEXT
                         );
@@ -125,27 +123,39 @@ namespace NotifySync
                     cmd.ExecuteNonQuery();
                 }
 
-                // Migration: add columns for existing databases
+                // Migration: add columns for existing databases (pre-5.5.7.x → present).
                 MigrateAddColumn(connection, "Notifications", "IsUpgrade", "INTEGER NOT NULL DEFAULT 0");
-                MigrateAddColumn(connection, "Notifications", "DateModifiedTicks", "INTEGER");
-                MigrateAddColumn(connection, "Notifications", "Size", "INTEGER");
                 MigrateAddColumn(connection, "Notifications", "FilePath", "TEXT");
                 MigrateAddColumn(connection, "Notifications", "UpgradeKind", "TEXT");
                 MigrateAddColumn(connection, "DeletedItems", "IndexNumber", "INTEGER");
                 MigrateAddColumn(connection, "DeletedItems", "ParentIndexNumber", "INTEGER");
                 MigrateAddColumn(connection, "DeletedItems", "FilePath", "TEXT");
 
-                // Drop columns previously added by Phase B Lite (5.5.12.0-beta1 first build):
-                // the classifier no longer reads them and we don't want stale write-only data
-                // accumulating. SQLite ≥ 3.35 supports DROP COLUMN natively.
+                // Drop columns no longer consumed by the slim classifier. Phase B Lite
+                // (VideoWidth/Height/Container/MediaBitrate) was tried and removed;
+                // Size/DateModifiedTicks were used by the dropped "(sizeChanged && dateChanged)"
+                // detection branch. SQLite ≥ 3.35 supports DROP COLUMN natively; Jellyfin
+                // embeds a much newer build.
                 MigrateDropColumn(connection, "Notifications", "VideoWidth");
                 MigrateDropColumn(connection, "Notifications", "VideoHeight");
                 MigrateDropColumn(connection, "Notifications", "Container");
                 MigrateDropColumn(connection, "Notifications", "MediaBitrate");
+                MigrateDropColumn(connection, "Notifications", "Size");
+                MigrateDropColumn(connection, "Notifications", "DateModifiedTicks");
                 MigrateDropColumn(connection, "DeletedItems", "VideoWidth");
                 MigrateDropColumn(connection, "DeletedItems", "VideoHeight");
                 MigrateDropColumn(connection, "DeletedItems", "Container");
                 MigrateDropColumn(connection, "DeletedItems", "MediaBitrate");
+
+                // Clear UpgradeKind = "minor" rows from earlier beta1 builds. The slim
+                // classifier no longer produces "minor"; leaving stale values around would
+                // show a confusing MAJ • Mineur badge on items the new logic considers
+                // unremarkable.
+                using (var clearMinor = connection.CreateCommand())
+                {
+                    clearMinor.CommandText = "UPDATE Notifications SET UpgradeKind = NULL, IsUpgrade = 0 WHERE UpgradeKind = 'minor'";
+                    clearMinor.ExecuteNonQuery();
+                }
             }
             catch (Exception ex)
             {
@@ -226,12 +236,12 @@ namespace NotifySync
                     Id, Name, Category, SeriesName, SeriesId, DateCreated,
                     Type, RunTimeTicks, ProductionYear, BackdropImageTags,
                     PrimaryImageTag, IndexNumber, ParentIndexNumber,
-                    IsUpgrade, DateModifiedTicks, Size, FilePath, UpgradeKind
+                    IsUpgrade, FilePath, UpgradeKind
                 ) VALUES (
                     @Id, @Name, @Category, @SeriesName, @SeriesId, @DateCreated,
                     @Type, @RunTimeTicks, @ProductionYear, @Backdrop,
                     @Primary, @Index, @ParentIndex,
-                    @IsUpgrade, @DateModifiedTicks, @Size, @FilePath, @UpgradeKind
+                    @IsUpgrade, @FilePath, @UpgradeKind
                 )";
 
             var pId = cmd.Parameters.Add("@Id", SqliteType.Text);
@@ -248,8 +258,6 @@ namespace NotifySync
             var pIdx = cmd.Parameters.Add("@Index", SqliteType.Integer);
             var pPIdx = cmd.Parameters.Add("@ParentIndex", SqliteType.Integer);
             var pUpgrade = cmd.Parameters.Add("@IsUpgrade", SqliteType.Integer);
-            var pDateMod = cmd.Parameters.Add("@DateModifiedTicks", SqliteType.Integer);
-            var pSize = cmd.Parameters.Add("@Size", SqliteType.Integer);
             var pFilePath = cmd.Parameters.Add("@FilePath", SqliteType.Text);
             var pUpgradeKind = cmd.Parameters.Add("@UpgradeKind", SqliteType.Text);
 
@@ -269,8 +277,6 @@ namespace NotifySync
                 pIdx.Value = (object?)item.IndexNumber ?? DBNull.Value;
                 pPIdx.Value = (object?)item.ParentIndexNumber ?? DBNull.Value;
                 pUpgrade.Value = item.IsUpgrade ? 1 : 0;
-                pDateMod.Value = (object?)item.DateModifiedTicks ?? DBNull.Value;
-                pSize.Value = (object?)item.Size ?? DBNull.Value;
                 pFilePath.Value = (object?)item.FilePath ?? DBNull.Value;
                 pUpgradeKind.Value = (object?)item.UpgradeKind ?? DBNull.Value;
             }
@@ -487,8 +493,6 @@ namespace NotifySync
                 int oIndex = reader.GetOrdinal("IndexNumber");
                 int oParentIndex = reader.GetOrdinal("ParentIndexNumber");
                 int oIsUpgrade = reader.GetOrdinal("IsUpgrade");
-                int oDateModTicks = reader.GetOrdinal("DateModifiedTicks");
-                int oSize = reader.GetOrdinal("Size");
                 int oFilePath = reader.GetOrdinal("FilePath");
                 int oUpgradeKind = TryGetOrdinal(reader, "UpgradeKind");
 
@@ -510,8 +514,6 @@ namespace NotifySync
                         IndexNumber = reader.IsDBNull(oIndex) ? null : reader.GetInt32(oIndex),
                         ParentIndexNumber = reader.IsDBNull(oParentIndex) ? null : reader.GetInt32(oParentIndex),
                         IsUpgrade = !reader.IsDBNull(oIsUpgrade) && reader.GetInt32(oIsUpgrade) != 0,
-                        DateModifiedTicks = reader.IsDBNull(oDateModTicks) ? null : reader.GetInt64(oDateModTicks),
-                        Size = reader.IsDBNull(oSize) ? null : reader.GetInt64(oSize),
                         FilePath = reader.IsDBNull(oFilePath) ? null : reader.GetString(oFilePath),
                         UpgradeKind = (oUpgradeKind < 0 || reader.IsDBNull(oUpgradeKind)) ? null : reader.GetString(oUpgradeKind)
                     });

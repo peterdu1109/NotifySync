@@ -1,4 +1,4 @@
-/* NOTIFYSYNC V5.5.12.0-beta1 */
+/* NOTIFYSYNC V5.5.12.1-beta2 */
 (function () {
     let currentData = [];
     let groupedData = [];
@@ -50,8 +50,8 @@
 
     let userLang = navigator.language || 'en';
     const strings = {
-        fr: { header: "Quoi de neuf ?", empty: "Vous êtes à jour !", clearAll: "Vider la liste", clearCat: "Vider", dismiss: "Retirer", badgeNew: "NOUVEAU", badgeUpgrade: "MAJ", newEps: "nouveaux épisodes", eps: "épisodes", updEps: "épisodes mis à jour", newTracks: "nouvelles pistes", tracks: "pistes", updTracks: "pistes mises à jour", filterAll: "Tout", filterMovie: "Films", filterSeries: "Séries", filterMusic: "Musique", kindQuality: "Qualité", kindCodec: "Codec", kindAudio: "Audio", kindMinor: "Mineur" },
-        en: { header: "What's New?", empty: "You're all caught up!", clearAll: "Clear list", clearCat: "Clear", dismiss: "Dismiss", badgeNew: "NEW", badgeUpgrade: "UPD", newEps: "new episodes", eps: "episodes", updEps: "updated episodes", newTracks: "new tracks", tracks: "tracks", updTracks: "updated tracks", filterAll: "All", filterMovie: "Movies", filterSeries: "Series", filterMusic: "Music", kindQuality: "Quality", kindCodec: "Codec", kindAudio: "Audio", kindMinor: "Minor" }
+        fr: { header: "Quoi de neuf ?", empty: "Vous êtes à jour !", clearAll: "Vider la liste", clearCat: "Vider", dismiss: "Retirer", badgeNew: "NOUVEAU", badgeUpgrade: "MAJ", newEps: "nouveaux épisodes", eps: "épisodes", updEps: "épisodes mis à jour", newTracks: "nouvelles pistes", tracks: "pistes", updTracks: "pistes mises à jour", filterAll: "Tout", filterMovie: "Films", filterSeries: "Séries", filterMusic: "Musique", kindQuality: "Qualité", kindCodec: "Codec", kindAudio: "Audio" },
+        en: { header: "What's New?", empty: "You're all caught up!", clearAll: "Clear list", clearCat: "Clear", dismiss: "Dismiss", badgeNew: "NEW", badgeUpgrade: "UPD", newEps: "new episodes", eps: "episodes", updEps: "updated episodes", newTracks: "new tracks", tracks: "tracks", updTracks: "updated tracks", filterAll: "All", filterMovie: "Movies", filterSeries: "Series", filterMusic: "Music", kindQuality: "Quality", kindCodec: "Codec", kindAudio: "Audio" }
     };
     let T = strings[userLang.startsWith('fr') ? 'fr' : 'en'];
 
@@ -458,11 +458,14 @@
         else { badge.classList.remove('visible'); }
     };
 
-    // Returns a localized label for the upgrade kind (e.g. "Qualité"), or "" if none.
+    // Returns a localized label for the upgrade kind(s) — single ("Qualité") or multiple
+    // joined with " + " ("Codec + Audio"). The server may send a comma-separated list
+    // like "quality,codec,audio" when several signals fired on the same file change.
     const upgradeKindLabel = (item) => {
         if (!item.IsUpgrade || !item.UpgradeKind) return '';
-        const map = { quality: T.kindQuality, codec: T.kindCodec, audio: T.kindAudio, minor: T.kindMinor };
-        return map[item.UpgradeKind] || '';
+        const map = { quality: T.kindQuality, codec: T.kindCodec, audio: T.kindAudio };
+        const parts = String(item.UpgradeKind).split(',').map(k => map[k.trim()]).filter(Boolean);
+        return parts.join(' + ');
     };
 
     // Returns the full badge text including the upgrade kind suffix when applicable.

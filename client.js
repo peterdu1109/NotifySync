@@ -50,8 +50,8 @@
 
     let userLang = navigator.language || 'en';
     const strings = {
-        fr: { header: "Quoi de neuf ?", empty: "Vous êtes à jour !", clearAll: "Vider la liste", clearCat: "Vider", dismiss: "Retirer", badgeNew: "NOUVEAU", badgeUpgrade: "MAJ", newEps: "nouveaux épisodes", eps: "épisodes", updEps: "épisodes mis à jour", newTracks: "nouvelles pistes", tracks: "pistes", updTracks: "pistes mises à jour", filterAll: "Tout", filterMovie: "Films", filterSeries: "Séries", filterMusic: "Musique", kindQuality: "Qualité", kindCodec: "Codec", kindAudio: "Audio", season: "Saison" },
-        en: { header: "What's New?", empty: "You're all caught up!", clearAll: "Clear list", clearCat: "Clear", dismiss: "Dismiss", badgeNew: "NEW", badgeUpgrade: "UPD", newEps: "new episodes", eps: "episodes", updEps: "updated episodes", newTracks: "new tracks", tracks: "tracks", updTracks: "updated tracks", filterAll: "All", filterMovie: "Movies", filterSeries: "Series", filterMusic: "Music", kindQuality: "Quality", kindCodec: "Codec", kindAudio: "Audio", season: "Season" }
+        fr: { header: "Quoi de neuf ?", empty: "Vous êtes à jour !", clearAll: "Vider la liste", clearCat: "Vider", dismiss: "Retirer", badgeNew: "NOUVEAU", badgeUpgrade: "MAJ", eps: "épisodes", tracks: "pistes", filterAll: "Tout", filterMovie: "Films", filterSeries: "Séries", filterMusic: "Musique", kindQuality: "Qualité", kindCodec: "Codec", kindAudio: "Audio", season: "Saison" },
+        en: { header: "What's New?", empty: "You're all caught up!", clearAll: "Clear list", clearCat: "Clear", dismiss: "Dismiss", badgeNew: "NEW", badgeUpgrade: "UPD", eps: "episodes", tracks: "tracks", filterAll: "All", filterMovie: "Movies", filterSeries: "Series", filterMusic: "Music", kindQuality: "Quality", kindCodec: "Codec", kindAudio: "Audio", season: "Season" }
     };
     let T = strings[userLang.startsWith('fr') ? 'fr' : 'en'];
 
@@ -206,10 +206,10 @@
     const nsKey = (key) => { const uid = getUserId(); return uid ? `ns-${uid}-${key}` : `ns-${key}`; };
 
     // Formats a sorted set of season numbers into a compact label.
-    //   [4]             → "Saison 4"  (single season: full word, locale-aware)
-    //   [1,2,3,4,5]     → "S1-S5"     (consecutive range)
-    //   [1,2,4]         → "S1-S2 S4"  (mixed: range + singleton)
-    //   [1,3,5,6,7]     → "S1 S3 S5-S7"
+    //   [4]             → "Saison 4"    (single season: full word, locale-aware)
+    //   [1,2,3,4,5]     → "S1-S5"       (consecutive range, no comma)
+    //   [1,2,4]         → "S1-S2, S4"   (mixed: range + singleton, comma-separated)
+    //   [1,3,5,6,7]     → "S1, S3, S5-S7"
     // Specials (season 0) and non-integers are filtered out — they shouldn't
     // appear in a season summary label.
     const formatSeasons = (seasons) => {
@@ -223,7 +223,7 @@
             if (sorted[i] === last[last.length - 1] + 1) { last.push(sorted[i]); }
             else { runs.push([sorted[i]]); }
         }
-        return runs.map(r => r.length === 1 ? `S${r[0]}` : `S${r[0]}-S${r[r.length - 1]}`).join(' ');
+        return runs.map(r => r.length === 1 ? `S${r[0]}` : `S${r[0]}-S${r[r.length - 1]}`).join(', ');
     };
 
     const processGrouping = (items) => {
@@ -545,7 +545,9 @@
             }
             if (isGroup) {
                 const isMusic = hero.Type === 'Audio';
-                const lbl = hero.IsUpgrade ? (isMusic ? T.updTracks : T.updEps) : isMusic ? (hero.ShowBadge ? T.newTracks : T.tracks) : (hero.ShowBadge ? T.newEps : T.eps);
+                // Single neutral label ("épisodes" / "pistes") — the NEW/UPD badge already
+                // signals freshness/upgrade, no need to repeat it in the text.
+                const lbl = isMusic ? T.tracks : T.eps;
                 const count = hero.ShowBadge ? (hero.NewCount || hero.GroupCount) : hero.GroupCount;
                 const seasonsLabel = formatSeasons(hero.Seasons);
                 heroSub = seasonsLabel ? `${seasonsLabel} — ${count} ${lbl}` : `${count} ${lbl}`;
@@ -566,7 +568,8 @@
             let title = escapeHtml(item.Name), sub = escapeHtml(String(item.ProductionYear ?? ''));
             if (!isGroup && item.Type === 'Episode') { title = escapeHtml(formatEpisodeTitle(item)); sub = escapeHtml(item.SeriesName); }
             if (isGroup) {
-                const lbl = item.IsUpgrade ? (isMusic ? T.updTracks : T.updEps) : isMusic ? (item.ShowBadge ? T.newTracks : T.tracks) : (item.ShowBadge ? T.newEps : T.eps);
+                // Single neutral label — badge handles NEW/UPD signaling.
+                const lbl = isMusic ? T.tracks : T.eps;
                 const count = item.ShowBadge ? (item.NewCount || item.GroupCount) : item.GroupCount;
                 const seasonsLabel = formatSeasons(item.Seasons);
                 sub = seasonsLabel ? `${seasonsLabel} — ${count} ${lbl}` : `${count} ${lbl}`;

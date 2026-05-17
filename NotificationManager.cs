@@ -695,6 +695,7 @@ namespace NotifySync
                                     updatedNotif.IsUpgrade = true;
                                     updatedNotif.UpgradeKind = kind;
                                     updatedNotif.DateCreated = DateTime.UtcNow;
+                                    _db.MarkDeletedAsMatched(deletedRecord.Id, updatedNotif.Id);
                                     _logger.LogInformation(
                                         "NotifySync Upgrade Check: {Name} | kind={Kind} | deletedMatch=True (recovered on metadata refresh)",
                                         updatedNotif.Name,
@@ -850,6 +851,7 @@ namespace NotifySync
                             {
                                 notif.IsUpgrade = true;
                                 notif.UpgradeKind = kind;
+                                _db.MarkDeletedAsMatched(deletedRecord.Id, notif.Id);
                                 _logger.LogInformation(
                                     "NotifySync Upgrade Detected (ProcessBuffer): {Name} | kind={Kind} | oldPath={Old} | newPath={New}",
                                     notif.Name,

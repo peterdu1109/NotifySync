@@ -1,4 +1,4 @@
-/* NOTIFYSYNC V5.5.12.1-beta2 */
+/* NOTIFYSYNC V5.5.12.2-beta3 */
 (function () {
     let currentData = [];
     let groupedData = [];
@@ -50,8 +50,8 @@
 
     let userLang = navigator.language || 'en';
     const strings = {
-        fr: { header: "Quoi de neuf ?", empty: "Vous êtes à jour !", clearAll: "Vider la liste", clearCat: "Vider", dismiss: "Retirer", badgeNew: "NOUVEAU", badgeUpgrade: "MAJ", newEps: "nouveaux épisodes", eps: "épisodes", updEps: "épisodes mis à jour", newTracks: "nouvelles pistes", tracks: "pistes", updTracks: "pistes mises à jour", filterAll: "Tout", filterMovie: "Films", filterSeries: "Séries", filterMusic: "Musique", kindQuality: "Qualité", kindCodec: "Codec", kindAudio: "Audio" },
-        en: { header: "What's New?", empty: "You're all caught up!", clearAll: "Clear list", clearCat: "Clear", dismiss: "Dismiss", badgeNew: "NEW", badgeUpgrade: "UPD", newEps: "new episodes", eps: "episodes", updEps: "updated episodes", newTracks: "new tracks", tracks: "tracks", updTracks: "updated tracks", filterAll: "All", filterMovie: "Movies", filterSeries: "Series", filterMusic: "Music", kindQuality: "Quality", kindCodec: "Codec", kindAudio: "Audio" }
+        fr: { header: "Quoi de neuf ?", empty: "Vous êtes à jour !", clearAll: "Vider la liste", clearCat: "Vider", dismiss: "Retirer", badgeNew: "NOUVEAU", badgeUpgrade: "MAJ", newEps: "nouveaux épisodes", eps: "épisodes", updEps: "épisodes mis à jour", newTracks: "nouvelles pistes", tracks: "pistes", updTracks: "pistes mises à jour", filterAll: "Tout", filterMovie: "Films", filterSeries: "Séries", filterMusic: "Musique", kindQuality: "Qualité", kindCodec: "Codec", kindAudio: "Audio", season: "Saison" },
+        en: { header: "What's New?", empty: "You're all caught up!", clearAll: "Clear list", clearCat: "Clear", dismiss: "Dismiss", badgeNew: "NEW", badgeUpgrade: "UPD", newEps: "new episodes", eps: "episodes", updEps: "updated episodes", newTracks: "new tracks", tracks: "tracks", updTracks: "updated tracks", filterAll: "All", filterMovie: "Movies", filterSeries: "Series", filterMusic: "Music", kindQuality: "Quality", kindCodec: "Codec", kindAudio: "Audio", season: "Season" }
     };
     let T = strings[userLang.startsWith('fr') ? 'fr' : 'en'];
 
@@ -205,6 +205,27 @@
 
     const nsKey = (key) => { const uid = getUserId(); return uid ? `ns-${uid}-${key}` : `ns-${key}`; };
 
+    // Formats a sorted set of season numbers into a compact label.
+    //   [4]             → "Saison 4"  (single season: full word, locale-aware)
+    //   [1,2,3,4,5]     → "S1-S5"     (consecutive range)
+    //   [1,2,4]         → "S1-S2 S4"  (mixed: range + singleton)
+    //   [1,3,5,6,7]     → "S1 S3 S5-S7"
+    // Specials (season 0) and non-integers are filtered out — they shouldn't
+    // appear in a season summary label.
+    const formatSeasons = (seasons) => {
+        if (!seasons || seasons.length === 0) return null;
+        const sorted = [...new Set(seasons.filter(s => Number.isInteger(s) && s > 0))].sort((a, b) => a - b);
+        if (sorted.length === 0) return null;
+        if (sorted.length === 1) return `${T.season} ${sorted[0]}`;
+        const runs = [[sorted[0]]];
+        for (let i = 1; i < sorted.length; i++) {
+            const last = runs[runs.length - 1];
+            if (sorted[i] === last[last.length - 1] + 1) { last.push(sorted[i]); }
+            else { runs.push([sorted[i]]); }
+        }
+        return runs.map(r => r.length === 1 ? `S${r[0]}` : `S${r[0]}-S${r[r.length - 1]}`).join(' ');
+    };
+
     const processGrouping = (items) => {
         const seriesMap = new Map();
         const result = [];
@@ -229,7 +250,10 @@
                 const hasBadge = subset.some(e => e.ShowBadge);
                 const newCount = subset.filter(e => e.ShowBadge).length;
                 if (subset.length > 1) {
-                    result.push({ ...latest, IsGroup: true, GroupCount: subset.length, NewCount: newCount, Name: latest.SeriesName || latest.Name, Id: latest.SeriesId || latest.Id, IsNew: hasNew, ShowBadge: hasBadge });
+                    // Carry the seasons covered by this group so the renderer can label
+                    // it as "Saison N — X épisodes" or "S1-S2 — X épisodes".
+                    const seasons = subset.map(e => e.ParentIndexNumber);
+                    result.push({ ...latest, IsGroup: true, GroupCount: subset.length, NewCount: newCount, Name: latest.SeriesName || latest.Name, Id: latest.SeriesId || latest.Id, IsNew: hasNew, ShowBadge: hasBadge, Seasons: seasons });
                 } else { result.push(latest); }
             });
         });
@@ -522,7 +546,9 @@
             if (isGroup) {
                 const isMusic = hero.Type === 'Audio';
                 const lbl = hero.IsUpgrade ? (isMusic ? T.updTracks : T.updEps) : isMusic ? (hero.ShowBadge ? T.newTracks : T.tracks) : (hero.ShowBadge ? T.newEps : T.eps);
-                heroSub = hero.ShowBadge ? `${hero.NewCount || hero.GroupCount} ${lbl}` : `${hero.GroupCount} ${lbl}`;
+                const count = hero.ShowBadge ? (hero.NewCount || hero.GroupCount) : hero.GroupCount;
+                const seasonsLabel = formatSeasons(hero.Seasons);
+                heroSub = seasonsLabel ? `${seasonsLabel} — ${count} ${lbl}` : `${count} ${lbl}`;
             }
 
             const safeHeroId = escapeHtml(hero.Id);
@@ -541,7 +567,9 @@
             if (!isGroup && item.Type === 'Episode') { title = escapeHtml(formatEpisodeTitle(item)); sub = escapeHtml(item.SeriesName); }
             if (isGroup) {
                 const lbl = item.IsUpgrade ? (isMusic ? T.updTracks : T.updEps) : isMusic ? (item.ShowBadge ? T.newTracks : T.tracks) : (item.ShowBadge ? T.newEps : T.eps);
-                sub = item.ShowBadge ? `${item.NewCount || item.GroupCount} ${lbl}` : `${item.GroupCount} ${lbl}`;
+                const count = item.ShowBadge ? (item.NewCount || item.GroupCount) : item.GroupCount;
+                const seasonsLabel = formatSeasons(item.Seasons);
+                sub = seasonsLabel ? `${seasonsLabel} — ${count} ${lbl}` : `${count} ${lbl}`;
             }
 
             const safeId = escapeHtml(item.Id);

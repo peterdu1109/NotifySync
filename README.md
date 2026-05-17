@@ -57,7 +57,7 @@ That's it. The bell appears in the top-right header and starts populating as new
 *   **Group Dismiss** — Click ✕ on a grouped notification to dismiss all its items (whole series at once).
 *   **Category Filters** — Quick filters (All / Movies / Series / Music / custom) to focus on what matters to you.
 *   **Dismiss Notifications** — Remove any notification with a click, or **swipe left** on mobile. The footer button adapts to your filter: clear everything, or just the selected category.
-*   **Smart Upgrade Detection** — When you replace a media file, the notification comes back to the top with a blue **UPD** badge instead of **NEW**, and tells you *what* changed: **Quality** (real upgrade), **Codec** (re-encode), **Audio** (dubbing added), or **Minor** (subtitle / metadata refresh). No more guessing whether it's worth re-watching.
+*   **Smart Upgrade Detection** — When you replace a media file, the notification comes back to the top with a blue **UPD** badge instead of **NEW**, and tells you *what* changed: **Quality** (resolution or source tier), **Codec** (re-encode), **Audio** (new audio track added), or any combination (e.g. **Q+C+A** when all three change at once). Subtitle additions, metadata refreshes, and file moves with the same release name stay silent — no badge noise.
 *   **Bell Pulse** — When new content arrives while the bell is closed, it pulses to grab attention (throttled to once every 30 seconds).
 *   **Collection Monitoring** — Track your Jellyfin collections (BoxSets): new additions to a monitored collection trigger a notification.
 *   **Deletion History** — Administrators can see a log of recently deleted media in the configuration page, with configurable retention.
@@ -152,7 +152,7 @@ Go to **Dashboard > Plugins > NotifySync**.
 | **Content missing** | Ensure the library is checked in "Monitored Libraries". |
 | **New TV episode missing** | Make sure the **Series-type library** containing the episode is checked in "Monitored Libraries". |
 | **Replaced file shows NEW instead of UPD** | Enable **Deleted Items Tracking** in config — required for the delete+re-import detection path. |
-| **UPD sub-label is wrong or missing** | The classifier uses filename keywords (`2160p`, `BluRay`, `HEVC`, `VFF`, etc.). Setups with non-standard naming may land on plain `UPD` or `UPD • Minor`. Open a GitHub issue with example filenames to extend the patterns. |
+| **UPD sub-label is wrong or missing** | The classifier uses filename keywords (`2160p`, `BluRay`, `HEVC`, `VFF`, etc.). Setups with non-standard naming may land on plain `UPD` with no sub-label. Open a GitHub issue with example filenames to extend the patterns. |
 | **Unauthorized content visible** | Plugin respects Jellyfin permissions — check user restrictions in the dashboard. |
 | **429 Error** | Wait 30 seconds between "Regenerate history" clicks (anti-spam). |
 | **Incompatible** | Ensure you are running Jellyfin **10.11.X**. |
@@ -201,7 +201,7 @@ C'est tout. La cloche apparaît en haut à droite de l'interface et se remplit a
 *   **Suppression Groupée** — Cliquez sur ✕ sur une notification groupée pour supprimer tous ses éléments d'un coup (une série entière, par exemple).
 *   **Filtres par Catégorie** — Des filtres rapides (Tout / Films / Séries / Musique / personnalisé) pour cibler ce qui vous intéresse.
 *   **Supprimer des Notifications** — Retirez une notification d'un clic, ou **glissez vers la gauche** sur mobile. Le bouton en bas s'adapte à votre filtre : vider tout, ou seulement la catégorie sélectionnée.
-*   **Détection Intelligente des Mises à Jour** — Quand vous remplacez un fichier média, la notification remonte en haut avec un badge bleu **MAJ** au lieu de **NOUVEAU**, et vous indique *ce qui* a changé : **Qualité** (vraie amélioration), **Codec** (ré-encodage), **Audio** (doublage ajouté), ou **Mineur** (sous-titre / refresh metadata). Plus besoin de deviner si ça vaut la peine de re-regarder.
+*   **Détection Intelligente des Mises à Jour** — Quand vous remplacez un fichier média, la notification remonte en haut avec un badge bleu **MAJ** au lieu de **NOUVEAU**, et vous indique *ce qui* a changé : **Qualité** (palier de résolution ou source), **Codec** (ré-encodage), **Audio** (nouvelle piste audio ajoutée), ou n'importe quelle combinaison (par ex. **Q+C+A** quand les trois changent en même temps). Les ajouts de sous-titres, rafraîchissements de métadonnées et déplacements de fichier avec le même nom restent silencieux — pas de bruit de badge.
 *   **Pulse de la Cloche** — Quand un nouveau contenu arrive alors que la cloche est fermée, elle pulse pour attirer l'attention (limité à une fois toutes les 30 secondes).
 *   **Surveillance des Collections** — Suivez vos collections Jellyfin (BoxSets) : les nouveaux ajouts dans une collection surveillée déclenchent une notification.
 *   **Historique des Suppressions** — Les administrateurs peuvent consulter les médias récemment supprimés dans la page de configuration, avec rétention paramétrable.
@@ -295,7 +295,7 @@ Allez dans **Tableau de bord > Extensions > NotifySync**.
 | **Contenu manquant** | Vérifiez que la bibliothèque est cochée dans "Bibliothèques Surveillées". |
 | **Nouvel épisode TV manquant** | Vérifiez que la **bibliothèque de type Série** contenant l'épisode est cochée dans "Bibliothèques Surveillées". |
 | **Fichier remplacé apparaît en NOUVEAU au lieu de MAJ** | Activez le **Suivi des Suppressions** dans la config — nécessaire pour la détection du scénario delete+ré-import. |
-| **Sous-label MAJ incorrect ou absent** | Le classificateur utilise les keywords du filename (`2160p`, `BluRay`, `HEVC`, `VFF`, etc.). Les setups avec un naming non-standard peuvent tomber sur `MAJ` tout court ou `MAJ • Mineur`. Ouvrez une issue GitHub avec des exemples de noms de fichiers pour étendre les patterns. |
+| **Sous-label MAJ incorrect ou absent** | Le classificateur utilise les keywords du filename (`2160p`, `BluRay`, `HEVC`, `VFF`, etc.). Les setups avec un naming non-standard peuvent tomber sur `MAJ` tout court sans sous-label. Ouvrez une issue GitHub avec des exemples de noms de fichiers pour étendre les patterns. |
 | **Contenu non autorisé visible** | Le plugin respecte les permissions Jellyfin — vérifiez les restrictions utilisateur. |
 | **Erreur 429** | Attendez 30 secondes entre chaque clic sur "Régénérer l'historique" (anti-spam). |
 | **Incompatible** | Vérifiez que vous utilisez Jellyfin **10.11.X**. |

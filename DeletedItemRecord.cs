@@ -58,5 +58,13 @@ namespace NotifySync
         /// the old path is the &quot;before&quot; reference for the path-based heuristic.
         /// </summary>
         public string? FilePath { get; set; }
+
+        /// <summary>
+        /// Gets or sets the ID of the notification that ultimately replaced this deleted item
+        /// (when ClassifyUpgrade matched a re-import to this record). Null when no replacement
+        /// has been observed — the deletion is &quot;orphan&quot; from the perspective of upgrade detection.
+        /// Exposed in the admin Deletions tab as a matched/orphan status indicator.
+        /// </summary>
+        public string? MatchedNotificationId { get; set; }
     }
 }

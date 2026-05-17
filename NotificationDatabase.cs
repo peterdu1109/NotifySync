@@ -116,7 +116,8 @@ namespace NotifySync
                             IndexNumber INTEGER,
                             ParentIndexNumber INTEGER,
                             DeletedAt TEXT NOT NULL,
-                            FilePath TEXT
+                            FilePath TEXT,
+                            MatchedNotificationId TEXT
                         );
                         CREATE INDEX IF NOT EXISTS idx_deleted_date ON DeletedItems(DeletedAt DESC);
                     ";
@@ -130,6 +131,7 @@ namespace NotifySync
                 MigrateAddColumn(connection, "DeletedItems", "IndexNumber", "INTEGER");
                 MigrateAddColumn(connection, "DeletedItems", "ParentIndexNumber", "INTEGER");
                 MigrateAddColumn(connection, "DeletedItems", "FilePath", "TEXT");
+                MigrateAddColumn(connection, "DeletedItems", "MatchedNotificationId", "TEXT");
 
                 // Drop columns no longer consumed by the slim classifier. Phase B Lite
                 // (VideoWidth/Height/Container/MediaBitrate) was tried and removed;
@@ -907,7 +909,7 @@ namespace NotifySync
                 using var connection = new SqliteConnection(_connectionString);
                 connection.Open();
                 using var cmd = connection.CreateCommand();
-                cmd.CommandText = "SELECT Id, ItemId, Name, Type, SeriesName, ProductionYear, DeletedAt FROM DeletedItems ORDER BY DeletedAt DESC LIMIT @Limit OFFSET @Offset";
+                cmd.CommandText = "SELECT Id, ItemId, Name, Type, SeriesName, ProductionYear, IndexNumber, ParentIndexNumber, DeletedAt, FilePath, MatchedNotificationId FROM DeletedItems ORDER BY DeletedAt DESC LIMIT @Limit OFFSET @Offset";
                 cmd.Parameters.AddWithValue("@Limit", limit > 0 ? limit : 200);
                 cmd.Parameters.AddWithValue("@Offset", offset >= 0 ? offset : 0);
                 using var reader = cmd.ExecuteReader();
@@ -921,7 +923,11 @@ namespace NotifySync
                         Type = reader.GetString(3),
                         SeriesName = reader.IsDBNull(4) ? null : reader.GetString(4),
                         ProductionYear = reader.IsDBNull(5) ? null : reader.GetInt32(5),
-                        DeletedAt = DateTime.Parse(reader.GetString(6), CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.RoundtripKind)
+                        IndexNumber = reader.IsDBNull(6) ? null : reader.GetInt32(6),
+                        ParentIndexNumber = reader.IsDBNull(7) ? null : reader.GetInt32(7),
+                        DeletedAt = DateTime.Parse(reader.GetString(8), CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.RoundtripKind),
+                        FilePath = reader.IsDBNull(9) ? null : reader.GetString(9),
+                        MatchedNotificationId = reader.IsDBNull(10) ? null : reader.GetString(10)
                     });
                 }
             }
@@ -974,7 +980,7 @@ namespace NotifySync
                 if (type == "Episode" && !string.IsNullOrEmpty(seriesName) && indexNumber.HasValue && parentIndexNumber.HasValue)
                 {
                     cmd.CommandText = @"
-                        SELECT Id, ItemId, Name, Type, SeriesName, ProductionYear, IndexNumber, ParentIndexNumber, DeletedAt, FilePath
+                        SELECT Id, ItemId, Name, Type, SeriesName, ProductionYear, IndexNumber, ParentIndexNumber, DeletedAt, FilePath, MatchedNotificationId
                         FROM DeletedItems
                         WHERE Type = 'Episode' AND SeriesName = @SeriesName
                         AND IndexNumber = @IndexNumber AND ParentIndexNumber = @ParentIndexNumber
@@ -988,7 +994,7 @@ namespace NotifySync
                 else
                 {
                     cmd.CommandText = @"
-                        SELECT Id, ItemId, Name, Type, SeriesName, ProductionYear, IndexNumber, ParentIndexNumber, DeletedAt, FilePath
+                        SELECT Id, ItemId, Name, Type, SeriesName, ProductionYear, IndexNumber, ParentIndexNumber, DeletedAt, FilePath, MatchedNotificationId
                         FROM DeletedItems
                         WHERE Name = @Name AND Type = @Type AND DeletedAt > @Cutoff
                         AND (@Year IS NULL OR ProductionYear IS NULL OR ProductionYear = @Year)
@@ -1016,13 +1022,39 @@ namespace NotifySync
                     IndexNumber = reader.IsDBNull(6) ? null : reader.GetInt32(6),
                     ParentIndexNumber = reader.IsDBNull(7) ? null : reader.GetInt32(7),
                     DeletedAt = DateTime.Parse(reader.GetString(8), CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.RoundtripKind),
-                    FilePath = reader.IsDBNull(9) ? null : reader.GetString(9)
+                    FilePath = reader.IsDBNull(9) ? null : reader.GetString(9),
+                    MatchedNotificationId = reader.IsDBNull(10) ? null : reader.GetString(10)
                 };
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "NotifySync: Error fetching deleted item match for {Name}.", name);
                 return null;
+            }
+        }
+
+        /// <summary>
+        /// Marks a deleted item as matched to a replacement notification. Called when
+        /// <c>TryGetDeletedMatch</c> resolves a re-import to this deleted row, so the admin
+        /// Deletions tab can show a matched / orphan status.
+        /// </summary>
+        /// <param name="deletedItemId">The auto-increment ID of the deleted row.</param>
+        /// <param name="notificationId">The ID of the new notification that replaced it.</param>
+        public void MarkDeletedAsMatched(long deletedItemId, string notificationId)
+        {
+            try
+            {
+                using var connection = new SqliteConnection(_connectionString);
+                connection.Open();
+                using var cmd = connection.CreateCommand();
+                cmd.CommandText = "UPDATE DeletedItems SET MatchedNotificationId = @NotifId WHERE Id = @Id";
+                cmd.Parameters.AddWithValue("@NotifId", notificationId);
+                cmd.Parameters.AddWithValue("@Id", deletedItemId);
+                cmd.ExecuteNonQuery();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "NotifySync: Error marking deleted item {Id} as matched.", deletedItemId);
             }
         }
 

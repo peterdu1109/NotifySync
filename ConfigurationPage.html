@@ -284,6 +284,21 @@
             .ns-type-badge.episode { background: rgba(33, 150, 243, 0.15); color: #82b1ff; }
             .ns-type-badge.audio { background: rgba(156, 39, 176, 0.15); color: #ce93d8; }
 
+            /* Path column — clipped with ellipsis, full path in tooltip */
+            .ns-table td.ns-path {
+                max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+                font-family: 'Consolas', 'Monaco', monospace; font-size: 11px;
+                color: var(--ns-text-secondary, #aaa);
+            }
+
+            /* Matched / Orphan status pill */
+            .ns-status-pill {
+                display: inline-block; padding: 2px 8px; border-radius: 10px;
+                font-size: 10px; font-weight: 600; text-transform: uppercase;
+            }
+            .ns-status-pill.matched { background: rgba(76, 175, 80, 0.15); color: #a5d6a7; }
+            .ns-status-pill.orphan { background: rgba(158, 158, 158, 0.15); color: #bdbdbd; }
+
             /* Pagination */
             .ns-pagination {
                 display: flex; align-items: center; justify-content: center; gap: 8px;
@@ -390,10 +405,10 @@
                         <div class="ns-header-info">
                             <h2>NotifySync</h2>
                             <a class="ns-version-link" id="ns-version-link"
-                               href="https://github.com/peterdu1109/NotifySync/releases/tag/v5.5.12.1-beta2"
+                               href="https://github.com/peterdu1109/NotifySync/releases/tag/v5.5.12.2-beta3"
                                target="_blank" rel="noopener"
                                title="Voir les release notes sur GitHub / View release notes on GitHub">
-                                <span class="ns-version" id="ns-version-badge">v5.5.12.1-beta2</span>
+                                <span class="ns-version" id="ns-version-badge">v5.5.12.2-beta3</span>
                                 <span class="material-icons ns-version-icon">open_in_new</span>
                             </a>
                         </div>
@@ -666,6 +681,10 @@
                     colSearchPlaceholder: "Filtrer les collections…",
                     delColName: "Nom", delColType: "Type", delColSeries: "Série",
                     delColYear: "Année", delColDate: "Supprimé le",
+                    delColPath: "Chemin", delColStatus: "État",
+                    delStatusMatched: "Remplacé", delStatusOrphan: "Orphelin",
+                    delStatusMatchedTitle: "Un nouvel item a remplacé ce fichier supprimé",
+                    delStatusOrphanTitle: "Aucun remplacement détecté dans les 7 jours",
                     confirmDeleteMappingTitle: "Supprimer le mappage ?",
                     confirmDeleteMappingMsg: "La catégorie \"{cat}\" pour cette bibliothèque sera supprimée.",
                     cancel: "Annuler", confirm: "Confirmer",
@@ -716,6 +735,10 @@
                     colSearchPlaceholder: "Filter collections…",
                     delColName: "Name", delColType: "Type", delColSeries: "Series",
                     delColYear: "Year", delColDate: "Deleted on",
+                    delColPath: "Path", delColStatus: "Status",
+                    delStatusMatched: "Replaced", delStatusOrphan: "Orphan",
+                    delStatusMatchedTitle: "A new item replaced this deleted file",
+                    delStatusOrphanTitle: "No replacement detected within 7 days",
                     confirmDeleteMappingTitle: "Delete this mapping?",
                     confirmDeleteMappingMsg: "The category \"{cat}\" for this library will be removed.",
                     cancel: "Cancel", confirm: "Confirm",
@@ -1216,19 +1239,20 @@
                     html += '<th class="' + sortedCls('SeriesName') + '" data-col="SeriesName">' + CT.delColSeries + sortIcon('SeriesName') + '</th>';
                     html += '<th class="' + sortedCls('ProductionYear') + '" data-col="ProductionYear">' + CT.delColYear + sortIcon('ProductionYear') + '</th>';
                     html += '<th class="' + sortedCls('DeletedAt') + '" data-col="DeletedAt">' + CT.delColDate + sortIcon('DeletedAt') + '</th>';
+                    html += '<th data-col="FilePath">' + CT.delColPath + '</th>';
+                    html += '<th data-col="Status">' + CT.delColStatus + '</th>';
                     html += '</tr></thead><tbody>';
 
                     pageItems.forEach(item => {
                         const typeLower = (item.Type || '').toLowerCase();
-                        const dateStr = new Date(item.DeletedAt).toLocaleString(undefined, {
-                            year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
-                        });
                         html += '<tr>';
                         html += '<td></td>';
                         html += '<td><span class="ns-type-badge ' + typeLower + '"></span></td>';
                         html += '<td class="ns-series"></td>';
                         html += '<td class="ns-year"></td>';
                         html += '<td class="ns-date"></td>';
+                        html += '<td class="ns-path"></td>';
+                        html += '<td class="ns-status"></td>';
                         html += '</tr>';
                     });
                     html += '</tbody></table></div>';
@@ -1255,6 +1279,17 @@
                         r.querySelector('.ns-date').textContent = new Date(item.DeletedAt).toLocaleString(undefined, {
                             year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
                         });
+                        const pathCell = r.querySelector('.ns-path');
+                        pathCell.textContent = item.FilePath || '—';
+                        if (item.FilePath) pathCell.title = item.FilePath;
+                        const statusCell = r.querySelector('.ns-status');
+                        if (item.MatchedNotificationId) {
+                            statusCell.innerHTML = '<span class="ns-status-pill matched">' + CT.delStatusMatched + '</span>';
+                            statusCell.title = CT.delStatusMatchedTitle;
+                        } else {
+                            statusCell.innerHTML = '<span class="ns-status-pill orphan">' + CT.delStatusOrphan + '</span>';
+                            statusCell.title = CT.delStatusOrphanTitle;
+                        }
                     });
 
                     // Wire sort handlers

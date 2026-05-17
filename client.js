@@ -458,14 +458,17 @@
         else { badge.classList.remove('visible'); }
     };
 
-    // Returns a localized label for the upgrade kind(s) — single ("Qualité") or multiple
-    // joined with " + " ("Codec + Audio"). The server may send a comma-separated list
-    // like "quality,codec,audio" when several signals fired on the same file change.
+    // Returns a localized label for the upgrade kind(s). Single kind renders the full
+    // label ("Quality" / "Codec" / "Audio"). Multi-kind renders compact initials joined
+    // with "+" ("Q+C", "C+A", "Q+C+A") to keep the badge tight in the dropdown card.
     const upgradeKindLabel = (item) => {
         if (!item.IsUpgrade || !item.UpgradeKind) return '';
-        const map = { quality: T.kindQuality, codec: T.kindCodec, audio: T.kindAudio };
-        const parts = String(item.UpgradeKind).split(',').map(k => map[k.trim()]).filter(Boolean);
-        return parts.join(' + ');
+        const fullMap = { quality: T.kindQuality, codec: T.kindCodec, audio: T.kindAudio };
+        const shortMap = { quality: 'Q', codec: 'C', audio: 'A' };
+        const kinds = String(item.UpgradeKind).split(',').map(k => k.trim()).filter(k => fullMap[k]);
+        if (kinds.length === 0) return '';
+        if (kinds.length === 1) return fullMap[kinds[0]];
+        return kinds.map(k => shortMap[k]).join('+');
     };
 
     // Returns the full badge text including the upgrade kind suffix when applicable.

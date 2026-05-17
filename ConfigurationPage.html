@@ -255,10 +255,15 @@
 
             /* Deletion history table */
             .ns-table-wrap {
-                background: rgba(0, 0, 0, 0.2); border-radius: 6px; overflow: hidden;
+                background: rgba(0, 0, 0, 0.2); border-radius: 6px; overflow-x: auto;
                 margin-top: 10px;
             }
-            .ns-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+            .ns-table {
+                width: 100%; border-collapse: collapse; font-size: 13px;
+                /* Force a comfortable minimum width — the wrapper scrolls horizontally
+                   on small screens instead of squashing the 7 columns into 3. */
+                min-width: 1000px;
+            }
             .ns-table th {
                 text-align: left; padding: 10px 12px; color: var(--ns-text-dim);
                 font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;
@@ -405,10 +410,10 @@
                         <div class="ns-header-info">
                             <h2>NotifySync</h2>
                             <a class="ns-version-link" id="ns-version-link"
-                               href="https://github.com/peterdu1109/NotifySync/releases/tag/v5.5.12.2-beta3"
+                               href="https://github.com/peterdu1109/NotifySync/releases/tag/v5.5.12.3-beta4"
                                target="_blank" rel="noopener"
                                title="Voir les release notes sur GitHub / View release notes on GitHub">
-                                <span class="ns-version" id="ns-version-badge">v5.5.12.2-beta3</span>
+                                <span class="ns-version" id="ns-version-badge">v5.5.12.3-beta4</span>
                                 <span class="material-icons ns-version-icon">open_in_new</span>
                             </a>
                         </div>

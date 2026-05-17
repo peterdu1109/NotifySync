@@ -231,12 +231,14 @@ namespace NotifySync
         private string NormalizeUserId(string userId) => IdHelper.NormalizeId(userId);
 
         /// <summary>
-        /// Classifies the type of upgrade detected when replacing an existing notification's
-        /// media file. Returns one of <see cref="KindQuality"/>, <see cref="KindCodec"/>,
-        /// <see cref="KindAudio"/>, or <c>null</c> when no meaningful change is detected.
-        /// Detection is purely filename-based — release-group naming conventions are the
-        /// only reliable signal here. Size, bitrate, container, and pixel-dimension
-        /// heuristics were tried (Phase B Lite) and produced too many false positives.
+        /// Classifies the type(s) of upgrade detected when replacing an existing notification's
+        /// media file. Returns a comma-separated list of kinds (e.g. <c>"codec,audio"</c> or
+        /// <c>"quality,codec,audio"</c>) in display priority order, or <c>null</c> when no
+        /// meaningful change is detected. The client splits this and renders each kind as a
+        /// localized label (e.g. "MAJ Codec + Audio"). Detection is purely filename-based —
+        /// release-group naming conventions are the only reliable signal here. Size, bitrate,
+        /// container, and pixel-dimension heuristics were tried (Phase B Lite) and produced
+        /// too many false positives.
         /// </summary>
         private static string? ClassifyUpgrade(NotificationItem existing, NotificationItem updated)
         {
@@ -251,10 +253,11 @@ namespace NotifySync
                 return null;
             }
 
+            var kinds = new List<string>(3);
+
             // 1. Quality — resolution or source token differs (in either direction).
-            //    We flag any change, not just upgrades, for symmetry with Codec detection.
-            //    Whether 1080p → 4K or 4K → 1080p, the user wants to know that the file
-            //    they had has been replaced with one of a different quality tier.
+            //    Symmetric: 1080p → 4K and 4K → 1080p both qualify. Same for source
+            //    (WEBRip ↔ BluRay).
             bool oldHas4K = ContainsAnyTag(oldPath, ResolutionUpTokens4K);
             bool newHas4K = ContainsAnyTag(newPath, ResolutionUpTokens4K);
             bool oldHas1080 = ContainsAnyTag(oldPath, ResolutionUpTokens1080);
@@ -262,38 +265,31 @@ namespace NotifySync
             bool oldHasBetterSource = ContainsAnyTag(oldPath, SourceBetterTokens);
             bool newHasBetterSource = ContainsAnyTag(newPath, SourceBetterTokens);
 
-            if (oldHas4K != newHas4K || oldHas1080 != newHas1080)
+            if (oldHas4K != newHas4K || oldHas1080 != newHas1080 || oldHasBetterSource != newHasBetterSource)
             {
-                return KindQuality;
+                kinds.Add(KindQuality);
             }
 
-            if (oldHasBetterSource != newHasBetterSource)
-            {
-                return KindQuality;
-            }
-
-            // 2. Codec — codec family changed between old and new filename.
-            //    Catches transitions in any direction (x264 ↔ HEVC ↔ AV1).
+            // 2. Codec — codec family changed in either direction (x264 ↔ HEVC ↔ AV1).
             string? oldCodec = DetectCodec(oldPath);
             string? newCodec = DetectCodec(newPath);
             if (oldCodec != newCodec && (oldCodec != null || newCodec != null))
             {
-                return KindCodec;
+                kinds.Add(KindCodec);
             }
 
-            // 3. Audio — any audio-track-added token appears in the new filename but
-            //    not in the old one (FR variants, multi-language markers, generic dub).
+            // 3. Audio — any audio-track-added token appears in the new filename but not
+            //    in the old one (asymmetric on purpose — removing a track isn't an upgrade).
             foreach (var token in AudioAddedTokens)
             {
                 if (!ContainsTag(oldPath, token) && ContainsTag(newPath, token))
                 {
-                    return KindAudio;
+                    kinds.Add(KindAudio);
+                    break;
                 }
             }
 
-            // No filename signal matched. The caller decides whether to still flag this
-            // as a generic MAJ (path changed but reason unclear) or to ignore.
-            return null;
+            return kinds.Count == 0 ? null : string.Join(",", kinds);
         }
 
         /// <summary>

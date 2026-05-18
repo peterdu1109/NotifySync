@@ -1,7 +1,7 @@
 <h1 align="center">🔔 NotifySync</h1>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-5.5.12.9--beta10-orange" alt="Version">
+  <img src="https://img.shields.io/badge/version-5.6.0.0-blue" alt="Version">
   <img src="https://img.shields.io/badge/.NET-9.0-purple" alt=".NET Framework">
   <img src="https://img.shields.io/badge/Jellyfin-10.11.X-blueviolet" alt="Jellyfin">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="License">
@@ -33,7 +33,7 @@ NotifySync transforms the Jellyfin interface by adding a native notification bel
 
 ## 📑 Table of Contents
 
-- [✨ What's New in 5.5.12](#-whats-new-in-5512)
+- [✨ What's New in 5.6.0](#-whats-new-in-560)
 - [🚀 Quick Start](#-quick-start)
 - [✨ Key Features](#-key-features)
 - [📦 Installation](#-installation)
@@ -41,9 +41,9 @@ NotifySync transforms the Jellyfin interface by adding a native notification bel
 - [❓ Troubleshooting](#-troubleshooting)
 - [👥 Authors & Credits](#-authors--credits)
 
-## ✨ What's New in 5.5.12
+## ✨ What's New in 5.6.0
 
-A consolidated summary of everything that changed since the **5.5.11.12** stable release. Currently shipping as `5.5.12.X-betaN` on the beta channel.
+A consolidated summary of everything that changed since the **5.5.11.12** stable release. The 5.6.0 series replaces the 5.5.x series — major rework of the upgrade detection plus a beefed-up admin diagnostics tab.
 
 ### 🎯 Smarter upgrade detection
 
@@ -232,7 +232,7 @@ NotifySync transforme l'interface Jellyfin en y ajoutant une cloche de notificat
 
 ## 📑 Sommaire
 
-- [✨ Quoi de Neuf en 5.5.12](#-quoi-de-neuf-en-5512)
+- [✨ Quoi de Neuf en 5.6.0](#-quoi-de-neuf-en-560)
 - [🚀 Démarrage Rapide](#-démarrage-rapide)
 - [✨ Fonctionnalités](#-fonctionnalités)
 - [📦 Installation](#-installation-1)
@@ -240,9 +240,9 @@ NotifySync transforme l'interface Jellyfin en y ajoutant une cloche de notificat
 - [❓ Dépannage](#-dépannage)
 - [👥 Auteurs & Crédits](#-auteurs--crédits)
 
-## ✨ Quoi de Neuf en 5.5.12
+## ✨ Quoi de Neuf en 5.6.0
 
-Récap consolidé de tout ce qui a changé depuis la version stable **5.5.11.12**. Actuellement disponible sous `5.5.12.X-betaN` sur le canal beta.
+Récap consolidé de tout ce qui a changé depuis la version stable **5.5.11.12**. La série 5.6.0 remplace la 5.5.x — refonte majeure de la détection d'upgrade plus un onglet de diagnostic admin enrichi.
 
 ### 🎯 Détection d'upgrade plus fine
 

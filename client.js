@@ -1,4 +1,4 @@
-/* NOTIFYSYNC V5.5.12.8-beta9 */
+/* NOTIFYSYNC V5.5.12.9-beta10 */
 (function () {
     let currentData = [];
     let groupedData = [];
@@ -533,7 +533,9 @@
                 // Season label is episode-only — Audio.ParentIndexNumber is the disc number,
                 // not a season, so emitting "Saison 1" on an album group is spurious.
                 const seasonsLabel = isMusic ? null : formatSeasons(hero.Seasons);
-                heroSub = seasonsLabel ? `${seasonsLabel} — ${count} ${lbl}` : `${count} ${lbl}`;
+                // Bullet separator matches the time/content separator on the same line —
+                // consistent metadata style (Spotify/YouTube convention).
+                heroSub = seasonsLabel ? `${seasonsLabel} • ${count} ${lbl}` : `${count} ${lbl}`;
             }
 
             const safeHeroId = escapeHtml(hero.Id);
@@ -556,7 +558,8 @@
                 const count = item.ShowBadge ? (item.NewCount || item.GroupCount) : item.GroupCount;
                 // Season label is episode-only — Audio.ParentIndexNumber is the disc number.
                 const seasonsLabel = isMusic ? null : formatSeasons(item.Seasons);
-                sub = seasonsLabel ? `${seasonsLabel} — ${count} ${lbl}` : `${count} ${lbl}`;
+                // Bullet separator (matches the time separator on the same line).
+                sub = seasonsLabel ? `${seasonsLabel} • ${count} ${lbl}` : `${count} ${lbl}`;
             }
 
             const safeId = escapeHtml(item.Id);

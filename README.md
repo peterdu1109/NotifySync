@@ -31,69 +31,16 @@
 
 NotifySync transforms the Jellyfin interface by adding a native notification bell, inspired by major streaming platforms. Your users instantly see the latest additions — Movies, Series, Music — without ever leaving their current page, through a sleek glass-morphism dropdown that feels like it was always part of Jellyfin.
 
+> 📖 **Changelog & version history:** see [GitHub Releases](https://github.com/peterdu1109/NotifySync/releases) for what's new in each version.
+
 ## 📑 Table of Contents
 
-- [✨ What's New in 5.6.0](#-whats-new-in-560)
 - [🚀 Quick Start](#-quick-start)
 - [✨ Key Features](#-key-features)
 - [📦 Installation](#-installation)
 - [⚙️ Configuration](#️-configuration)
 - [❓ Troubleshooting](#-troubleshooting)
 - [👥 Authors & Credits](#-authors--credits)
-
-## ✨ What's New in 5.6.0
-
-A consolidated summary of everything that changed since the **5.5.11.12** stable release. The 5.6.0 series replaces the 5.5.x series — major rework of the upgrade detection plus a beefed-up admin diagnostics tab.
-
-### 🎯 Smarter upgrade detection
-
-The **UPD** badge now tells you *what* changed when a file is replaced:
-
-| Badge | Trigger (filename-based) |
-|---|---|
-| **UPD Quality** | Resolution tier (`1080p` ↔ `2160p`/`4K`) or source (`WEB`/`HDTV` ↔ `BluRay`/`REMUX`) differs |
-| **UPD Codec** | Codec family changed (`x264`/`h264` ↔ `HEVC`/`x265` ↔ `AV1`), either direction |
-| **UPD Audio** | A new audio token appeared (`VFF`, `VFQ`, `VFI`, `TRUEFRENCH`, `FRENCH`, `MULTI`, `DUAL`, `DUBBED`, `DUB`) |
-| **UPD Codec & Audio** (2-kind combo) | Two signals fired at once on the same file change |
-| **UPD All** (3-kind combo) | Quality + Codec + Audio all matched on a single replacement |
-
-What used to produce confusing badges (subtitle file additions, metadata refreshes, file moves with the same release name) is now **silent** — no false positives.
-
-### 📺 Season-aware grouping in the bell
-
-When a batch of episodes lands at once (Sonarr season pack, etc.), the dropdown summarizes which seasons:
-
-- **1 season** → `Series Name — Season 4 — 24 episodes`
-- **Consecutive range** → `Series Name — S1-S5 — 120 episodes`
-- **Mixed** → `Series Name — S1-S2, S4 — 36 episodes`
-
-### 🛡️ Persistent badges across restarts
-
-The **UPD** badges now survive Jellyfin restarts. A startup task was silently wiping them on every reboot — fixed.
-
-### 🔍 Beefed-up Deletions admin tab
-
-The admin **Deletions** tab gained two columns to help diagnose detection issues:
-
-- **Path** — the full filesystem path of the deleted file, with multi-line wrapping on small screens so nothing is truncated
-- **Status** — green **Replaced** pill if NotifySync correlated the deletion to a re-import (matched an UPD badge in the bell) or grey **Orphan** if no replacement was detected within 7 days
-
-Live TV recordings no longer pollute this view; recording cycles are filtered out at the source.
-
-### 🎛️ Two new admin buttons
-
-In the **Maintenance** section:
-- **Regenerate history** (existing) — rebuilds the bell from a full library scan
-- **Scan collections now** (new) — forces an immediate scan of monitored Collections instead of waiting for the 15-minute interval
-
-### 🔐 Security & polish
-
-- Admin-only endpoints (`/Refresh`, `/ScanCollections`, `/DeletedItems`) properly verify the Administrator role
-- Dropdown anchors directly under the bell on every screen size and Jellyfin theme (no more floating above the header)
-- Category mapping reorder works on mobile (up / down buttons replaced the desktop-only drag-and-drop)
-- Schema cleaned up: removed 6 unused columns from the previous beta iterations
-
----
 
 ## 🚀 Quick Start
 
@@ -106,36 +53,26 @@ That's it. The bell appears in the top-right header and starts populating as new
 ## ✨ Key Features
 
 ### 🎨 User Experience
-*   **Netflix-Style Design** — A sleek dropdown with a frosted glass look. The red counter disappears as soon as you open the bell, but NEW/UPD badges stay visible for 72 hours so you can always spot recent additions.
-*   **Hero Section** — The latest addition is displayed large with its backdrop image. One click takes you straight to the content. You can also dismiss it directly.
-*   **Smart Grouping** — Episodes of the same series are grouped together (e.g. *"3 new episodes"*). Music tracks are grouped by album.
-*   **Group Dismiss** — Click ✕ on a grouped notification to dismiss all its items (whole series at once).
-*   **Category Filters** — Quick filters (All / Movies / Series / Music / custom) to focus on what matters to you.
-*   **Dismiss Notifications** — Remove any notification with a click, or **swipe left** on mobile. The footer button adapts to your filter: clear everything, or just the selected category.
-*   **Smart Upgrade Detection** — When you replace a media file, the notification comes back to the top with a blue **UPD** badge instead of **NEW**, and tells you *what* changed: **Quality** (resolution or source tier), **Codec** (re-encode), **Audio** (new audio track added), or any combination (e.g. **Codec & Audio**, or **All** when the three change at once). Subtitle additions, metadata refreshes, and file moves with the same release name stay silent — no badge noise.
-*   **Bell Pulse** — When new content arrives while the bell is closed, it pulses to grab attention (throttled to once every 30 seconds).
-*   **Collection Monitoring** — Track your Jellyfin collections (BoxSets): new additions to a monitored collection trigger a notification.
-*   **Deletion History** — Administrators can see a log of recently deleted media in the configuration page, with configurable retention.
-*   **Synced Across Devices** — Read/unread status is saved on the server and stays in sync across all your browsers and devices.
-*   **Clear List (Safe)** — Clear all notifications without affecting your Jellyfin watch history — nothing gets marked as "Played".
-*   **Bilingual Interface** — The bell and config page follow your Jellyfin language (French / English).
-*   **Relative Timestamps** — Dates show as *"2 hours ago"*, *"yesterday"*, *"3 days ago"*.
-*   **Theme Song Filtering** — Openings, endings, and NCOP/NCED are automatically excluded.
-*   **Responsive** — Works on desktop, tablet, and mobile (via the official Jellyfin app). *Note: Not supported on TV.*
+*   **Netflix-Style Design** — A sleek glass-morphism dropdown. The red counter clears as soon as you open the bell, but NEW / UPD badges stay visible for 72 hours.
+*   **Hero Section** — The latest addition is displayed large with its backdrop image. One click jumps straight to the content.
+*   **Smart Grouping** — Episodes grouped by series (with season-aware summaries like `S1-S5 — 120 episodes`), tracks grouped by album.
+*   **Smart Upgrade Detection** — When you replace a media file, the notification comes back with a blue **UPD** badge that tells you *what* changed: **Quality**, **Codec**, **Audio**, or any combination. Subtitle additions and metadata refreshes stay silent.
+*   **Category Filters & Dismiss** — Quick filters (All / Movies / Series / Music / custom). Dismiss with a click or swipe-left on mobile, per-item or per-group.
+*   **Collection Monitoring** — Track Jellyfin collections (BoxSets) for new additions.
+*   **Deletion History** — Admin log of recently deleted media with configurable retention.
+*   **Synced Across Devices** — Read / unread status saved server-side, in sync across all your devices.
+*   **Clear List (Safe)** — Clearing notifications never marks anything as "Played" in Jellyfin.
+*   **Bilingual & Responsive** — French / English following your Jellyfin language. Works on desktop, tablet, and mobile (*not supported on TV*).
 
 ### 🚀 Performance
-*   **Real-Time Updates** — Notifications appear instantly thanks to Jellyfin's built-in WebSockets. No page refresh needed.
-*   **HTTP Cache + ETag** — The plugin uses `If-None-Match` to skip transfers when nothing changed, saving bandwidth and CPU.
-*   **Lazy Image Loading** — Thumbnails load as you scroll, keeping the interface snappy even with many notifications.
-*   **Lightweight Storage** — All data is stored in a fast SQLite database (WAL mode) optimized for concurrent access.
-*   **Optimized for .NET 9** — Built for the latest Jellyfin runtime for maximum performance.
+*   **Real-Time Updates** — Notifications appear instantly via Jellyfin's WebSockets — no page refresh.
+*   **HTTP Caching** — `ETag` / `If-None-Match` skips transfers when nothing changed.
+*   **Lazy Image Loading** — Thumbnails load as you scroll, keeping the interface snappy.
 
 ### 🛡️ Security & Privacy
-*   **Respects Jellyfin Permissions** — Each user only sees content from the libraries they have access to. All restrictions (tags, ratings, folders) are enforced.
-*   **User Isolation** — No user can access another user's notifications or data. Admins can manage all users.
-*   **Safe Against Attacks** — All content is sanitized before display, and all database queries are protected against injection.
-*   **Anti-Spam** — 30-second cooldown on manual history regeneration to protect server resources.
-*   **Crash-Safe** — Data is written safely to prevent corruption even if the server stops unexpectedly.
+*   **Respects Jellyfin Permissions** — Each user only sees content from libraries they have access to (tags, ratings, folders all enforced).
+*   **Safe Against Attacks** — All content sanitized before display; all SQL parameterized.
+*   **User Isolation** — No user can access another user's notifications or data.
 
 ## 📦 Installation
 
@@ -207,7 +144,6 @@ Go to **Dashboard > Plugins > NotifySync**.
 | **Content missing** | Ensure the library is checked in "Monitored Libraries". |
 | **New TV episode missing** | Make sure the **Series-type library** containing the episode is checked in "Monitored Libraries". |
 | **Replaced file shows NEW instead of UPD** | Enable **Deleted Items Tracking** in config — required for the delete+re-import detection path. |
-| **UPD sub-label is wrong or missing** | The classifier uses filename keywords (`2160p`, `BluRay`, `HEVC`, `VFF`, etc.). Setups with non-standard naming may land on plain `UPD` with no sub-label. Open a GitHub issue with example filenames to extend the patterns. |
 | **Unauthorized content visible** | Plugin respects Jellyfin permissions — check user restrictions in the dashboard. |
 | **429 Error** | Wait 30 seconds between "Regenerate history" clicks (anti-spam). |
 | **Incompatible** | Ensure you are running Jellyfin **10.11.X**. |
@@ -230,69 +166,16 @@ Released under the [MIT License](./LICENSE).
 
 NotifySync transforme l'interface Jellyfin en y ajoutant une cloche de notifications native, inspirée des grandes plateformes de streaming. Vos utilisateurs voient instantanément les derniers ajouts — Films, Séries, Musique — sans jamais quitter leur page, via un menu déroulant en verre dépoli qui s'intègre naturellement dans Jellyfin.
 
+> 📖 **Changelog & historique des versions :** voir les [Releases GitHub](https://github.com/peterdu1109/NotifySync/releases) pour les nouveautés de chaque version.
+
 ## 📑 Sommaire
 
-- [✨ Quoi de Neuf en 5.6.0](#-quoi-de-neuf-en-560)
 - [🚀 Démarrage Rapide](#-démarrage-rapide)
 - [✨ Fonctionnalités](#-fonctionnalités)
 - [📦 Installation](#-installation-1)
 - [⚙️ Configuration](#️-configuration-1)
 - [❓ Dépannage](#-dépannage)
 - [👥 Auteurs & Crédits](#-auteurs--crédits)
-
-## ✨ Quoi de Neuf en 5.6.0
-
-Récap consolidé de tout ce qui a changé depuis la version stable **5.5.11.12**. La série 5.6.0 remplace la 5.5.x — refonte majeure de la détection d'upgrade plus un onglet de diagnostic admin enrichi.
-
-### 🎯 Détection d'upgrade plus fine
-
-Le badge **MAJ** indique maintenant *ce qui* a changé quand un fichier est remplacé :
-
-| Badge | Déclencheur (basé nom de fichier) |
-|---|---|
-| **MAJ Qualité** | Palier de résolution (`1080p` ↔ `2160p`/`4K`) ou source (`WEB`/`HDTV` ↔ `BluRay`/`REMUX`) différent |
-| **MAJ Codec** | Famille de codec changée (`x264`/`h264` ↔ `HEVC`/`x265` ↔ `AV1`), peu importe le sens |
-| **MAJ Audio** | Un nouveau token audio est apparu (`VFF`, `VFQ`, `VFI`, `TRUEFRENCH`, `FRENCH`, `MULTI`, `DUAL`, `DUBBED`, `DUB`) |
-| **MAJ Codec & Audio** (combo 2 kinds) | Deux signaux ont matché en même temps sur le même remplacement |
-| **MAJ Tout** (combo 3 kinds) | Qualité + Codec + Audio ont tous matché simultanément |
-
-Ce qui produisait des badges confus avant (ajout de sous-titres, rafraîchissement de métadonnées, déplacement de fichier avec même nom) est maintenant **silencieux** — plus de faux positifs.
-
-### 📺 Regroupement par saison dans la cloche
-
-Quand un lot d'épisodes arrive en même temps (saison Sonarr, etc.), le dropdown synthétise les saisons :
-
-- **1 saison** → `Nom de la Série — Saison 4 — 24 épisodes`
-- **Range consécutif** → `Nom de la Série — S1-S5 — 120 épisodes`
-- **Mixte** → `Nom de la Série — S1-S2, S4 — 36 épisodes`
-
-### 🛡️ Badges persistants à travers les redémarrages
-
-Les badges **MAJ** survivent maintenant aux redémarrages Jellyfin. Une tâche au démarrage les effaçait silencieusement à chaque reboot — corrigé.
-
-### 🔍 Onglet admin Suppressions renforcé
-
-L'onglet admin **Suppressions** a gagné deux colonnes pour aider à diagnostiquer la détection :
-
-- **Chemin** — le chemin complet du fichier supprimé, avec wrap multi-ligne sur petits écrans (rien n'est tronqué)
-- **État** — pill vert **Remplacé** si NotifySync a corrélé la suppression à un réimport (donc un badge MAJ a été produit dans la cloche), gris **Orphelin** si aucun remplacement détecté dans les 7 jours
-
-Les enregistrements Live TV ne polluent plus cette vue ; les cycles d'enregistrement sont filtrés à la source.
-
-### 🎛️ Deux nouveaux boutons admin
-
-Dans la section **Maintenance** :
-- **Régénérer l'historique** (existant) — reconstruit la cloche depuis un scan complet de la bibliothèque
-- **Scanner les collections** (nouveau) — force un scan immédiat des Collections surveillées au lieu d'attendre l'intervalle de 15 minutes
-
-### 🔐 Sécurité & polish
-
-- Les endpoints admin (`/Refresh`, `/ScanCollections`, `/DeletedItems`) vérifient correctement le rôle Administrateur
-- Le dropdown s'ancre directement sous la cloche sur toutes les tailles d'écran et thèmes Jellyfin (plus de flottement au-dessus du header)
-- Le réordonnancement des mappings de catégorie fonctionne sur mobile (boutons ↑↓ remplacent le drag-and-drop desktop-only)
-- Schéma SQL nettoyé : 6 colonnes inutilisées retirées suite aux itérations beta précédentes
-
----
 
 ## 🚀 Démarrage Rapide
 
@@ -305,36 +188,26 @@ C'est tout. La cloche apparaît en haut à droite de l'interface et se remplit a
 ## ✨ Fonctionnalités
 
 ### 🎨 Expérience Utilisateur
-*   **Design Netflix-Style** — Un menu déroulant élégant avec effet de verre dépoli. Le compteur rouge disparaît dès l'ouverture de la cloche, mais les badges NOUVEAU/MAJ restent visibles pendant 72 heures pour repérer facilement les nouveautés.
-*   **Section Hero** — Le dernier ajout s'affiche en grand avec son image de fond. Un clic mène directement au contenu. Vous pouvez aussi le supprimer directement.
-*   **Regroupement Intelligent** — Les épisodes d'une même série sont groupés (ex. *"3 nouveaux épisodes"*). Les musiques sont groupées par album.
-*   **Suppression Groupée** — Cliquez sur ✕ sur une notification groupée pour supprimer tous ses éléments d'un coup (une série entière, par exemple).
-*   **Filtres par Catégorie** — Des filtres rapides (Tout / Films / Séries / Musique / personnalisé) pour cibler ce qui vous intéresse.
-*   **Supprimer des Notifications** — Retirez une notification d'un clic, ou **glissez vers la gauche** sur mobile. Le bouton en bas s'adapte à votre filtre : vider tout, ou seulement la catégorie sélectionnée.
-*   **Détection Intelligente des Mises à Jour** — Quand vous remplacez un fichier média, la notification remonte en haut avec un badge bleu **MAJ** au lieu de **NOUVEAU**, et vous indique *ce qui* a changé : **Qualité** (palier de résolution ou source), **Codec** (ré-encodage), **Audio** (nouvelle piste audio ajoutée), ou n'importe quelle combinaison (par ex. **Codec & Audio**, ou **Tout** quand les trois changent en même temps). Les ajouts de sous-titres, rafraîchissements de métadonnées et déplacements de fichier avec le même nom restent silencieux — pas de bruit de badge.
-*   **Pulse de la Cloche** — Quand un nouveau contenu arrive alors que la cloche est fermée, elle pulse pour attirer l'attention (limité à une fois toutes les 30 secondes).
-*   **Surveillance des Collections** — Suivez vos collections Jellyfin (BoxSets) : les nouveaux ajouts dans une collection surveillée déclenchent une notification.
-*   **Historique des Suppressions** — Les administrateurs peuvent consulter les médias récemment supprimés dans la page de configuration, avec rétention paramétrable.
-*   **Synchronisé entre Appareils** — L'état lu/non-lu est sauvegardé sur le serveur et reste synchronisé sur tous vos navigateurs et appareils.
-*   **Vider la Liste (Sans Risque)** — Effacez toutes les notifications sans toucher à votre historique Jellyfin — rien n'est marqué comme "Vu".
-*   **Interface Bilingue** — La cloche et la page de configuration suivent la langue de votre Jellyfin (Français / Anglais).
-*   **Horodatage Relatif** — Les dates s'affichent sous forme *"il y a 2 heures"*, *"hier"*, *"il y a 3 jours"*.
-*   **Filtrage des Génériques** — Les openings, endings et NCOP/NCED sont automatiquement exclus.
-*   **Responsive** — Fonctionne sur bureau, tablette et mobile (via l'app officielle Jellyfin). *Note : Non supporté sur TV.*
+*   **Design Netflix-Style** — Un menu déroulant élégant en verre dépoli. Le compteur rouge disparaît dès l'ouverture, mais les badges NOUVEAU / MAJ restent visibles 72 heures.
+*   **Section Hero** — Le dernier ajout s'affiche en grand avec son image de fond. Un clic mène directement au contenu.
+*   **Regroupement Intelligent** — Épisodes groupés par série (avec synthèse par saison du type `S1-S5 — 120 épisodes`), pistes groupées par album.
+*   **Détection Intelligente des Mises à Jour** — Quand vous remplacez un fichier média, la notification revient avec un badge bleu **MAJ** qui indique *ce qui* a changé : **Qualité**, **Codec**, **Audio**, ou n'importe quelle combinaison. Les ajouts de sous-titres et rafraîchissements de métadonnées restent silencieux.
+*   **Filtres & Suppression** — Filtres rapides (Tout / Films / Séries / Musique / personnalisé). Supprimez d'un clic ou par **swipe gauche** sur mobile, à l'unité ou par groupe.
+*   **Surveillance des Collections** — Suivez vos collections Jellyfin (BoxSets) pour les nouveaux ajouts.
+*   **Historique des Suppressions** — Journal admin des médias récemment supprimés, avec rétention paramétrable.
+*   **Synchronisé entre Appareils** — État lu / non-lu sauvegardé côté serveur, en sync sur tous vos appareils.
+*   **Vider la Liste (Sans Risque)** — Effacer les notifications ne marque rien comme "Vu" dans Jellyfin.
+*   **Bilingue & Responsive** — Français / Anglais selon la langue de votre Jellyfin. Fonctionne sur bureau, tablette et mobile (*non supporté sur TV*).
 
 ### 🚀 Performance
-*   **Mises à Jour en Temps Réel** — Les notifications apparaissent instantanément grâce aux WebSockets intégrés de Jellyfin. Aucun rafraîchissement nécessaire.
-*   **Cache HTTP + ETag** — Le plugin utilise `If-None-Match` pour éviter les transferts quand rien n'a changé, économisant bande passante et CPU.
+*   **Mises à Jour en Temps Réel** — Les notifications apparaissent instantanément via les WebSockets de Jellyfin — aucun rafraîchissement nécessaire.
+*   **Cache HTTP** — `ETag` / `If-None-Match` évite les transferts quand rien n'a changé.
 *   **Chargement Progressif des Images** — Les miniatures se chargent au fil du défilement pour garder l'interface fluide.
-*   **Stockage Léger** — Toutes les données sont stockées dans une base SQLite rapide (mode WAL) optimisée pour les accès simultanés.
-*   **Optimisé pour .NET 9** — Conçu pour la dernière version de Jellyfin, pour des performances maximales.
 
 ### 🛡️ Sécurité & Confidentialité
-*   **Respecte les Permissions Jellyfin** — Chaque utilisateur ne voit que le contenu des bibliothèques auxquelles il a accès. Toutes les restrictions (tags, classifications, dossiers) sont respectées.
-*   **Isolation des Utilisateurs** — Aucun utilisateur ne peut accéder aux notifications d'un autre. Les administrateurs peuvent gérer tous les utilisateurs.
-*   **Protection Contre les Attaques** — Tout le contenu est nettoyé avant affichage, et toutes les requêtes sont protégées contre les injections.
-*   **Anti-Spam** — Cooldown de 30 secondes sur la régénération manuelle pour protéger les ressources serveur.
-*   **Résistant aux Crashs** — Les données sont écrites de manière sécurisée pour éviter toute corruption même en cas d'arrêt inattendu.
+*   **Respecte les Permissions Jellyfin** — Chaque utilisateur ne voit que le contenu des bibliothèques auxquelles il a accès (tags, classifications, dossiers tous respectés).
+*   **Protection Contre les Attaques** — Tout le contenu est nettoyé avant affichage ; toutes les requêtes SQL sont paramétrées.
+*   **Isolation des Utilisateurs** — Aucun utilisateur ne peut accéder aux notifications d'un autre.
 
 ## 📦 Installation
 
@@ -405,7 +278,6 @@ Allez dans **Tableau de bord > Extensions > NotifySync**.
 | **Contenu manquant** | Vérifiez que la bibliothèque est cochée dans "Bibliothèques Surveillées". |
 | **Nouvel épisode TV manquant** | Vérifiez que la **bibliothèque de type Série** contenant l'épisode est cochée dans "Bibliothèques Surveillées". |
 | **Fichier remplacé apparaît en NOUVEAU au lieu de MAJ** | Activez le **Suivi des Suppressions** dans la config — nécessaire pour la détection du scénario delete+ré-import. |
-| **Sous-label MAJ incorrect ou absent** | Le classificateur utilise les keywords du filename (`2160p`, `BluRay`, `HEVC`, `VFF`, etc.). Les setups avec un naming non-standard peuvent tomber sur `MAJ` tout court sans sous-label. Ouvrez une issue GitHub avec des exemples de noms de fichiers pour étendre les patterns. |
 | **Contenu non autorisé visible** | Le plugin respecte les permissions Jellyfin — vérifiez les restrictions utilisateur. |
 | **Erreur 429** | Attendez 30 secondes entre chaque clic sur "Régénérer l'historique" (anti-spam). |
 | **Incompatible** | Vérifiez que vous utilisez Jellyfin **10.11.X**. |

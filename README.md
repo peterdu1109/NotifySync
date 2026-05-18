@@ -161,7 +161,7 @@ Go to **Dashboard > Plugins > NotifySync**.
 
 NotifySync is maintained by:
 
-- **[ElieM](https://github.com/ElieM)** — Original author & project lead
+- **[ElieMFR](https://github.com/ElieMFR)** — Original author & project lead
 - **[Peterdu1109](https://github.com/peterdu1109)** — Co-maintainer
 
 Contributions, bug reports, and feature requests are welcome on [GitHub](https://github.com/peterdu1109/NotifySync).
@@ -304,7 +304,7 @@ Allez dans **Tableau de bord > Extensions > NotifySync**.
 
 NotifySync est maintenu par :
 
-- **[ElieM](https://github.com/ElieM)** — Auteur original & lead du projet
+- **[ElieMFR](https://github.com/ElieMFR)** — Auteur original & lead du projet
 - **[Peterdu1109](https://github.com/peterdu1109)** — Co-mainteneur
 
 Contributions, rapports de bugs et demandes de fonctionnalités sont les bienvenus sur [GitHub](https://github.com/peterdu1109/NotifySync).

@@ -192,13 +192,19 @@
             .ns-mapping-row {
                 display: flex; align-items: center; padding: 10px 12px;
                 background: rgba(0, 0, 0, 0.2); border-radius: 6px; margin-bottom: 6px;
-                gap: 12px; transition: background 0.15s; cursor: grab;
+                gap: 12px; transition: background 0.15s;
             }
             .ns-mapping-row:hover { background: rgba(255, 255, 255, 0.06); }
-            .ns-mapping-row.dragging { opacity: 0.4; }
-            .ns-mapping-row.drop-target { border: 2px dashed var(--ns-accent); padding: 8px 10px; }
-            .ns-drag-handle { color: var(--ns-text-dim); cursor: grab; user-select: none; }
-            .ns-drag-handle:active { cursor: grabbing; }
+            /* Up/down arrow column — tap-friendly reorder, replaces the desktop-only
+               HTML5 drag-and-drop which didn't work on mobile. */
+            .ns-move-controls {
+                display: flex; flex-direction: column; gap: 2px; flex-shrink: 0;
+            }
+            .ns-move-controls .ns-icon-btn { padding: 2px; }
+            .ns-move-controls .ns-icon-btn .material-icons { font-size: 18px !important; }
+            .ns-move-controls .ns-icon-btn:disabled {
+                opacity: 0.25; cursor: not-allowed;
+            }
             .ns-mapping-info { flex: 1; color: var(--ns-text); font-size: 13px; }
             .ns-mapping-arrow { color: var(--ns-text-dim); margin: 0 6px; }
             .ns-mapping-cat { color: var(--ns-accent); font-weight: 600; }
@@ -413,10 +419,10 @@
                         <div class="ns-header-info">
                             <h2>NotifySync</h2>
                             <a class="ns-version-link" id="ns-version-link"
-                               href="https://github.com/peterdu1109/NotifySync/releases/tag/v5.5.12.7-beta8"
+                               href="https://github.com/peterdu1109/NotifySync/releases/tag/v5.5.12.8-beta9"
                                target="_blank" rel="noopener"
                                title="Voir les release notes sur GitHub / View release notes on GitHub">
-                                <span class="ns-version" id="ns-version-badge">v5.5.12.7-beta8</span>
+                                <span class="ns-version" id="ns-version-badge">v5.5.12.8-beta9</span>
                                 <span class="material-icons ns-version-icon">open_in_new</span>
                             </a>
                         </div>
@@ -675,6 +681,7 @@
                     successMsg: "Configuration sauvegardée.",
                     refreshSuccessMsg: "Historique régénéré ! Vérifiez la cloche.",
                     scanColSuccessMsg: "Scan des collections lancé. Les nouvelles notifications apparaîtront sous peu.",
+                    scanColEmptyMsg: "Aucune collection surveillée — cochez-en au moins une dans l'onglet Collections.",
                     rateLimitMsg: "Patientez 30 secondes entre chaque régénération.",
                     errorMsg: "Erreur. Réessayez.",
                     fetching: "Chargement…",
@@ -731,6 +738,7 @@
                     successMsg: "Configuration saved.",
                     refreshSuccessMsg: "History regenerated! Check the bell.",
                     scanColSuccessMsg: "Collection scan started. New notifications will appear shortly.",
+                    scanColEmptyMsg: "No collections monitored — pick at least one in the Collections tab.",
                     rateLimitMsg: "Please wait 30 seconds between regenerations.",
                     errorMsg: "Error. Please try again.",
                     fetching: "Loading…",
@@ -1108,22 +1116,29 @@
 
                         const row = document.createElement('div');
                         row.className = 'ns-mapping-row';
-                        row.draggable = true;
                         row.dataset.index = index;
 
+                        const isFirst = index === 0;
+                        const isLast = index === this.config.CategoryMappings.length - 1;
+
                         row.innerHTML =
-                            '<span class="material-icons ns-drag-handle">drag_indicator</span>' +
+                            '<div class="ns-move-controls">' +
+                            '<button type="button" class="ns-icon-btn ns-move-up"' + (isFirst ? ' disabled' : '') + ' aria-label="Move up">' +
+                            '<span class="material-icons">arrow_upward</span></button>' +
+                            '<button type="button" class="ns-icon-btn ns-move-down"' + (isLast ? ' disabled' : '') + ' aria-label="Move down">' +
+                            '<span class="material-icons">arrow_downward</span></button>' +
+                            '</div>' +
                             '<div class="ns-mapping-info">' +
                             '<b></b><span class="ns-mapping-arrow">→</span><span class="ns-mapping-cat"></span>' +
                             '</div>' +
-                            '<button type="button" class="ns-icon-btn" aria-label="Delete">' +
+                            '<button type="button" class="ns-icon-btn ns-delete-btn" aria-label="Delete">' +
                             '<span class="material-icons">delete</span>' +
                             '</button>';
 
                         row.querySelector('.ns-mapping-info b').textContent = libName;
                         row.querySelector('.ns-mapping-cat').textContent = mapping.CategoryName;
 
-                        row.querySelector('.ns-icon-btn').onclick = (e) => {
+                        row.querySelector('.ns-delete-btn').onclick = (e) => {
                             e.stopPropagation();
                             showConfirm(
                                 CT.confirmDeleteMappingTitle,
@@ -1132,33 +1147,23 @@
                             );
                         };
 
-                        // Drag and drop handlers
-                        row.ondragstart = (e) => {
-                            row.classList.add('dragging');
-                            e.dataTransfer.effectAllowed = 'move';
-                            e.dataTransfer.setData('text/plain', index.toString());
-                        };
-                        row.ondragend = () => {
-                            row.classList.remove('dragging');
-                            list.querySelectorAll('.drop-target').forEach(r => r.classList.remove('drop-target'));
-                        };
-                        row.ondragover = (e) => {
-                            e.preventDefault();
-                            e.dataTransfer.dropEffect = 'move';
-                            list.querySelectorAll('.drop-target').forEach(r => r.classList.remove('drop-target'));
-                            if (row.classList.contains('dragging')) return;
-                            row.classList.add('drop-target');
-                        };
-                        row.ondrop = (e) => {
-                            e.preventDefault();
-                            row.classList.remove('drop-target');
-                            const fromIdx = parseInt(e.dataTransfer.getData('text/plain'), 10);
-                            const toIdx = parseInt(row.dataset.index, 10);
-                            if (fromIdx === toIdx) return;
-                            const item = this.config.CategoryMappings.splice(fromIdx, 1)[0];
-                            this.config.CategoryMappings.splice(toIdx, 0, item);
-                            this.renderMap(page);
-                        };
+                        // Up/down move (tap-friendly replacement for drag-and-drop)
+                        if (!isFirst) {
+                            row.querySelector('.ns-move-up').onclick = (e) => {
+                                e.stopPropagation();
+                                const item = this.config.CategoryMappings.splice(index, 1)[0];
+                                this.config.CategoryMappings.splice(index - 1, 0, item);
+                                this.renderMap(page);
+                            };
+                        }
+                        if (!isLast) {
+                            row.querySelector('.ns-move-down').onclick = (e) => {
+                                e.stopPropagation();
+                                const item = this.config.CategoryMappings.splice(index, 1)[0];
+                                this.config.CategoryMappings.splice(index + 1, 0, item);
+                                this.renderMap(page);
+                            };
+                        }
 
                         list.appendChild(row);
                     });
@@ -1348,9 +1353,13 @@
                 scanCollectionsNow: async function () {
                     Dashboard.showLoadingMsg();
                     try {
-                        await ApiClient.ajax({ type: "POST", url: "/NotifySync/ScanCollections" });
+                        const res = await ApiClient.ajax({ type: "POST", url: "/NotifySync/ScanCollections", dataType: 'json' });
                         Dashboard.hideLoadingMsg();
-                        showToast(CT.scanColSuccessMsg, 'success');
+                        if (res && res.NoCollections) {
+                            showToast(CT.scanColEmptyMsg, 'warn');
+                        } else {
+                            showToast(CT.scanColSuccessMsg, 'success');
+                        }
                     } catch (err) {
                         Dashboard.hideLoadingMsg();
                         showToast(CT.errorMsg, 'error');

@@ -530,7 +530,9 @@
                 // signals freshness/upgrade, no need to repeat it in the text.
                 const lbl = isMusic ? T.tracks : T.eps;
                 const count = hero.ShowBadge ? (hero.NewCount || hero.GroupCount) : hero.GroupCount;
-                const seasonsLabel = formatSeasons(hero.Seasons);
+                // Season label is episode-only — Audio.ParentIndexNumber is the disc number,
+                // not a season, so emitting "Saison 1" on an album group is spurious.
+                const seasonsLabel = isMusic ? null : formatSeasons(hero.Seasons);
                 heroSub = seasonsLabel ? `${seasonsLabel} — ${count} ${lbl}` : `${count} ${lbl}`;
             }
 
@@ -552,7 +554,8 @@
                 // Single neutral label — badge handles NEW/UPD signaling.
                 const lbl = isMusic ? T.tracks : T.eps;
                 const count = item.ShowBadge ? (item.NewCount || item.GroupCount) : item.GroupCount;
-                const seasonsLabel = formatSeasons(item.Seasons);
+                // Season label is episode-only — Audio.ParentIndexNumber is the disc number.
+                const seasonsLabel = isMusic ? null : formatSeasons(item.Seasons);
                 sub = seasonsLabel ? `${seasonsLabel} — ${count} ${lbl}` : `${count} ${lbl}`;
             }
 

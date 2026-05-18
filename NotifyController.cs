@@ -131,6 +131,43 @@ namespace NotifySync
         }
 
         /// <summary>
+        /// Triggers a manual scan of monitored collections (BoxSets) for newly added items.
+        /// Useful when the admin just added a collection to monitor and doesn't want to
+        /// wait for the 15-minute interval trigger of <see cref="CollectionScanTask"/>.
+        /// Admin-only and rate-limited like the history refresh endpoint.
+        /// </summary>
+        /// <returns>An ActionResult indicating the status.</returns>
+        [HttpPost("ScanCollections")]
+        public ActionResult ScanCollectionsNow()
+        {
+            if (!User.IsInRole("Administrator")
+                && !string.Equals(User.FindFirst("Jellyfin-IsApiKey")?.Value, "true", StringComparison.OrdinalIgnoreCase))
+            {
+                return Forbid();
+            }
+
+            _logger.LogInformation("NotifySync: Manual collection scan requested from the interface.");
+
+            if (NotificationManager.Instance == null)
+            {
+                return StatusCode(StatusCodes.Status503ServiceUnavailable, "Manager not initialized.");
+            }
+
+            _ = Task.Run(() =>
+            {
+                try
+                {
+                    NotificationManager.Instance.ScanCollections(new Progress<double>(), CancellationToken.None);
+                }
+                catch (Exception ex)
+                {
+                    _staticLogger?.LogError(ex, "NotifySync: Manual collection scan failed.");
+                }
+            });
+            return Ok(new { Message = "Collection scan started" });
+        }
+
+        /// <summary>
         /// Serves the client-side script for NotifySync.
         /// </summary>
         /// <returns>The javascript file.</returns>

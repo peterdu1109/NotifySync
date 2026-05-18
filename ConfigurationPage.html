@@ -413,10 +413,10 @@
                         <div class="ns-header-info">
                             <h2>NotifySync</h2>
                             <a class="ns-version-link" id="ns-version-link"
-                               href="https://github.com/peterdu1109/NotifySync/releases/tag/v5.5.12.6-beta7"
+                               href="https://github.com/peterdu1109/NotifySync/releases/tag/v5.5.12.7-beta8"
                                target="_blank" rel="noopener"
                                title="Voir les release notes sur GitHub / View release notes on GitHub">
-                                <span class="ns-version" id="ns-version-badge">v5.5.12.6-beta7</span>
+                                <span class="ns-version" id="ns-version-badge">v5.5.12.7-beta8</span>
                                 <span class="material-icons ns-version-icon">open_in_new</span>
                             </a>
                         </div>
@@ -485,6 +485,10 @@
                                 <button type="button" class="ns-action-btn secondary" onclick="NotifySyncConf.refreshHistory()">
                                     <span class="material-icons">refresh</span>
                                     <span id="i18n-refreshBtn">Regenerate history</span>
+                                </button>
+                                <button type="button" class="ns-action-btn secondary" onclick="NotifySyncConf.scanCollectionsNow()" style="margin-left: 8px;">
+                                    <span class="material-icons">collections_bookmark</span>
+                                    <span id="i18n-scanColBtn">Scan collections now</span>
                                 </button>
                             </div>
 
@@ -667,8 +671,10 @@
                     maintTitle: "Maintenance",
                     maintDesc: "Force un scan complet de l'historique après modification des bibliothèques.",
                     refreshBtn: "Régénérer l'historique",
+                    scanColBtn: "Scanner les collections",
                     successMsg: "Configuration sauvegardée.",
                     refreshSuccessMsg: "Historique régénéré ! Vérifiez la cloche.",
+                    scanColSuccessMsg: "Scan des collections lancé. Les nouvelles notifications apparaîtront sous peu.",
                     rateLimitMsg: "Patientez 30 secondes entre chaque régénération.",
                     errorMsg: "Erreur. Réessayez.",
                     fetching: "Chargement…",
@@ -721,8 +727,10 @@
                     maintTitle: "Maintenance",
                     maintDesc: "Force a full history scan after changing libraries.",
                     refreshBtn: "Regenerate history",
+                    scanColBtn: "Scan collections now",
                     successMsg: "Configuration saved.",
                     refreshSuccessMsg: "History regenerated! Check the bell.",
+                    scanColSuccessMsg: "Collection scan started. New notifications will appear shortly.",
                     rateLimitMsg: "Please wait 30 seconds between regenerations.",
                     errorMsg: "Error. Please try again.",
                     fetching: "Loading…",
@@ -761,7 +769,7 @@
                 const ids = ['tabSettings', 'tabLibraries', 'tabCollections', 'tabCategories', 'tabDeletions',
                     'quotaTitle', 'quotaDesc', 'libTitle', 'libDesc', 'colTitle', 'colDesc',
                     'mapTitle', 'mapDesc', 'mapLibLabel', 'mapCatLabel', 'addBtn',
-                    'manualTitle', 'manualDesc', 'saveBtn', 'maintTitle', 'maintDesc', 'refreshBtn',
+                    'manualTitle', 'manualDesc', 'saveBtn', 'maintTitle', 'maintDesc', 'refreshBtn', 'scanColBtn',
                     'delTitle', 'delDesc', 'delEnable', 'delRetLabel',
                     'selectAll', 'clearAll', 'cancel', 'confirm'];
                 ids.forEach(id => {
@@ -1334,6 +1342,18 @@
                         } else {
                             showToast(CT.errorMsg, 'error');
                         }
+                    }
+                },
+
+                scanCollectionsNow: async function () {
+                    Dashboard.showLoadingMsg();
+                    try {
+                        await ApiClient.ajax({ type: "POST", url: "/NotifySync/ScanCollections" });
+                        Dashboard.hideLoadingMsg();
+                        showToast(CT.scanColSuccessMsg, 'success');
+                    } catch (err) {
+                        Dashboard.hideLoadingMsg();
+                        showToast(CT.errorMsg, 'error');
                     }
                 },
 

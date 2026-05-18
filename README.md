@@ -1,7 +1,7 @@
 <h1 align="center">🔔 NotifySync</h1>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-5.5.12.7--beta8-orange" alt="Version">
+  <img src="https://img.shields.io/badge/version-5.5.12.8--beta9-orange" alt="Version">
   <img src="https://img.shields.io/badge/.NET-9.0-purple" alt=".NET Framework">
   <img src="https://img.shields.io/badge/Jellyfin-10.11.X-blueviolet" alt="Jellyfin">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="License">
@@ -33,12 +33,67 @@ NotifySync transforms the Jellyfin interface by adding a native notification bel
 
 ## 📑 Table of Contents
 
+- [✨ What's New in 5.5.12](#-whats-new-in-5512)
 - [🚀 Quick Start](#-quick-start)
 - [✨ Key Features](#-key-features)
 - [📦 Installation](#-installation)
 - [⚙️ Configuration](#️-configuration)
 - [❓ Troubleshooting](#-troubleshooting)
 - [👥 Authors & Credits](#-authors--credits)
+
+## ✨ What's New in 5.5.12
+
+A consolidated summary of everything that changed since the **5.5.11.12** stable release. Currently shipping as `5.5.12.X-betaN` on the beta channel.
+
+### 🎯 Smarter upgrade detection
+
+The **UPD** badge now tells you *what* changed when a file is replaced:
+
+| Badge | Trigger (filename-based) |
+|---|---|
+| **UPD Quality** | Resolution tier (`1080p` ↔ `2160p`/`4K`) or source (`WEB`/`HDTV` ↔ `BluRay`/`REMUX`) differs |
+| **UPD Codec** | Codec family changed (`x264`/`h264` ↔ `HEVC`/`x265` ↔ `AV1`), either direction |
+| **UPD Audio** | A new audio token appeared (`VFF`, `VFQ`, `VFI`, `TRUEFRENCH`, `FRENCH`, `MULTI`, `DUAL`, `DUBBED`, `DUB`) |
+| **UPD Codec & Audio** (2-kind combo) | Two signals fired at once on the same file change |
+| **UPD All** (3-kind combo) | Quality + Codec + Audio all matched on a single replacement |
+
+What used to produce confusing badges (subtitle file additions, metadata refreshes, file moves with the same release name) is now **silent** — no false positives.
+
+### 📺 Season-aware grouping in the bell
+
+When a batch of episodes lands at once (Sonarr season pack, etc.), the dropdown summarizes which seasons:
+
+- **1 season** → `Series Name — Season 4 — 24 episodes`
+- **Consecutive range** → `Series Name — S1-S5 — 120 episodes`
+- **Mixed** → `Series Name — S1-S2, S4 — 36 episodes`
+
+### 🛡️ Persistent badges across restarts
+
+The **UPD** badges now survive Jellyfin restarts. A startup task was silently wiping them on every reboot — fixed.
+
+### 🔍 Beefed-up Deletions admin tab
+
+The admin **Deletions** tab gained two columns to help diagnose detection issues:
+
+- **Path** — the full filesystem path of the deleted file, with multi-line wrapping on small screens so nothing is truncated
+- **Status** — green **Replaced** pill if NotifySync correlated the deletion to a re-import (matched an UPD badge in the bell) or grey **Orphan** if no replacement was detected within 7 days
+
+Live TV recordings no longer pollute this view; recording cycles are filtered out at the source.
+
+### 🎛️ Two new admin buttons
+
+In the **Maintenance** section:
+- **Regenerate history** (existing) — rebuilds the bell from a full library scan
+- **Scan collections now** (new) — forces an immediate scan of monitored Collections instead of waiting for the 15-minute interval
+
+### 🔐 Security & polish
+
+- Admin-only endpoints (`/Refresh`, `/ScanCollections`, `/DeletedItems`) properly verify the Administrator role
+- Dropdown anchors directly under the bell on every screen size and Jellyfin theme (no more floating above the header)
+- Category mapping reorder works on mobile (up / down buttons replaced the desktop-only drag-and-drop)
+- Schema cleaned up: removed 6 unused columns from the previous beta iterations
+
+---
 
 ## 🚀 Quick Start
 
@@ -57,7 +112,7 @@ That's it. The bell appears in the top-right header and starts populating as new
 *   **Group Dismiss** — Click ✕ on a grouped notification to dismiss all its items (whole series at once).
 *   **Category Filters** — Quick filters (All / Movies / Series / Music / custom) to focus on what matters to you.
 *   **Dismiss Notifications** — Remove any notification with a click, or **swipe left** on mobile. The footer button adapts to your filter: clear everything, or just the selected category.
-*   **Smart Upgrade Detection** — When you replace a media file, the notification comes back to the top with a blue **UPD** badge instead of **NEW**, and tells you *what* changed: **Quality** (resolution or source tier), **Codec** (re-encode), **Audio** (new audio track added), or any combination (e.g. **Q+C+A** when all three change at once). Subtitle additions, metadata refreshes, and file moves with the same release name stay silent — no badge noise.
+*   **Smart Upgrade Detection** — When you replace a media file, the notification comes back to the top with a blue **UPD** badge instead of **NEW**, and tells you *what* changed: **Quality** (resolution or source tier), **Codec** (re-encode), **Audio** (new audio track added), or any combination (e.g. **Codec & Audio**, or **All** when the three change at once). Subtitle additions, metadata refreshes, and file moves with the same release name stay silent — no badge noise.
 *   **Bell Pulse** — When new content arrives while the bell is closed, it pulses to grab attention (throttled to once every 30 seconds).
 *   **Collection Monitoring** — Track your Jellyfin collections (BoxSets): new additions to a monitored collection trigger a notification.
 *   **Deletion History** — Administrators can see a log of recently deleted media in the configuration page, with configurable retention.
@@ -177,12 +232,67 @@ NotifySync transforme l'interface Jellyfin en y ajoutant une cloche de notificat
 
 ## 📑 Sommaire
 
+- [✨ Quoi de Neuf en 5.5.12](#-quoi-de-neuf-en-5512)
 - [🚀 Démarrage Rapide](#-démarrage-rapide)
 - [✨ Fonctionnalités](#-fonctionnalités)
 - [📦 Installation](#-installation-1)
 - [⚙️ Configuration](#️-configuration-1)
 - [❓ Dépannage](#-dépannage)
 - [👥 Auteurs & Crédits](#-auteurs--crédits)
+
+## ✨ Quoi de Neuf en 5.5.12
+
+Récap consolidé de tout ce qui a changé depuis la version stable **5.5.11.12**. Actuellement disponible sous `5.5.12.X-betaN` sur le canal beta.
+
+### 🎯 Détection d'upgrade plus fine
+
+Le badge **MAJ** indique maintenant *ce qui* a changé quand un fichier est remplacé :
+
+| Badge | Déclencheur (basé nom de fichier) |
+|---|---|
+| **MAJ Qualité** | Palier de résolution (`1080p` ↔ `2160p`/`4K`) ou source (`WEB`/`HDTV` ↔ `BluRay`/`REMUX`) différent |
+| **MAJ Codec** | Famille de codec changée (`x264`/`h264` ↔ `HEVC`/`x265` ↔ `AV1`), peu importe le sens |
+| **MAJ Audio** | Un nouveau token audio est apparu (`VFF`, `VFQ`, `VFI`, `TRUEFRENCH`, `FRENCH`, `MULTI`, `DUAL`, `DUBBED`, `DUB`) |
+| **MAJ Codec & Audio** (combo 2 kinds) | Deux signaux ont matché en même temps sur le même remplacement |
+| **MAJ Tout** (combo 3 kinds) | Qualité + Codec + Audio ont tous matché simultanément |
+
+Ce qui produisait des badges confus avant (ajout de sous-titres, rafraîchissement de métadonnées, déplacement de fichier avec même nom) est maintenant **silencieux** — plus de faux positifs.
+
+### 📺 Regroupement par saison dans la cloche
+
+Quand un lot d'épisodes arrive en même temps (saison Sonarr, etc.), le dropdown synthétise les saisons :
+
+- **1 saison** → `Nom de la Série — Saison 4 — 24 épisodes`
+- **Range consécutif** → `Nom de la Série — S1-S5 — 120 épisodes`
+- **Mixte** → `Nom de la Série — S1-S2, S4 — 36 épisodes`
+
+### 🛡️ Badges persistants à travers les redémarrages
+
+Les badges **MAJ** survivent maintenant aux redémarrages Jellyfin. Une tâche au démarrage les effaçait silencieusement à chaque reboot — corrigé.
+
+### 🔍 Onglet admin Suppressions renforcé
+
+L'onglet admin **Suppressions** a gagné deux colonnes pour aider à diagnostiquer la détection :
+
+- **Chemin** — le chemin complet du fichier supprimé, avec wrap multi-ligne sur petits écrans (rien n'est tronqué)
+- **État** — pill vert **Remplacé** si NotifySync a corrélé la suppression à un réimport (donc un badge MAJ a été produit dans la cloche), gris **Orphelin** si aucun remplacement détecté dans les 7 jours
+
+Les enregistrements Live TV ne polluent plus cette vue ; les cycles d'enregistrement sont filtrés à la source.
+
+### 🎛️ Deux nouveaux boutons admin
+
+Dans la section **Maintenance** :
+- **Régénérer l'historique** (existant) — reconstruit la cloche depuis un scan complet de la bibliothèque
+- **Scanner les collections** (nouveau) — force un scan immédiat des Collections surveillées au lieu d'attendre l'intervalle de 15 minutes
+
+### 🔐 Sécurité & polish
+
+- Les endpoints admin (`/Refresh`, `/ScanCollections`, `/DeletedItems`) vérifient correctement le rôle Administrateur
+- Le dropdown s'ancre directement sous la cloche sur toutes les tailles d'écran et thèmes Jellyfin (plus de flottement au-dessus du header)
+- Le réordonnancement des mappings de catégorie fonctionne sur mobile (boutons ↑↓ remplacent le drag-and-drop desktop-only)
+- Schéma SQL nettoyé : 6 colonnes inutilisées retirées suite aux itérations beta précédentes
+
+---
 
 ## 🚀 Démarrage Rapide
 
@@ -201,7 +311,7 @@ C'est tout. La cloche apparaît en haut à droite de l'interface et se remplit a
 *   **Suppression Groupée** — Cliquez sur ✕ sur une notification groupée pour supprimer tous ses éléments d'un coup (une série entière, par exemple).
 *   **Filtres par Catégorie** — Des filtres rapides (Tout / Films / Séries / Musique / personnalisé) pour cibler ce qui vous intéresse.
 *   **Supprimer des Notifications** — Retirez une notification d'un clic, ou **glissez vers la gauche** sur mobile. Le bouton en bas s'adapte à votre filtre : vider tout, ou seulement la catégorie sélectionnée.
-*   **Détection Intelligente des Mises à Jour** — Quand vous remplacez un fichier média, la notification remonte en haut avec un badge bleu **MAJ** au lieu de **NOUVEAU**, et vous indique *ce qui* a changé : **Qualité** (palier de résolution ou source), **Codec** (ré-encodage), **Audio** (nouvelle piste audio ajoutée), ou n'importe quelle combinaison (par ex. **Q+C+A** quand les trois changent en même temps). Les ajouts de sous-titres, rafraîchissements de métadonnées et déplacements de fichier avec le même nom restent silencieux — pas de bruit de badge.
+*   **Détection Intelligente des Mises à Jour** — Quand vous remplacez un fichier média, la notification remonte en haut avec un badge bleu **MAJ** au lieu de **NOUVEAU**, et vous indique *ce qui* a changé : **Qualité** (palier de résolution ou source), **Codec** (ré-encodage), **Audio** (nouvelle piste audio ajoutée), ou n'importe quelle combinaison (par ex. **Codec & Audio**, ou **Tout** quand les trois changent en même temps). Les ajouts de sous-titres, rafraîchissements de métadonnées et déplacements de fichier avec le même nom restent silencieux — pas de bruit de badge.
 *   **Pulse de la Cloche** — Quand un nouveau contenu arrive alors que la cloche est fermée, elle pulse pour attirer l'attention (limité à une fois toutes les 30 secondes).
 *   **Surveillance des Collections** — Suivez vos collections Jellyfin (BoxSets) : les nouveaux ajouts dans une collection surveillée déclenchent une notification.
 *   **Historique des Suppressions** — Les administrateurs peuvent consulter les médias récemment supprimés dans la page de configuration, avec rétention paramétrable.

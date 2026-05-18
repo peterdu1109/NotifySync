@@ -365,10 +365,18 @@ namespace NotifySync
                 try
                 {
                     using (var delCmd = connection.CreateCommand())
+                    using (var clearMatchCmd = connection.CreateCommand())
                     {
                         delCmd.Transaction = transaction;
                         delCmd.CommandText = "DELETE FROM Notifications WHERE Id = @Id";
                         var pId = delCmd.Parameters.Add("@Id", SqliteType.Text);
+
+                        // Cascade: clear any DeletedItems row that pointed at this notification
+                        // as its upgrade replacement, so the Deletions tab doesn't end up with
+                        // links to notifications that no longer exist.
+                        clearMatchCmd.Transaction = transaction;
+                        clearMatchCmd.CommandText = "UPDATE DeletedItems SET MatchedNotificationId = NULL WHERE MatchedNotificationId = @MatchedId";
+                        var pMatchedId = clearMatchCmd.Parameters.Add("@MatchedId", SqliteType.Text);
 
                         foreach (var id in ids)
                         {
@@ -379,6 +387,8 @@ namespace NotifySync
 
                             pId.Value = id;
                             delCmd.ExecuteNonQuery();
+                            pMatchedId.Value = id;
+                            clearMatchCmd.ExecuteNonQuery();
                         }
                     }
 

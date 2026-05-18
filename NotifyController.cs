@@ -80,6 +80,12 @@ namespace NotifySync
         [HttpPost("Refresh")]
         public ActionResult Refresh()
         {
+            if (!User.IsInRole("Administrator")
+                && !string.Equals(User.FindFirst("Jellyfin-IsApiKey")?.Value, "true", StringComparison.OrdinalIgnoreCase))
+            {
+                return Forbid();
+            }
+
             _logger.LogInformation("NotifySync: Manual refresh requested from the interface.");
             bool lockTaken = false;
             try
@@ -151,6 +157,14 @@ namespace NotifySync
             if (NotificationManager.Instance == null)
             {
                 return StatusCode(StatusCodes.Status503ServiceUnavailable, "Manager not initialized.");
+            }
+
+            // Tell the caller upfront when no collection is monitored, so the UI can
+            // explain "nothing to scan" instead of silently claiming success.
+            var enabledCollections = Plugin.Instance?.Configuration?.EnabledCollections;
+            if (enabledCollections == null || enabledCollections.Count == 0)
+            {
+                return Ok(new { Message = "No collections monitored", NoCollections = true });
             }
 
             _ = Task.Run(() =>

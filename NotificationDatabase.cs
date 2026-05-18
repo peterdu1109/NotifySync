@@ -158,6 +158,19 @@ namespace NotifySync
                     clearMinor.CommandText = "UPDATE Notifications SET UpgradeKind = NULL, IsUpgrade = 0 WHERE UpgradeKind = 'minor'";
                     clearMinor.ExecuteNonQuery();
                 }
+
+                // Purge LiveTvProgram deletions accumulated by earlier builds. The plugin no
+                // longer tracks them (they cycle naturally and don't serve any debug purpose
+                // in the Deletions tab); the historic rows are pure noise.
+                using (var purgeLiveTv = connection.CreateCommand())
+                {
+                    purgeLiveTv.CommandText = "DELETE FROM DeletedItems WHERE Type = 'LiveTvProgram'";
+                    int purged = purgeLiveTv.ExecuteNonQuery();
+                    if (purged > 0)
+                    {
+                        _logger.LogInformation("NotifySync: {Count} legacy LiveTvProgram deletions purged from history.", purged);
+                    }
+                }
             }
             catch (Exception ex)
             {

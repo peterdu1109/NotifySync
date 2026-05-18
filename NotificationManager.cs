@@ -548,6 +548,14 @@ namespace NotifySync
                 return;
             }
 
+            // Live TV recordings/programs cycle naturally (recording ends, viewer dismisses, etc.)
+            // and they don't carry a meaningful file path nor any "upgrade" semantics — tracking
+            // their deletions just pollutes the admin Deletions tab without serving any purpose.
+            if (e.Item.GetType().Name == "LiveTvProgram")
+            {
+                return;
+            }
+
             // Log deleted item if tracking is enabled.
             // Note: we intentionally do NOT filter by IsItemInEnabledLibrary here — at remove time
             // the item is already detached from its library hierarchy, so GetAncestorIds() may

@@ -1,4 +1,4 @@
-/* NOTIFYSYNC V5.5.12.3-beta4 */
+/* NOTIFYSYNC V5.5.12.4-beta5 */
 (function () {
     let currentData = [];
     let groupedData = [];
@@ -50,8 +50,8 @@
 
     let userLang = navigator.language || 'en';
     const strings = {
-        fr: { header: "Quoi de neuf ?", empty: "Vous êtes à jour !", clearAll: "Vider la liste", clearCat: "Vider", dismiss: "Retirer", badgeNew: "NOUVEAU", badgeUpgrade: "MAJ", eps: "épisodes", tracks: "pistes", filterAll: "Tout", filterMovie: "Films", filterSeries: "Séries", filterMusic: "Musique", kindQuality: "Qualité", kindCodec: "Codec", kindAudio: "Audio", season: "Saison" },
-        en: { header: "What's New?", empty: "You're all caught up!", clearAll: "Clear list", clearCat: "Clear", dismiss: "Dismiss", badgeNew: "NEW", badgeUpgrade: "UPD", eps: "episodes", tracks: "tracks", filterAll: "All", filterMovie: "Movies", filterSeries: "Series", filterMusic: "Music", kindQuality: "Quality", kindCodec: "Codec", kindAudio: "Audio", season: "Season" }
+        fr: { header: "Quoi de neuf ?", empty: "Vous êtes à jour !", clearAll: "Vider la liste", clearCat: "Vider", dismiss: "Retirer", badgeNew: "NOUVEAU", badgeUpgrade: "MAJ", eps: "épisodes", tracks: "pistes", filterAll: "Tout", filterMovie: "Films", filterSeries: "Séries", filterMusic: "Musique", kindQuality: "Qualité", kindCodec: "Codec", kindAudio: "Audio", kindAll: "Tout", season: "Saison" },
+        en: { header: "What's New?", empty: "You're all caught up!", clearAll: "Clear list", clearCat: "Clear", dismiss: "Dismiss", badgeNew: "NEW", badgeUpgrade: "UPD", eps: "episodes", tracks: "tracks", filterAll: "All", filterMovie: "Movies", filterSeries: "Series", filterMusic: "Music", kindQuality: "Quality", kindCodec: "Codec", kindAudio: "Audio", kindAll: "All", season: "Season" }
     };
     let T = strings[userLang.startsWith('fr') ? 'fr' : 'en'];
 
@@ -482,17 +482,21 @@
         else { badge.classList.remove('visible'); }
     };
 
-    // Returns a localized label for the upgrade kind(s). Single kind renders the full
-    // label ("Quality" / "Codec" / "Audio"). Multi-kind renders compact initials joined
-    // with "+" ("Q+C", "C+A", "Q+C+A") to keep the badge tight in the dropdown card.
+    // Returns a localized label for the upgrade kind(s) — hybrid format:
+    //   1 kind  → full word         "Quality" / "Codec" / "Audio"
+    //   2 kinds → full words + "&"  "Codec & Audio" / "Quality & Audio"
+    //   3 kinds → single keyword    "Tout" / "All"
+    // The full-words form for 2 kinds reads naturally and still fits in the badge
+    // width (longest case "Quality & Codec" = 15 chars). The all-three case is rare
+    // enough that a single keyword is the cleanest summary.
     const upgradeKindLabel = (item) => {
         if (!item.IsUpgrade || !item.UpgradeKind) return '';
         const fullMap = { quality: T.kindQuality, codec: T.kindCodec, audio: T.kindAudio };
-        const shortMap = { quality: 'Q', codec: 'C', audio: 'A' };
         const kinds = String(item.UpgradeKind).split(',').map(k => k.trim()).filter(k => fullMap[k]);
         if (kinds.length === 0) return '';
         if (kinds.length === 1) return fullMap[kinds[0]];
-        return kinds.map(k => shortMap[k]).join('+');
+        if (kinds.length === 2) return `${fullMap[kinds[0]]} & ${fullMap[kinds[1]]}`;
+        return T.kindAll;
     };
 
     // Returns the full badge text including the upgrade kind suffix when applicable.

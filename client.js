@@ -141,8 +141,6 @@
             }
             @media (max-height: 500px) and (max-width: 600px) { #notification-dropdown { left: 10px; right: 10px; width: auto; } }
             @keyframes slideDown { from { opacity:0; transform:translateY(-10px); } to { opacity:1; transform:translateY(0); } }
-            @keyframes spin { 100% { transform: rotate(360deg); } }
-            .spinning { animation: spin 1s linear infinite; opacity: 1!important; }
             @keyframes bellPulse { 0%, 100% { transform: scale(1); } 15% { transform: scale(1.3) rotate(-10deg); } 30% { transform: scale(1.3) rotate(10deg); } 45% { transform: scale(1.2) rotate(-5deg); } 60% { transform: scale(1.1); } }
             .ns-pulse { animation: bellPulse 0.8s ease-in-out; }
             @keyframes badgeBounce { 0% { transform: scale(1.5); } 100% { transform: scale(1); } }
@@ -159,9 +157,6 @@
             .dropdown-item.swiping .swipe-delete { opacity:1; pointer-events:auto; }
             .dropdown-header { display:flex; justify-content:space-between; padding:16px 20px; border-bottom: 1px solid var(--ns-border); background: rgba(0,0,0,0.3); align-items:center; flex-shrink: 0; }
             .header-title { font-weight: 700; font-size: 15px; letter-spacing: 0.5px; }
-            .header-tools { display:flex; gap:15px; }
-            .tool-icon { cursor:pointer; opacity:0.6; transition:opacity 0.2s; font-size: 18px; }
-            .tool-icon:hover { opacity:1; }
             .filter-bar { padding: 10px 20px; display: flex; gap: 8px; border-bottom: 1px solid var(--ns-border); overflow-x: auto; scrollbar-width: none; flex-shrink: 0; }
             .filter-pill { font-size: 11px; padding: 4px 12px; border-radius: 20px; background: rgba(255,255,255,0.05); cursor: pointer; transition: all 0.2s; border: 1px solid transparent; white-space: nowrap; position: relative; user-select: none; -webkit-user-select: none; }
             .filter-pill.active { background: #fff; color: #000; font-weight: 700; box-shadow: 0 0 10px rgba(255,255,255,0.2); }
@@ -454,24 +449,6 @@
         } catch (e) { }
     };
 
-    const triggerHardRefresh = async () => {
-        const btn = document.querySelector('.tool-icon.refresh-icon');
-        if (btn) btn.classList.add('spinning');
-        try {
-            await fetch('/NotifySync/Refresh', { method: 'POST', headers: getAuthHeaders() });
-            localStorage.removeItem(nsKey('etag'));
-            // Le serveur lance un Task.Run en background. 
-            // On laisse le WebSocketMessage ("LibraryChanged" ou "UserDataChanged") nous notifier 
-            // lorsque le scan aura modifié la base de données.
-            // On enlève le "spinning" manuellement au bout de 2 sec par pure esthétique UX.
-            setTimeout(() => {
-                if (btn) btn.classList.remove('spinning');
-            }, 2000);
-        } catch (e) {
-            if (btn) btn.classList.remove('spinning');
-        }
-    };
-
     const updateBadge = () => {
         const bell = document.getElementById('netflix-bell');
         if (!bell) return;
@@ -693,7 +670,6 @@
                 document.addEventListener('ns-filter', (e) => { activeFilter = e.detail; const d = document.getElementById('notification-dropdown'); if (d) updateList(d); });
                 document.addEventListener('ns-clearall', () => { clearAllNotifications(); });
                 document.addEventListener('ns-clearcat', (e) => { clearCategoryNotifications(e.detail); });
-                document.addEventListener('ns-refresh', () => { triggerHardRefresh(); });
                 document.addEventListener('ns-navigate', (e) => {
                     const id = e.detail;
                     closeDropdown();
@@ -731,7 +707,7 @@
                 eventsRegistered = true;
             }
 
-            drop.innerHTML = `<div class="dropdown-header"><span class="header-title">${T.header}</span><div class="header-tools"><span class="material-icons tool-icon refresh-icon" onclick="document.dispatchEvent(new Event('ns-refresh'))">refresh</span></div></div><div class="filter-bar"></div><div class="list-container"></div>`;
+            drop.innerHTML = `<div class="dropdown-header"><span class="header-title">${T.header}</span></div><div class="filter-bar"></div><div class="list-container"></div>`;
         }
         if (!backdrop) { const b = document.createElement('div'); b.id = 'notify-backdrop'; b.onclick = closeDropdown; document.body.appendChild(b); }
 

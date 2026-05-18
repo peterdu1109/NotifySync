@@ -132,6 +132,7 @@ Go to **Dashboard > Plugins > NotifySync**.
 | **Deleted Items Tracking** | `enabled` | Enable/disable the deletion history log. **Required for full UPD detection** on Sonarr/Radarr replacements (delete+re-import scenario). |
 | **Deletion Retention** | `30 days` | Number of days to keep deleted item records (1–365). |
 | **Regenerate History** | — | Force a full rescan after changing libraries or quotas. |
+| **Scan Collections Now** | — | Force an immediate scan of monitored Collections instead of waiting for the automatic interval. |
 
 ## ❓ Troubleshooting
 
@@ -266,6 +267,7 @@ Allez dans **Tableau de bord > Extensions > NotifySync**.
 | **Suivi des Suppressions** | `activé` | Activer/désactiver le journal des suppressions. **Requis pour la détection MAJ complète** sur les remplacements Sonarr/Radarr (scénario delete+ré-import). |
 | **Rétention des Suppressions** | `30 jours` | Nombre de jours de conservation des éléments supprimés (1–365). |
 | **Régénérer l'Historique** | — | Force un scan complet après modification des bibliothèques ou quotas. |
+| **Scanner les Collections** | — | Force un scan immédiat des Collections surveillées au lieu d'attendre l'intervalle automatique. |
 
 ## ❓ Dépannage
 

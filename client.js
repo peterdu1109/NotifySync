@@ -756,6 +756,26 @@
                     markReadOnServer(unreadIds);
                 }
             });
+            // Anchor the dropdown directly below the bell so it doesn't overlap or
+            // float above the Jellyfin header — header heights vary by version, theme,
+            // zoom level, and DPI, so hard-coded `top` values in the CSS would always
+            // be wrong for some setup. Computing from the bell's bounding rect at
+            // open time is always accurate.
+            const bellForPos = document.getElementById('netflix-bell');
+            if (bellForPos) {
+                const rect = bellForPos.getBoundingClientRect();
+                drop.style.top = (rect.bottom + 8) + 'px';
+                if (window.innerWidth > 600) {
+                    // Desktop: pin the right edge under the bell's right edge.
+                    drop.style.right = Math.max(0, window.innerWidth - rect.right) + 'px';
+                    drop.style.left = 'auto';
+                } else {
+                    // Mobile: clear inline horizontal pins so the @media full-width
+                    // rule (left:10px; right:10px) takes over.
+                    drop.style.right = '';
+                    drop.style.left = '';
+                }
+            }
             document.getElementById('notify-backdrop').style.display = 'block';
             drop.style.display = 'flex';
         } else { closeDropdown(); }

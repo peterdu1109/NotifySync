@@ -289,11 +289,14 @@
             .ns-type-badge.episode { background: rgba(33, 150, 243, 0.15); color: #82b1ff; }
             .ns-type-badge.audio { background: rgba(156, 39, 176, 0.15); color: #ce93d8; }
 
-            /* Path column — clipped with ellipsis, full path in tooltip */
+            /* Path column — wraps on multiple lines so the full path is visible without
+               needing a tooltip. word-break: break-all is safe for paths (no real words,
+               just slash-separated segments). Row height adjusts to fit. */
             .ns-table td.ns-path {
-                max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+                max-width: 380px; white-space: normal; word-break: break-all;
                 font-family: 'Consolas', 'Monaco', monospace; font-size: 11px;
-                color: var(--ns-text-secondary, #aaa);
+                color: var(--ns-text-secondary, #aaa); line-height: 1.4;
+                vertical-align: top;
             }
 
             /* Matched / Orphan status pill */
@@ -410,10 +413,10 @@
                         <div class="ns-header-info">
                             <h2>NotifySync</h2>
                             <a class="ns-version-link" id="ns-version-link"
-                               href="https://github.com/peterdu1109/NotifySync/releases/tag/v5.5.12.4-beta5"
+                               href="https://github.com/peterdu1109/NotifySync/releases/tag/v5.5.12.5-beta6"
                                target="_blank" rel="noopener"
                                title="Voir les release notes sur GitHub / View release notes on GitHub">
-                                <span class="ns-version" id="ns-version-badge">v5.5.12.4-beta5</span>
+                                <span class="ns-version" id="ns-version-badge">v5.5.12.5-beta6</span>
                                 <span class="material-icons ns-version-icon">open_in_new</span>
                             </a>
                         </div>

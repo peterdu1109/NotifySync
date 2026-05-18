@@ -31,6 +31,18 @@ namespace NotifySync
                 return Task.CompletedTask;
             }
 
+            // Only run on startup if the notifications DB is empty (fresh install).
+            // Existing notifications carry IsUpgrade/UpgradeKind state that this scan
+            // would wipe via ReplaceAllNotifications — real-time events (ItemAdded /
+            // ItemUpdated / ItemRemoved) keep the table fresh in steady state, so an
+            // automatic full rebuild on every restart is destructive AND unnecessary.
+            // Manual click on "Régénérer l'historique" still triggers a full rebuild
+            // (that's its purpose) — only the auto-startup path is gated here.
+            if (NotificationManager.Instance.GetRecentNotifications().Count > 0)
+            {
+                return Task.CompletedTask;
+            }
+
             return Task.Run(() => NotificationManager.Instance.ManualHistoryScan(progress, cancellationToken), cancellationToken);
         }
 

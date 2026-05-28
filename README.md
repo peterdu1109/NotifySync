@@ -154,9 +154,11 @@ Go to **Dashboard > Plugins > NotifySync**.
 
 NotifySync integrates beautifully with the [**ElegantFin Cinema Edition**](https://github.com/peterdu1109/ElegantFin) theme — a Netflix-inspired CSS theme for Jellyfin with 27 cinematic modules including dedicated styling for the NotifySync notification bell.
 
-Both projects work flawlessly together on **PC (browser), mobile (app + browser), and Samsung Tizen TV** (via [Samsung Jellyfin Installer](https://github.com/Jellyfin2Samsung/Samsung-Jellyfin-Installer) which auto-injects NotifySync into the bundled web client).
+Both projects work flawlessly together on **PC (browser)** and **mobile (Jellyfin app + browser)**.
 
 > ⭐ Install once, get a complete cinematic Jellyfin experience with real-time notifications.
+>
+> ⚠️ **TV note**: NotifySync currently doesn't render on TV apps (Samsung Tizen, Android TV, LG webOS). The notification bell is a web client feature and TV apps use native rendering.
 
 ## 👥 Authors & Credits
 
@@ -298,9 +300,11 @@ Allez dans **Tableau de bord > Extensions > NotifySync**.
 
 NotifySync s'intègre parfaitement avec le thème [**ElegantFin Cinema Edition**](https://github.com/peterdu1109/ElegantFin) — un thème CSS inspiré de Netflix pour Jellyfin avec 27 modules cinématographiques, dont un styling dédié pour la cloche de notifications NotifySync.
 
-Les deux projets fonctionnent ensemble sur **PC (navigateur), mobile (app + navigateur), et TV Samsung Tizen** (via [Samsung Jellyfin Installer](https://github.com/Jellyfin2Samsung/Samsung-Jellyfin-Installer) qui auto-injecte NotifySync dans le client web bundlé).
+Les deux projets fonctionnent ensemble sur **PC (navigateur)** et **mobile (app Jellyfin + navigateur)**.
 
 > ⭐ Installation unique, expérience Jellyfin cinéma complète avec notifications temps réel.
+>
+> ⚠️ **Note TV** : NotifySync ne s'affiche actuellement pas sur les apps TV (Samsung Tizen, Android TV, LG webOS). La cloche est une fonctionnalité du client web et les apps TV utilisent un rendu natif.
 
 ## 👥 Auteurs & Crédits
 

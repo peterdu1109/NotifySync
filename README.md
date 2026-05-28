@@ -40,6 +40,7 @@ NotifySync transforms the Jellyfin interface by adding a native notification bel
 - [📦 Installation](#-installation)
 - [⚙️ Configuration](#️-configuration)
 - [❓ Troubleshooting](#-troubleshooting)
+- [🎨 Recommended Theme](#-recommended-theme)
 - [👥 Authors & Credits](#-authors--credits)
 
 ## 🚀 Quick Start
@@ -149,6 +150,14 @@ Go to **Dashboard > Plugins > NotifySync**.
 | **429 Error** | Wait 30 seconds between "Regenerate history" clicks (anti-spam). |
 | **Incompatible** | Ensure you are running Jellyfin **10.11.X**. |
 
+## 🎨 Recommended Theme
+
+NotifySync integrates beautifully with the [**ElegantFin Cinema Edition**](https://github.com/peterdu1109/ElegantFin) theme — a Netflix-inspired CSS theme for Jellyfin with 27 cinematic modules including dedicated styling for the NotifySync notification bell.
+
+Both projects work flawlessly together on **PC (browser), mobile (app + browser), and Samsung Tizen TV** (via [Samsung Jellyfin Installer](https://github.com/Jellyfin2Samsung/Samsung-Jellyfin-Installer) which auto-injects NotifySync into the bundled web client).
+
+> ⭐ Install once, get a complete cinematic Jellyfin experience with real-time notifications.
+
 ## 👥 Authors & Credits
 
 NotifySync is maintained by:
@@ -176,6 +185,7 @@ NotifySync transforme l'interface Jellyfin en y ajoutant une cloche de notificat
 - [📦 Installation](#-installation-1)
 - [⚙️ Configuration](#️-configuration-1)
 - [❓ Dépannage](#-dépannage)
+- [🎨 Thème recommandé](#-thème-recommandé)
 - [👥 Auteurs & Crédits](#-auteurs--crédits)
 
 ## 🚀 Démarrage Rapide
@@ -283,6 +293,14 @@ Allez dans **Tableau de bord > Extensions > NotifySync**.
 | **Contenu non autorisé visible** | Le plugin respecte les permissions Jellyfin — vérifiez les restrictions utilisateur. |
 | **Erreur 429** | Attendez 30 secondes entre chaque clic sur "Régénérer l'historique" (anti-spam). |
 | **Incompatible** | Vérifiez que vous utilisez Jellyfin **10.11.X**. |
+
+## 🎨 Thème recommandé
+
+NotifySync s'intègre parfaitement avec le thème [**ElegantFin Cinema Edition**](https://github.com/peterdu1109/ElegantFin) — un thème CSS inspiré de Netflix pour Jellyfin avec 27 modules cinématographiques, dont un styling dédié pour la cloche de notifications NotifySync.
+
+Les deux projets fonctionnent ensemble sur **PC (navigateur), mobile (app + navigateur), et TV Samsung Tizen** (via [Samsung Jellyfin Installer](https://github.com/Jellyfin2Samsung/Samsung-Jellyfin-Installer) qui auto-injecte NotifySync dans le client web bundlé).
+
+> ⭐ Installation unique, expérience Jellyfin cinéma complète avec notifications temps réel.
 
 ## 👥 Auteurs & Crédits
 

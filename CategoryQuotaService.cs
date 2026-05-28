@@ -8,7 +8,7 @@ namespace NotifySync
     /// </summary>
     public static class CategoryQuotaService
     {
-        private const int MaxEpisodesPerSeries = 50;
+        private const int MaxEpisodesPerSeries = 500;
 
         /// <summary>
         /// Applies the maximum item quota per category, ensuring that items of the same Series

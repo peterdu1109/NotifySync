@@ -1,4 +1,4 @@
-/* NOTIFYSYNC V5.6.0.0 */
+/* NOTIFYSYNC V5.6.1.0 */
 (function () {
     let currentData = [];
     let groupedData = [];
@@ -235,10 +235,18 @@
         seriesMap.forEach((eps) => {
             eps.sort((a, b) => new Date(b.DateCreated) - new Date(a.DateCreated));
             if (eps.length === 0) return;
-            // Separate upgrades from new episodes so they don't merge
-            const upgrades = eps.filter(e => e.IsUpgrade);
+            // Separate new episodes from upgrades, and split upgrades by UpgradeKind
+            // so a series with mixed UPD reasons (e.g. one Codec + one Audio) renders
+            // as two distinct group cards instead of merging into one ambiguous group.
             const newEps = eps.filter(e => !e.IsUpgrade);
-            [newEps, upgrades].forEach(subset => {
+            const upgradesByKind = new Map();
+            eps.filter(e => e.IsUpgrade).forEach(e => {
+                const kind = e.UpgradeKind || '_nokind';
+                if (!upgradesByKind.has(kind)) upgradesByKind.set(kind, []);
+                upgradesByKind.get(kind).push(e);
+            });
+            const subsets = [newEps, ...upgradesByKind.values()];
+            subsets.forEach(subset => {
                 if (subset.length === 0) return;
                 const latest = subset[0];
                 const hasNew = subset.some(e => e.IsNew);

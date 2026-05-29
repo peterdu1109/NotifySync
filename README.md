@@ -167,6 +167,8 @@ NotifySync is maintained by:
 - **[ElieMFR](https://github.com/ElieMFR)** — Original author & project lead
 - **[Peterdu1109](https://github.com/peterdu1109)** — Co-maintainer
 
+Thanks to **[@muisje](https://github.com/muisje)** and **[@Wernouxe](https://github.com/Wernouxe)** for their feature requests and bug reports that shaped this plugin.
+
 Contributions, bug reports, and feature requests are welcome on [GitHub](https://github.com/peterdu1109/NotifySync).
 
 Released under the [MIT License](./LICENSE).
@@ -312,6 +314,8 @@ NotifySync est maintenu par :
 
 - **[ElieMFR](https://github.com/ElieMFR)** — Auteur original & lead du projet
 - **[Peterdu1109](https://github.com/peterdu1109)** — Co-mainteneur
+
+Merci à **[@muisje](https://github.com/muisje)** et **[@Wernouxe](https://github.com/Wernouxe)** pour leurs demandes de fonctionnalités et rapports de bugs qui ont façonné ce plugin.
 
 Contributions, rapports de bugs et demandes de fonctionnalités sont les bienvenus sur [GitHub](https://github.com/peterdu1109/NotifySync).
 

@@ -5,9 +5,9 @@
   <img src="https://img.shields.io/badge/.NET-9.0-purple" alt=".NET Framework">
   <img src="https://img.shields.io/badge/Jellyfin-10.11.X-blueviolet" alt="Jellyfin">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="License">
-  <img src="https://img.shields.io/github/stars/peterdu1109/NotifySync?style=flat&color=yellow" alt="GitHub stars">
-  <img src="https://img.shields.io/github/downloads/peterdu1109/NotifySync/total?color=brightgreen" alt="Downloads">
-  <img src="https://img.shields.io/github/release-date/peterdu1109/NotifySync?color=orange" alt="Last release">
+  <img src="https://img.shields.io/github/stars/peterdu1109/NotifySync?style=flat&color=yellow&cacheSeconds=3600" alt="GitHub stars">
+  <img src="https://img.shields.io/github/downloads/peterdu1109/NotifySync/total?color=brightgreen&cacheSeconds=3600" alt="Downloads">
+  <img src="https://img.shields.io/github/release-date/peterdu1109/NotifySync?color=orange&cacheSeconds=3600" alt="Last release">
 </p>
 
 <p align="center">

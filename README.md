@@ -1,7 +1,7 @@
 <h1 align="center">🔔 NotifySync</h1>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-5.6.1.0-blue" alt="Version">
+  <img src="https://img.shields.io/badge/version-5.6.2.0-blue" alt="Version">
   <img src="https://img.shields.io/badge/.NET-9.0-purple" alt=".NET Framework">
   <img src="https://img.shields.io/badge/Jellyfin-10.11.X-blueviolet" alt="Jellyfin">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="License">
@@ -125,13 +125,13 @@ Go to **Dashboard > Plugins > NotifySync**.
 
 | Setting | Default | Description |
 |---------|---------|-------------|
-| **Quotas** | `10` | Maximum number of items to display per category (1–50). |
+| **Quotas** | `10` | Maximum number of **entries** per category (1–50). A whole series counts as one entry regardless of episode count (up to 500 episodes stored per series). |
 | **Monitored Libraries** | *(none)* | Check the folders you want to appear in notifications. |
-| **Monitored Collections** | *(none)* | Select Jellyfin collections (BoxSets) to track for new additions. |
+| **Monitored Collections** | *(none)* | Select Jellyfin collections (BoxSets) to track for new additions. Scanned every 15 minutes. |
 | **Category Mapping** | *(empty)* | Rename your libraries for display in the bell (e.g. *"My Movies"* → *"Movies"*). |
 | **Manual Library IDs** | *(empty)* | Add library IDs or names manually for advanced setups (Channels, XFusion). |
-| **Deleted Items Tracking** | `enabled` | Enable/disable the deletion history log. **Required for full UPD detection** on Sonarr/Radarr replacements (delete+re-import scenario). |
-| **Deletion Retention** | `30 days` | Number of days to keep deleted item records (1–365). |
+| **Deleted Items Tracking** | `enabled` | Enable/disable the deletion history log. **Required for full UPD detection** on Sonarr/Radarr replacements (delete+re-import scenario). Replacements are correlated within a 7-day window. |
+| **Deletion Retention** | `30 days` | Number of days to keep deleted item records (7–365). The lower bound is 7 days so the detection window always has data — retention only controls how long the deletions stay visible in the admin log. |
 | **Regenerate History** | — | Force a full rescan after changing libraries or quotas. |
 | **Scan Collections Now** | — | Force an immediate scan of monitored Collections instead of waiting for the automatic interval. |
 
@@ -271,13 +271,13 @@ Allez dans **Tableau de bord > Extensions > NotifySync**.
 
 | Paramètre | Défaut | Description |
 |-----------|--------|-------------|
-| **Quotas** | `10` | Nombre maximum d'éléments affichés par catégorie (1–50). |
+| **Quotas** | `10` | Nombre maximum d'**entrées** par catégorie (1–50). Une série entière compte pour une seule entrée, quel que soit le nombre d'épisodes (jusqu'à 500 épisodes stockés par série). |
 | **Bibliothèques Surveillées** | *(aucune)* | Cochez les dossiers que vous souhaitez voir apparaître dans la cloche. |
-| **Collections Surveillées** | *(aucune)* | Sélectionnez les collections Jellyfin (BoxSets) à surveiller pour les nouveaux ajouts. |
+| **Collections Surveillées** | *(aucune)* | Sélectionnez les collections Jellyfin (BoxSets) à surveiller pour les nouveaux ajouts. Scannées toutes les 15 minutes. |
 | **Mappage des Catégories** | *(vide)* | Renommez vos bibliothèques pour l'affichage (ex. *"Mes Films"* → *"Films"*). |
 | **IDs Manuels** | *(vide)* | Ajoutez des IDs ou noms de bibliothèques manuellement pour les configurations avancées (Channels, XFusion). |
-| **Suivi des Suppressions** | `activé` | Activer/désactiver le journal des suppressions. **Requis pour la détection MAJ complète** sur les remplacements Sonarr/Radarr (scénario delete+ré-import). |
-| **Rétention des Suppressions** | `30 jours` | Nombre de jours de conservation des éléments supprimés (1–365). |
+| **Suivi des Suppressions** | `activé` | Activer/désactiver le journal des suppressions. **Requis pour la détection MAJ complète** sur les remplacements Sonarr/Radarr (scénario delete+ré-import). Les remplacements sont corrélés dans une fenêtre de 7 jours. |
+| **Rétention des Suppressions** | `30 jours` | Nombre de jours de conservation des éléments supprimés (7–365). La borne basse est de 7 jours pour que la fenêtre de détection ait toujours des données — la rétention ne fait que prolonger l'affichage dans le journal admin. |
 | **Régénérer l'Historique** | — | Force un scan complet après modification des bibliothèques ou quotas. |
 | **Scanner les Collections** | — | Force un scan immédiat des Collections surveillées au lieu d'attendre l'intervalle automatique. |
 

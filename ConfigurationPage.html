@@ -419,10 +419,10 @@
                         <div class="ns-header-info">
                             <h2>NotifySync</h2>
                             <a class="ns-version-link" id="ns-version-link"
-                               href="https://github.com/peterdu1109/NotifySync/releases/tag/v5.6.1.0"
+                               href="https://github.com/peterdu1109/NotifySync/releases/tag/v5.6.2.0"
                                target="_blank" rel="noopener"
                                title="Voir les release notes sur GitHub / View release notes on GitHub">
-                                <span class="ns-version" id="ns-version-badge">v5.6.1.0</span>
+                                <span class="ns-version" id="ns-version-badge">v5.6.2.0</span>
                                 <span class="material-icons ns-version-icon">open_in_new</span>
                             </a>
                         </div>
@@ -604,7 +604,7 @@
                                 <div class="ns-setting-row">
                                     <label class="ns-setting-label" id="i18n-delRetLabel">Retention (days)</label>
                                     <input type="number" id="deletedRetentionDays" class="ns-number-input"
-                                        min="1" max="365" value="30" />
+                                        min="7" max="365" value="30" />
                                 </div>
 
                                 <div class="ns-search-wrap" style="margin-top: 16px;">
@@ -659,7 +659,7 @@
                     tabSettings: "Paramètres", tabLibraries: "Bibliothèques", tabCollections: "Collections",
                     tabCategories: "Catégories", tabDeletions: "Suppressions",
                     quotaTitle: "Quota par catégorie",
-                    quotaDesc: "Nombre maximum d'éléments à garder pour chaque catégorie (Films, Séries, Musique…).",
+                    quotaDesc: "Nombre maximum d'entrées par catégorie (Films, Séries, Musique…). Une série entière compte pour une seule entrée, quel que soit le nombre d'épisodes (jusqu'à 500 par série).",
                     libTitle: "Bibliothèques surveillées",
                     libDesc: "Cochez les bibliothèques qui doivent apparaître dans la cloche de notifications.",
                     colTitle: "Collections surveillées",
@@ -675,7 +675,7 @@
                     manualPlaceholder: "ID ou nom de bibliothèque, séparés par des virgules",
                     saveBtn: "Sauvegarder",
                     maintTitle: "Maintenance",
-                    maintDesc: "Force un scan complet de l'historique après modification des bibliothèques.",
+                    maintDesc: "Force un scan complet de l'historique après modification des bibliothèques, des quotas, ou pour resynchroniser la musique.",
                     refreshBtn: "Régénérer l'historique",
                     scanColBtn: "Scanner les collections",
                     successMsg: "Configuration sauvegardée.",
@@ -693,7 +693,7 @@
                     selectAll: "Tout cocher", clearAll: "Tout décocher",
                     counter: "{checked} / {total} sélectionnés",
                     delTitle: "Historique des suppressions",
-                    delDesc: "Consultez les médias récemment supprimés des bibliothèques surveillées.",
+                    delDesc: "Consultez les médias récemment supprimés des bibliothèques surveillées. Requis pour la détection des mises à jour (badge MAJ) : un fichier remplacé est corrélé à sa suppression dans les 7 derniers jours. La rétention (ci-dessous) ne fait que prolonger l'affichage dans ce journal.",
                     delEnable: "Activer le suivi des suppressions",
                     delRetLabel: "Rétention (jours)",
                     delEmpty: "Aucune suppression enregistrée.",
@@ -716,7 +716,7 @@
                     tabSettings: "Settings", tabLibraries: "Libraries", tabCollections: "Collections",
                     tabCategories: "Categories", tabDeletions: "Deletions",
                     quotaTitle: "Quota per Category",
-                    quotaDesc: "Maximum number of items to keep for each category (Movies, Series, Music…).",
+                    quotaDesc: "Maximum number of entries per category (Movies, Series, Music…). A whole series counts as a single entry, regardless of episode count (up to 500 per series).",
                     libTitle: "Monitored Libraries",
                     libDesc: "Check the libraries that should appear in the notification bell.",
                     colTitle: "Monitored Collections",
@@ -732,7 +732,7 @@
                     manualPlaceholder: "ID or library name, comma-separated",
                     saveBtn: "Save",
                     maintTitle: "Maintenance",
-                    maintDesc: "Force a full history scan after changing libraries.",
+                    maintDesc: "Force a full history scan after changing libraries, quotas, or to resync music.",
                     refreshBtn: "Regenerate history",
                     scanColBtn: "Scan collections now",
                     successMsg: "Configuration saved.",
@@ -750,7 +750,7 @@
                     selectAll: "Select all", clearAll: "Clear all",
                     counter: "{checked} / {total} selected",
                     delTitle: "Deletion History",
-                    delDesc: "View recently deleted media from monitored libraries.",
+                    delDesc: "View recently deleted media from monitored libraries. Required for upgrade detection (UPD badge): a replaced file is correlated to its deletion within the last 7 days. Retention (below) only extends how long this log keeps showing them.",
                     delEnable: "Enable deletion tracking",
                     delRetLabel: "Retention (days)",
                     delEmpty: "No deletions recorded.",
@@ -1382,7 +1382,7 @@
 
                         this.config.EnableDeletedTracking = page.querySelector('#enableDeletedToggle').classList.contains('on');
                         const rawRet = parseInt(page.querySelector('#deletedRetentionDays').value, 10);
-                        this.config.DeletedRetentionDays = (isNaN(rawRet) || rawRet < 1) ? 30 : Math.min(rawRet, 365);
+                        this.config.DeletedRetentionDays = isNaN(rawRet) ? 30 : Math.min(Math.max(rawRet, 7), 365);
 
                         const manualStr = page.querySelector('#manualLibraryIds').value;
                         this.config.ManualLibraryIds = manualStr

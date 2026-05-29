@@ -62,12 +62,15 @@ namespace NotifySync
         public bool EnableDeletedTracking { get; set; }
 
         /// <summary>
-        /// Gets or sets the number of days to retain deleted item records (clamped 1–365).
+        /// Gets or sets the number of days to retain deleted item records (clamped 7–365).
+        /// The lower bound is 7 days because the upgrade-detection correlation window
+        /// (delete → re-import) looks back 7 days; a shorter retention would silently
+        /// purge deletion records before they could be matched to a replacement.
         /// </summary>
         public int DeletedRetentionDays
         {
             get => _deletedRetentionDays;
-            set => _deletedRetentionDays = Math.Clamp(value, 1, 365);
+            set => _deletedRetentionDays = Math.Clamp(value, 7, 365);
         }
     }
 }

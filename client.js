@@ -1,4 +1,4 @@
-/* NOTIFYSYNC V5.6.3.0 */
+/* NOTIFYSYNC V5.6.4.0 */
 (function () {
     let currentData = [];
     let groupedData = [];
@@ -148,7 +148,7 @@
             .dismiss-btn { position:absolute; top:6px; right:6px; background:rgba(255,255,255,0.1); border:none; color:#888; cursor:pointer; width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:16px; line-height:1; opacity:0; transition:opacity 0.2s, background 0.2s; z-index:2; padding:0; font-family:'Material Icons'; }
             .dropdown-item:hover .dismiss-btn { opacity:1; }
             .dismiss-btn:hover { background:rgba(255,255,255,0.2); color:#fff; }
-            @media (pointer: coarse) { .dismiss-btn { opacity:0.6; } }
+            @media (pointer: coarse) { .dismiss-btn { opacity:0.6; } .dismiss-btn::after { content:''; position:absolute; inset:-10px; border-radius:50%; } }
             .dismiss-btn:focus-visible { opacity:1; outline:2px solid #fff; outline-offset:2px; }
             @keyframes dismissSlide { to { opacity:0; transform:translateX(50px); height:0; padding:0; margin:0; overflow:hidden; } }
             .dismissing { animation: dismissSlide 0.3s ease-out forwards; }
@@ -188,6 +188,11 @@
             .hero-badge-upgrade { background: var(--ns-upgrade); color: #fff; font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 3px; display: inline-block; margin-bottom: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.5); text-transform: uppercase; }
             .footer-tools { padding: 10px; text-align: center; border-top: 1px solid var(--ns-border); font-size: 11px; color: #888; cursor: pointer; transition: color 0.2s; flex-shrink: 0; }
             .footer-tools:hover { color: #fff; text-decoration: underline; }
+            @media (prefers-reduced-motion: reduce) {
+                #notification-dropdown, .ns-pulse, .ns-pulse .ns-badge { animation: none; }
+                .dismissing { animation-duration: 0.01ms; }
+                .dropdown-item { transition: none; }
+            }
         `;
         const style = document.createElement('style'); style.id = 'notifysync-css'; style.textContent = css; document.head.appendChild(style);
     };
@@ -663,6 +668,29 @@
     };
 
 
+    // Anchor the dropdown directly below the bell so it doesn't overlap or
+    // float above the Jellyfin header — header heights vary by version, theme,
+    // zoom level, and DPI, so hard-coded `top` values in the CSS would always
+    // be wrong for some setup. Called at open time AND on resize/rotation:
+    // the position is viewport-dependent, so an open dropdown must follow
+    // when the phone rotates or the window is resized.
+    const positionDropdown = (drop) => {
+        const bell = document.getElementById('netflix-bell');
+        if (!bell || !drop) return;
+        const rect = bell.getBoundingClientRect();
+        drop.style.top = (rect.bottom + 8) + 'px';
+        if (window.innerWidth > 600) {
+            // Desktop: pin the right edge under the bell's right edge.
+            drop.style.right = Math.max(0, window.innerWidth - rect.right) + 'px';
+            drop.style.left = 'auto';
+        } else {
+            // Mobile: clear inline horizontal pins so the @media full-width
+            // rule (left:10px; right:10px) takes over.
+            drop.style.right = '';
+            drop.style.left = '';
+        }
+    };
+
     const closeDropdown = () => {
         if (lazyImageObserver) { lazyImageObserver.disconnect(); }
         const drop = document.getElementById('notification-dropdown');
@@ -746,26 +774,7 @@
                     markReadOnServer(unreadIds);
                 }
             });
-            // Anchor the dropdown directly below the bell so it doesn't overlap or
-            // float above the Jellyfin header — header heights vary by version, theme,
-            // zoom level, and DPI, so hard-coded `top` values in the CSS would always
-            // be wrong for some setup. Computing from the bell's bounding rect at
-            // open time is always accurate.
-            const bellForPos = document.getElementById('netflix-bell');
-            if (bellForPos) {
-                const rect = bellForPos.getBoundingClientRect();
-                drop.style.top = (rect.bottom + 8) + 'px';
-                if (window.innerWidth > 600) {
-                    // Desktop: pin the right edge under the bell's right edge.
-                    drop.style.right = Math.max(0, window.innerWidth - rect.right) + 'px';
-                    drop.style.left = 'auto';
-                } else {
-                    // Mobile: clear inline horizontal pins so the @media full-width
-                    // rule (left:10px; right:10px) takes over.
-                    drop.style.right = '';
-                    drop.style.left = '';
-                }
-            }
+            positionDropdown(drop);
             document.getElementById('notify-backdrop').style.display = 'block';
             drop.style.display = 'flex';
         } else { closeDropdown(); }
@@ -905,6 +914,14 @@
             detectJellyfinLang();
             fetchData();
         }
+    });
+
+    // Keep an open dropdown anchored to the bell when the phone rotates or the
+    // window is resized (its position is computed from the bell's bounding rect,
+    // which moves with the layout). 'resize' also fires on orientation change.
+    window.addEventListener('resize', () => {
+        const drop = document.getElementById('notification-dropdown');
+        if (drop && drop.style.display === 'flex') positionDropdown(drop);
     });
 
     setupEvents();

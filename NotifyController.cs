@@ -406,10 +406,25 @@ namespace NotifySync
             DateTime dt = string.IsNullOrEmpty(date) || !DateTime.TryParse(date, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.RoundtripKind, out var parsedDate)
                 ? DateTime.UtcNow
                 : parsedDate;
+
+            // A future date would permanently suppress the user's own notifications
+            // (every new item would be "older" than the cleared cutoff). Clamp to now.
+            var utcNow = DateTime.UtcNow;
+            if (dt.ToUniversalTime() > utcNow)
+            {
+                dt = utcNow;
+            }
+
             long timestamp = dt.Ticks;
 
+            var normalizedId = NormalizeId(userId);
             NotificationManager.Instance?.SetUserCleared(userId, timestamp);
-            InvalidateUserCache(NormalizeId(userId));
+
+            // Bump the per-user state version like MarkRead/Dismiss do — without this,
+            // the user's OTHER devices keep an ETag that still matches and receive 304,
+            // so the cleared notifications never disappear on them.
+            NotificationManager.Instance?.IncrementUserStateVersion(normalizedId);
+            InvalidateUserCache(normalizedId);
 
             return Ok();
         }

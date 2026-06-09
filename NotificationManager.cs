@@ -429,17 +429,20 @@ namespace NotifySync
                 return;
             }
 
-            SaveUserCleared();
-            _disposeCts.Cancel();
-            _bufferProcessTimer?.Dispose();
-            _dataLock?.Dispose();
-            _disposeCts.Dispose();
-            _db?.Dispose();
-
+            // Unsubscribe from library events FIRST: a late ItemUpdated/ItemRemoved
+            // firing after the lock/db below are disposed would hit disposed objects
+            // (EnterWriteLock on a disposed ReaderWriterLockSlim throws).
             _libraryManager.ItemAdded -= OnItemAdded;
             _libraryManager.ItemRemoved -= OnItemRemoved;
             _libraryManager.ItemUpdated -= OnItemUpdated;
             _userDataManager.UserDataSaved -= OnUserDataSaved;
+
+            _disposeCts.Cancel();
+            SaveUserCleared();
+            _bufferProcessTimer?.Dispose();
+            _dataLock?.Dispose();
+            _disposeCts.Dispose();
+            _db?.Dispose();
 
             GC.SuppressFinalize(this);
         }
@@ -592,14 +595,27 @@ namespace NotifySync
             }
 
             var itemId = e.Item.Id.ToString();
-            bool dbNeedsUpdate = false;
+            var removedIds = new List<string>();
             try
             {
                 _dataLock.EnterWriteLock();
-                int removed = _notifications.RemoveAll(n => n.Id == itemId);
-                if (removed > 0)
+
+                // Match both the direct notification (n.Id) and synthetic collection
+                // notifications (Id = "col:{collectionId}:{itemId}", RealItemId = itemId).
+                // Without the RealItemId check, collection entries for a deleted media
+                // linger as zombies: GetData skips them (item unresolvable) but they
+                // still consume category-quota slots in memory and in the DB.
+                foreach (var n in _notifications)
                 {
-                    dbNeedsUpdate = true;
+                    if (n.Id == itemId || n.RealItemId == itemId)
+                    {
+                        removedIds.Add(n.Id);
+                    }
+                }
+
+                if (removedIds.Count > 0)
+                {
+                    _notifications.RemoveAll(n => n.Id == itemId || n.RealItemId == itemId);
                     Interlocked.Increment(ref _versionCounter);
                 }
             }
@@ -611,10 +627,13 @@ namespace NotifySync
                 }
             }
 
-            if (dbNeedsUpdate)
+            if (removedIds.Count > 0)
             {
-                _db.DeleteNotifications(new[] { itemId });
-                _db.DeleteStatesForNotification(itemId);
+                _db.DeleteNotifications(removedIds);
+                foreach (var removedId in removedIds)
+                {
+                    _db.DeleteStatesForNotification(removedId);
+                }
             }
         }
 
@@ -1136,6 +1155,48 @@ namespace NotifySync
             // Log diagnostics
             _logger.LogInformation("NotifySync Scan Diagnostics: Types found: {Types}.", string.Join(", ", typeCounts.Select(kv => $"{kv.Key}={kv.Value}")));
             _logger.LogInformation("NotifySync Scan Diagnostics: Skipped (not in enabled library): {Skipped}, Skipped (null/error): {Null}.", skippedNotEnabled, skippedNull);
+
+            // Carry forward upgrade state from the current in-memory list. The scan
+            // recreates items from the library, which knows nothing about past upgrade
+            // detections — without this, a manual "Regenerate history" silently wipes
+            // every UPD/MAJ badge. DateCreated is carried too so the upgraded item keeps
+            // its bumped position and its 72h badge window.
+            var upgradesById = new Dictionary<string, NotificationItem>(StringComparer.Ordinal);
+            try
+            {
+                _dataLock.EnterReadLock();
+                foreach (var n in _notifications)
+                {
+                    if (n.IsUpgrade)
+                    {
+                        upgradesById[n.Id] = n;
+                    }
+                }
+            }
+            finally
+            {
+                if (_dataLock.IsReadLockHeld)
+                {
+                    _dataLock.ExitReadLock();
+                }
+            }
+
+            if (upgradesById.Count > 0)
+            {
+                int carried = 0;
+                foreach (var notif in results)
+                {
+                    if (upgradesById.TryGetValue(notif.Id, out var old))
+                    {
+                        notif.IsUpgrade = true;
+                        notif.UpgradeKind = old.UpgradeKind;
+                        notif.DateCreated = old.DateCreated;
+                        carried++;
+                    }
+                }
+
+                _logger.LogInformation("NotifySync Scan: {Count} UPD badge(s) carried over from the previous state.", carried);
+            }
 
             var quotaResult = CategoryQuotaService.ApplyCategoryQuotas(results, DatabaseCategoryLimit);
             var newNotifs = quotaResult.Kept.OrderByDescending(n => n.DateCreated).ToList();

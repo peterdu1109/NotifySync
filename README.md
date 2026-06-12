@@ -58,27 +58,18 @@ That's it. The bell appears in the top-right header and starts populating as new
 
 ## ✨ Key Features
 
-### 🎨 User Experience
-*   **Netflix-Style Design** — A sleek glass-morphism dropdown. The red counter clears as soon as you open the bell, but NEW / UPD badges stay visible for 72 hours.
-*   **Hero Section** — The latest addition is displayed large with its backdrop image. One click jumps straight to the content.
-*   **Smart Grouping** — Episodes grouped by series (with season-aware summaries like `S1-S5 — 120 episodes`), tracks grouped by album.
-*   **Smart Upgrade Detection** — When you replace a media file, the notification comes back with a blue **UPD** badge that tells you *what* changed: **Quality**, **Codec**, **Audio**, or any combination. Subtitle additions and metadata refreshes stay silent.
-*   **Category Filters & Dismiss** — Quick filters (All / Movies / Series / Music / custom). Dismiss with a click or swipe-left on mobile, per-item or per-group.
-*   **Collection Monitoring** — Track Jellyfin collections (BoxSets) for new additions.
-*   **Deletion History** — Admin log of recently deleted media with configurable retention.
-*   **Synced Across Devices** — Read / unread status saved server-side, in sync across all your devices.
-*   **Clear List (Safe)** — Clearing notifications never marks anything as "Played" in Jellyfin.
-*   **Bilingual & Responsive** — French / English following your Jellyfin language. Works on desktop, tablet, and mobile (*not supported on TV*).
-
-### 🚀 Performance
-*   **Real-Time Updates** — Notifications appear instantly via Jellyfin's WebSockets — no page refresh.
-*   **HTTP Caching** — `ETag` / `If-None-Match` skips transfers when nothing changed.
-*   **Lazy Image Loading** — Thumbnails load as you scroll, keeping the interface snappy.
-
-### 🛡️ Security & Privacy
-*   **Respects Jellyfin Permissions** — Each user only sees content from libraries they have access to (tags, ratings, folders all enforced).
-*   **Safe Against Attacks** — All content sanitized before display; all SQL parameterized.
-*   **User Isolation** — No user can access another user's notifications or data.
+*   **Netflix-style bell** — A sleek glass dropdown with the latest addition as a large hero spotlight. The red counter clears when you open the bell; NEW / UPD badges stay visible for 72 hours.
+*   **Real-time** — Notifications appear instantly when content is added. No page refresh, ever.
+*   **Organized by recency** — The list is split into **Today**, **This week**, and **Earlier** sections, newest first.
+*   **Smart grouping** — Episodes grouped by series with season summaries (`S1-S5 • 120 episodes`), tracks grouped by album.
+*   **Upgrade detection** — Replace a media file and the notification comes back with a blue **UPD** badge telling you *what* changed: **Quality**, **Codec**, **Audio**, or a combination. Subtitle additions and metadata refreshes stay silent.
+*   **⭐ Favorites filter** — Favorite a series in Jellyfin and filter the bell down to just the content you care about.
+*   **Filters & dismiss** — Quick category pills, dismiss per item or per group, swipe-left on mobile. Clearing the list never marks anything as "Played".
+*   **Collections** — Monitored Jellyfin collections (BoxSets) notify you on new additions.
+*   **Deletion history** — Admins get a log of recently deleted media, with configurable retention.
+*   **Synced across devices** — Read and cleared states live on the server: phone, desktop, and TV browser always agree.
+*   **Respects permissions** — Every user only ever sees content from libraries they can access, with strict per-user isolation.
+*   **Bilingual & responsive** — French / English following your Jellyfin language, on desktop, tablet, and mobile (*not supported on TV apps*).
 
 ## 📦 Installation
 
@@ -207,27 +198,18 @@ C'est tout. La cloche apparaît en haut à droite de l'interface et se remplit a
 
 ## ✨ Fonctionnalités
 
-### 🎨 Expérience Utilisateur
-*   **Design Netflix-Style** — Un menu déroulant élégant en verre dépoli. Le compteur rouge disparaît dès l'ouverture, mais les badges NOUVEAU / MAJ restent visibles 72 heures.
-*   **Section Hero** — Le dernier ajout s'affiche en grand avec son image de fond. Un clic mène directement au contenu.
-*   **Regroupement Intelligent** — Épisodes groupés par série (avec synthèse par saison du type `S1-S5 — 120 épisodes`), pistes groupées par album.
-*   **Détection Intelligente des Mises à Jour** — Quand vous remplacez un fichier média, la notification revient avec un badge bleu **MAJ** qui indique *ce qui* a changé : **Qualité**, **Codec**, **Audio**, ou n'importe quelle combinaison. Les ajouts de sous-titres et rafraîchissements de métadonnées restent silencieux.
-*   **Filtres & Suppression** — Filtres rapides (Tout / Films / Séries / Musique / personnalisé). Supprimez d'un clic ou par **swipe gauche** sur mobile, à l'unité ou par groupe.
-*   **Surveillance des Collections** — Suivez vos collections Jellyfin (BoxSets) pour les nouveaux ajouts.
-*   **Historique des Suppressions** — Journal admin des médias récemment supprimés, avec rétention paramétrable.
-*   **Synchronisé entre Appareils** — État lu / non-lu sauvegardé côté serveur, en sync sur tous vos appareils.
-*   **Vider la Liste (Sans Risque)** — Effacer les notifications ne marque rien comme "Vu" dans Jellyfin.
-*   **Bilingue & Responsive** — Français / Anglais selon la langue de votre Jellyfin. Fonctionne sur bureau, tablette et mobile (*non supporté sur TV*).
-
-### 🚀 Performance
-*   **Mises à Jour en Temps Réel** — Les notifications apparaissent instantanément via les WebSockets de Jellyfin — aucun rafraîchissement nécessaire.
-*   **Cache HTTP** — `ETag` / `If-None-Match` évite les transferts quand rien n'a changé.
-*   **Chargement Progressif des Images** — Les miniatures se chargent au fil du défilement pour garder l'interface fluide.
-
-### 🛡️ Sécurité & Confidentialité
-*   **Respecte les Permissions Jellyfin** — Chaque utilisateur ne voit que le contenu des bibliothèques auxquelles il a accès (tags, classifications, dossiers tous respectés).
-*   **Protection Contre les Attaques** — Tout le contenu est nettoyé avant affichage ; toutes les requêtes SQL sont paramétrées.
-*   **Isolation des Utilisateurs** — Aucun utilisateur ne peut accéder aux notifications d'un autre.
+*   **Cloche style Netflix** — Un menu déroulant élégant en verre dépoli, avec le dernier ajout en grand en vedette. Le compteur rouge disparaît à l'ouverture ; les badges NOUVEAU / MAJ restent visibles 72 heures.
+*   **Temps réel** — Les notifications apparaissent instantanément quand un contenu est ajouté. Aucun rafraîchissement, jamais.
+*   **Organisé par fraîcheur** — La liste est découpée en sections **Aujourd'hui**, **Cette semaine** et **Plus ancien**, du plus récent au plus ancien.
+*   **Regroupement intelligent** — Épisodes groupés par série avec synthèse des saisons (`S1-S5 • 120 épisodes`), pistes groupées par album.
+*   **Détection des mises à jour** — Remplacez un fichier média et la notification revient avec un badge bleu **MAJ** qui indique *ce qui* a changé : **Qualité**, **Codec**, **Audio**, ou une combinaison. Les ajouts de sous-titres et rafraîchissements de métadonnées restent silencieux.
+*   **Filtre ⭐ Favoris** — Mettez une série en favori dans Jellyfin et filtrez la cloche sur les seuls contenus qui vous intéressent.
+*   **Filtres & suppression** — Pills de catégories, suppression à l'unité ou par groupe, swipe gauche sur mobile. Vider la liste ne marque jamais rien comme « Vu ».
+*   **Collections** — Les collections Jellyfin surveillées (BoxSets) vous notifient des nouveaux ajouts.
+*   **Historique des suppressions** — Les admins disposent d'un journal des médias récemment supprimés, avec rétention paramétrable.
+*   **Synchronisé entre appareils** — États lu / vidé stockés côté serveur : téléphone, bureau et navigateur TV toujours d'accord.
+*   **Respecte les permissions** — Chaque utilisateur ne voit que le contenu des bibliothèques auxquelles il a accès, avec une isolation stricte par utilisateur.
+*   **Bilingue & responsive** — Français / Anglais selon la langue de votre Jellyfin, sur bureau, tablette et mobile (*non supporté sur les apps TV*).
 
 ## 📦 Installation
 

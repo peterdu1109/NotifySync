@@ -280,6 +280,13 @@ namespace NotifySync
                     candidates.Add(n);
                 }
 
+                // Per-request favorites lookup: an item is "favorite" when the user
+                // favorited the item itself OR its parent series/album — marking the
+                // series is enough to light up all its episodes. The series check is
+                // cached so each unique series costs at most one extra lookup.
+                var favoriteIds = new HashSet<string>(StringComparer.Ordinal);
+                var seriesFavCache = new Dictionary<string, bool>(StringComparer.Ordinal);
+
                 // Phase 2: library lookups only on remaining candidates
                 foreach (var n in candidates)
                 {
@@ -314,6 +321,22 @@ namespace NotifySync
                         continue;
                     }
 
+                    bool isFav = userData?.IsFavorite == true;
+                    if (!isFav && !string.IsNullOrEmpty(n.SeriesId))
+                    {
+                        if (!seriesFavCache.TryGetValue(n.SeriesId, out isFav))
+                        {
+                            var seriesItem = _libraryManager.GetItemById(n.SeriesId);
+                            isFav = seriesItem != null && _userDataManager.GetUserData(user, seriesItem)?.IsFavorite == true;
+                            seriesFavCache[n.SeriesId] = isFav;
+                        }
+                    }
+
+                    if (isFav)
+                    {
+                        favoriteIds.Add(n.Id);
+                    }
+
                     filtered.Add(n);
                 }
 
@@ -324,6 +347,7 @@ namespace NotifySync
                     var clone = n.Clone();
                     userStates.TryGetValue(clone.Id, out var readState);
                     clone.IsRead = readState.IsRead;
+                    clone.IsFavorite = favoriteIds.Contains(clone.Id);
                     filteredClones.Add(clone);
                 }
 
@@ -427,71 +451,6 @@ namespace NotifySync
             InvalidateUserCache(normalizedId);
 
             return Ok();
-        }
-
-        /// <summary>
-        /// Gets played status for a list of items.
-        /// </summary>
-        /// <param name="userId">The user identifier.</param>
-        /// <returns>An ActionResult containing a dictionary of item IDs and their played status.</returns>
-        [HttpPost("BulkUserData")]
-        public async Task<ActionResult> GetBulkUserData([FromQuery] string userId)
-        {
-            if (string.IsNullOrEmpty(userId) || !Guid.TryParse(userId, out _))
-            {
-                return BadRequest();
-            }
-
-            if (!IsAuthorizedForUser(userId))
-            {
-                return Forbid();
-            }
-
-            try
-            {
-                using var reader = new StreamReader(Request.Body);
-                var body = await reader.ReadToEndAsync().ConfigureAwait(false);
-                var itemIds = JsonSerializer.Deserialize(body, PluginJsonContext.Default.ListString);
-
-                if (itemIds == null)
-                {
-                    return BadRequest();
-                }
-
-                var user = _userManager.GetUserById(Guid.Parse(userId));
-                if (user == null)
-                {
-                    return NotFound();
-                }
-
-                var results = new Dictionary<string, bool>();
-                foreach (var id in itemIds)
-                {
-                    if (string.IsNullOrEmpty(id))
-                    {
-                        continue;
-                    }
-
-                    var item = _libraryManager.GetItemById(id);
-                    if (item != null)
-                    {
-                        var userData = _userDataManager.GetUserData(user, item);
-                        results[id] = userData?.Played ?? false;
-                    }
-                    else
-                    {
-                        results[id] = false;
-                    }
-                }
-
-                byte[] serialized = JsonSerializer.SerializeToUtf8Bytes(results, PluginJsonContext.Default.DictionaryStringBoolean);
-                return new FileContentResult(serialized, "application/json");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "NotifySync: Error in BulkUserData for user {UserId}.", userId);
-                return StatusCode(500, "Internal error.");
-            }
         }
 
         /// <summary>

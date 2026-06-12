@@ -1,4 +1,4 @@
-/* NOTIFYSYNC V5.6.4.0 */
+/* NOTIFYSYNC V5.7.0.0 */
 (function () {
     let currentData = [];
     let groupedData = [];
@@ -50,8 +50,8 @@
 
     let userLang = navigator.language || 'en';
     const strings = {
-        fr: { header: "Quoi de neuf ?", empty: "Vous êtes à jour !", clearAll: "Vider la liste", clearCat: "Vider", dismiss: "Retirer", badgeNew: "NOUVEAU", badgeUpgrade: "MAJ", eps: "épisodes", tracks: "pistes", filterAll: "Tout", filterMovie: "Films", filterSeries: "Séries", filterMusic: "Musique", kindQuality: "Qualité", kindCodec: "Codec", kindAudio: "Audio", kindAll: "Tout", season: "Saison" },
-        en: { header: "What's New?", empty: "You're all caught up!", clearAll: "Clear list", clearCat: "Clear", dismiss: "Dismiss", badgeNew: "NEW", badgeUpgrade: "UPD", eps: "episodes", tracks: "tracks", filterAll: "All", filterMovie: "Movies", filterSeries: "Series", filterMusic: "Music", kindQuality: "Quality", kindCodec: "Codec", kindAudio: "Audio", kindAll: "All", season: "Season" }
+        fr: { header: "Quoi de neuf ?", empty: "Vous êtes à jour !", clearAll: "Vider la liste", clearCat: "Vider", dismiss: "Retirer", badgeNew: "NOUVEAU", badgeUpgrade: "MAJ", eps: "épisodes", eps1: "épisode", tracks: "pistes", tracks1: "piste", filterAll: "Tout", filterMovie: "Films", filterSeries: "Séries", filterMusic: "Musique", filterFav: "Favoris", kindQuality: "Qualité", kindCodec: "Codec", kindAudio: "Audio", kindAll: "Tout", season: "Saison", secToday: "Aujourd'hui", secWeek: "Cette semaine", secOlder: "Plus ancien" },
+        en: { header: "What's New?", empty: "You're all caught up!", clearAll: "Clear list", clearCat: "Clear", dismiss: "Dismiss", badgeNew: "NEW", badgeUpgrade: "UPD", eps: "episodes", eps1: "episode", tracks: "tracks", tracks1: "track", filterAll: "All", filterMovie: "Movies", filterSeries: "Series", filterMusic: "Music", filterFav: "Favorites", kindQuality: "Quality", kindCodec: "Codec", kindAudio: "Audio", kindAll: "All", season: "Season", secToday: "Today", secWeek: "This week", secOlder: "Earlier" }
     };
     let T = strings[userLang.startsWith('fr') ? 'fr' : 'en'];
 
@@ -84,6 +84,13 @@
         if (Math.abs(diff) < 2592000) return rtf.format(Math.round(diff / 86400), 'day');
         if (Math.abs(diff) < 31536000) return rtf.format(Math.round(diff / 2592000), 'month');
         return rtf.format(Math.round(diff / 31536000), 'year');
+    };
+
+    // Recency bucket for the dropdown's section separators (Netflix-style).
+    // Items are already sorted newest-first, so sections render in order.
+    const sectionLabel = (date) => {
+        const h = (Date.now() - new Date(date).getTime()) / 3600000;
+        return h < 24 ? T.secToday : h < 168 ? T.secWeek : T.secOlder;
     };
 
     const escapeHtml = (unsafe) => {
@@ -188,6 +195,9 @@
             .hero-badge-upgrade { background: var(--ns-upgrade); color: #fff; font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 3px; display: inline-block; margin-bottom: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.5); text-transform: uppercase; }
             .footer-tools { padding: 10px; text-align: center; border-top: 1px solid var(--ns-border); font-size: 11px; color: #888; cursor: pointer; transition: color 0.2s; flex-shrink: 0; }
             .footer-tools:hover { color: #fff; text-decoration: underline; }
+            .ns-section { font-size: 11px; color: #999; letter-spacing: 1.1px; text-transform: uppercase; padding: 12px 20px 4px; display: flex; align-items: center; gap: 8px; user-select: none; }
+            .ns-section::after { content: ''; flex: 1; height: 1px; background: var(--ns-border); }
+            .ns-fav { color: #f0a92d; font-size: 11px; vertical-align: 1px; }
             @media (prefers-reduced-motion: reduce) {
                 #notification-dropdown, .ns-pulse, .ns-pulse .ns-badge { animation: none; }
                 .dismissing { animation-duration: 0.01ms; }
@@ -261,7 +271,7 @@
                     // Carry the seasons covered by this group so the renderer can label
                     // it as "Saison N — X épisodes" or "S1-S2 — X épisodes".
                     const seasons = subset.map(e => e.ParentIndexNumber);
-                    result.push({ ...latest, IsGroup: true, GroupCount: subset.length, NewCount: newCount, Name: latest.SeriesName || latest.Name, Id: latest.SeriesId || latest.Id, IsNew: hasNew, ShowBadge: hasBadge, Seasons: seasons });
+                    result.push({ ...latest, IsGroup: true, GroupCount: subset.length, NewCount: newCount, Name: latest.SeriesName || latest.Name, Id: latest.SeriesId || latest.Id, IsNew: hasNew, ShowBadge: hasBadge, Seasons: seasons, IsFavorite: subset.some(e => e.IsFavorite) });
                 } else { result.push(latest); }
             });
         });
@@ -311,7 +321,9 @@
         const userId = getUserId();
         if (!userId) return;
 
-        const idsToDismiss = currentData.filter(i => i.Category === category).map(i => i.Id);
+        // '__fav' is the virtual favorites filter, not a real category.
+        const matches = category === '__fav' ? (i) => i.IsFavorite : (i) => i.Category === category;
+        const idsToDismiss = currentData.filter(matches).map(i => i.Id);
         if (idsToDismiss.length === 0) return;
 
         // Dismiss all items in a single bulk request
@@ -319,7 +331,7 @@
         if (!success) return;
 
         // Remove from local data
-        currentData = currentData.filter(i => i.Category !== category);
+        currentData = currentData.filter(i => !matches(i));
         localStorage.setItem(nsKey('data'), JSON.stringify(currentData)); localStorage.setItem(nsKey('data-ts'), Date.now().toString());
         localStorage.removeItem(nsKey('etag'));
         lastFetchTime = 0;
@@ -509,10 +521,17 @@
         if (!drop) return;
         const container = drop.querySelector('.list-container');
         let filtered = groupedData || [];
-        if (activeFilter !== 'All') filtered = filtered.filter(i => i.Category === activeFilter);
+        if (activeFilter === '__fav') filtered = filtered.filter(i => i.IsFavorite);
+        else if (activeFilter !== 'All') filtered = filtered.filter(i => i.Category === activeFilter);
         const cats = new Set(['All']); groupedData.forEach(i => cats.add(i.Category));
         const filterBar = drop.querySelector('.filter-bar');
-        filterBar.innerHTML = Array.from(cats).map(c => `<div class="filter-pill ${activeFilter === c ? 'active' : ''}" data-category="${escapeHtml(c)}" tabindex="0" role="button" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">${T['filter' + c] || escapeHtml(c)}</div>`).join('');
+        let pillsHtml = Array.from(cats).map(c => `<div class="filter-pill ${activeFilter === c ? 'active' : ''}" data-category="${escapeHtml(c)}" tabindex="0" role="button" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">${T['filter' + c] || escapeHtml(c)}</div>`).join('');
+        // Favorites pill — only rendered when the list actually contains favorites,
+        // so users who never favorite anything don't get a dead filter.
+        if (groupedData.some(i => i.IsFavorite)) {
+            pillsHtml += `<div class="filter-pill ${activeFilter === '__fav' ? 'active' : ''}" data-category="__fav" tabindex="0" role="button" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="ns-fav">★</span> ${T.filterFav}</div>`;
+        }
+        filterBar.innerHTML = pillsHtml;
 
         // Wire filter pills now — must stay clickable even when the current category becomes empty,
         // otherwise the user is trapped in the empty state and has to close/reopen the dropdown.
@@ -541,8 +560,8 @@
                 const isMusic = hero.Type === 'Audio';
                 // Single neutral label ("épisodes" / "pistes") — the NEW/UPD badge already
                 // signals freshness/upgrade, no need to repeat it in the text.
-                const lbl = isMusic ? T.tracks : T.eps;
                 const count = hero.ShowBadge ? (hero.NewCount || hero.GroupCount) : hero.GroupCount;
+                const lbl = isMusic ? (count > 1 ? T.tracks : T.tracks1) : (count > 1 ? T.eps : T.eps1);
                 // Season label is episode-only — Audio.ParentIndexNumber is the disc number,
                 // not a season, so emitting "Saison 1" on an album group is spurious.
                 const seasonsLabel = isMusic ? null : formatSeasons(hero.Seasons);
@@ -554,10 +573,13 @@
             const safeHeroId = escapeHtml(hero.Id);
             const heroNavId = escapeHtml(hero.RealItemId || hero.Id);
             const heroFallbackImg = client.getUrl(`Items/${encodeURIComponent(hero.SeriesId || hero.Id)}/Images/Primary?quality=70&fillWidth=380&fillHeight=160&format=webp`);
-            htmlParts.push(`<div class="hero-section" onclick="document.dispatchEvent(new CustomEvent('ns-navigate', {detail: '${heroNavId}'}))"><div class="hero-bg"><img src="${escapeHtml(heroImg)}" alt="" style="width:100%;height:100%;object-fit:cover;" onerror="if(this.dataset.fb){this.src=this.dataset.fb;this.removeAttribute('data-fb')}else{this.style.display='none'}" data-fb="${escapeHtml(heroFallbackImg)}"></div><div class="hero-overlay"></div><button class="dismiss-btn" title="${T.dismiss}" aria-label="${T.dismiss}" onclick="event.stopPropagation(); document.dispatchEvent(new CustomEvent('ns-dismiss', {detail: '${safeHeroId}'}))">close</button><div class="hero-content">${hero.IsUpgrade && hero.ShowBadge ? `<span class="hero-badge-upgrade">${escapeHtml(upgradeBadgeText(hero))}</span>` : hero.ShowBadge ? `<span class="hero-badge">${T.badgeNew}</span>` : ''}<div style="font-size:18px;font-weight:700;text-shadow:0 2px 4px #000;line-height:1.2;">${heroTitle}</div><div style="font-size:12px;opacity:0.8;margin-top:4px">${timeAgo(hero.DateCreated)} &bull; ${heroSub}</div></div></div>`);
+            htmlParts.push(`<div class="hero-section" onclick="document.dispatchEvent(new CustomEvent('ns-navigate', {detail: '${heroNavId}'}))"><div class="hero-bg"><img src="${escapeHtml(heroImg)}" alt="" style="width:100%;height:100%;object-fit:cover;" onerror="if(this.dataset.fb){this.src=this.dataset.fb;this.removeAttribute('data-fb')}else{this.style.display='none'}" data-fb="${escapeHtml(heroFallbackImg)}"></div><div class="hero-overlay"></div><button class="dismiss-btn" title="${T.dismiss}" aria-label="${T.dismiss}" onclick="event.stopPropagation(); document.dispatchEvent(new CustomEvent('ns-dismiss', {detail: '${safeHeroId}'}))">close</button><div class="hero-content">${hero.IsUpgrade && hero.ShowBadge ? `<span class="hero-badge-upgrade">${escapeHtml(upgradeBadgeText(hero))}</span>` : hero.ShowBadge ? `<span class="hero-badge">${T.badgeNew}</span>` : ''}<div style="font-size:18px;font-weight:700;text-shadow:0 2px 4px #000;line-height:1.2;">${heroTitle}${hero.IsFavorite ? ' <span class="ns-fav">★</span>' : ''}</div><div style="font-size:12px;opacity:0.8;margin-top:4px">${timeAgo(hero.DateCreated)} &bull; ${heroSub}</div></div></div>`);
         }
 
+        let curSection = null;
         filtered.filter(x => x !== hero).forEach(item => {
+            const sec = sectionLabel(item.DateCreated);
+            if (sec !== curSection) { curSection = sec; htmlParts.push(`<div class="ns-section">${sec}</div>`); }
             const isMusic = item.Type === 'Audio';
             const isGroup = !!item.IsGroup;
             const imgUrl = client.getUrl(`Items/${encodeURIComponent(item.Id)}/Images/Primary?tag=${encodeURIComponent(item.PrimaryImageTag || '')}&${isMusic ? 'fillHeight=100&fillWidth=100' : 'fillHeight=112&fillWidth=200'}&quality=80&format=webp`);
@@ -567,8 +589,8 @@
             if (!isGroup && item.Type === 'Episode') { title = escapeHtml(formatEpisodeTitle(item)); sub = escapeHtml(item.SeriesName); }
             if (isGroup) {
                 // Single neutral label — badge handles NEW/UPD signaling.
-                const lbl = isMusic ? T.tracks : T.eps;
                 const count = item.ShowBadge ? (item.NewCount || item.GroupCount) : item.GroupCount;
+                const lbl = isMusic ? (count > 1 ? T.tracks : T.tracks1) : (count > 1 ? T.eps : T.eps1);
                 // Season label is episode-only — Audio.ParentIndexNumber is the disc number.
                 const seasonsLabel = isMusic ? null : formatSeasons(item.Seasons);
                 // Bullet separator (matches the time separator on the same line).
@@ -578,13 +600,13 @@
             const safeId = escapeHtml(item.Id);
             const navId = escapeHtml(item.RealItemId || item.Id);
             const badgeHtml = item.ShowBadge ? `<span class="item-badge">${escapeHtml(upgradeBadgeText(item))}</span>` : '';
-            htmlParts.push(`<div class="dropdown-item ${item.IsUpgrade && item.ShowBadge ? 'style-upgrade' : item.ShowBadge ? 'style-new' : 'style-seen'}" data-item-id="${safeId}" onclick="document.dispatchEvent(new CustomEvent('ns-navigate', {detail: '${navId}'}))"><button class="dismiss-btn" title="${T.dismiss}" aria-label="${T.dismiss}" onclick="event.stopPropagation(); document.dispatchEvent(new CustomEvent('ns-dismiss', {detail: '${safeId}'}))">close</button><div class="swipe-delete">${T.dismiss}</div><div class="thumb-wrapper"><img data-src="${imgUrl}" decoding="async" class="dropdown-thumb ${isMusic ? 'music' : ''}" loading="lazy" onerror="if(this.dataset.fallback){this.src=this.dataset.fallback;this.removeAttribute('data-fallback')}else{this.style.display='none'}" data-fallback="${fallbackUrl}"><span class="material-icons" style="color:#555;font-size:24px;">${isMusic ? 'album' : 'movie'}</span></div><div class="dropdown-info">${badgeHtml}<div class="dropdown-title" title="${title}">${title}</div><div class="dropdown-subtitle" title="${sub}"><span class="sub-time">${timeAgo(item.DateCreated)} &bull;</span><span class="sub-text">${sub}</span></div></div></div>`);
+            htmlParts.push(`<div class="dropdown-item ${item.IsUpgrade && item.ShowBadge ? 'style-upgrade' : item.ShowBadge ? 'style-new' : 'style-seen'}" data-item-id="${safeId}" onclick="document.dispatchEvent(new CustomEvent('ns-navigate', {detail: '${navId}'}))"><button class="dismiss-btn" title="${T.dismiss}" aria-label="${T.dismiss}" onclick="event.stopPropagation(); document.dispatchEvent(new CustomEvent('ns-dismiss', {detail: '${safeId}'}))">close</button><div class="swipe-delete">${T.dismiss}</div><div class="thumb-wrapper"><img data-src="${imgUrl}" decoding="async" class="dropdown-thumb ${isMusic ? 'music' : ''}" loading="lazy" onerror="if(this.dataset.fallback){this.src=this.dataset.fallback;this.removeAttribute('data-fallback')}else{this.style.display='none'}" data-fallback="${fallbackUrl}"><span class="material-icons" style="color:#555;font-size:24px;">${isMusic ? 'album' : 'movie'}</span></div><div class="dropdown-info">${badgeHtml}<div class="dropdown-title" title="${title}">${title}${item.IsFavorite ? ' <span class="ns-fav">★</span>' : ''}</div><div class="dropdown-subtitle" title="${sub}"><span class="sub-time">${timeAgo(item.DateCreated)} &bull;</span><span class="sub-text">${sub}</span></div></div></div>`);
         });
 
         if (activeFilter === 'All') {
             htmlParts.push(`<div class="footer-tools" data-action="clearall">${T.clearAll}</div>`);
         } else {
-            const catLabel = T['filter' + activeFilter] || escapeHtml(activeFilter);
+            const catLabel = activeFilter === '__fav' ? `★ ${T.filterFav}` : (T['filter' + activeFilter] || escapeHtml(activeFilter));
             htmlParts.push(`<div class="footer-tools" data-action="clearcat" data-category="${escapeHtml(activeFilter)}">${T.clearCat} ${catLabel}</div>`);
         }
         const finalHtml = htmlParts.join('');

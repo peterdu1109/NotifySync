@@ -16,10 +16,7 @@
 </p>
 
 <p align="center">
-  <img src="docs/bell-desktop.png" alt="NotifySync — the notification bell open on desktop" width="850">
-</p>
-<p align="center">
-  <img src="docs/bell-mobile.png" alt="NotifySync — the notification bell on mobile" width="300">
+  <img src="docs/bell-mobile.png" alt="NotifySync — the notification bell with NEW/UPD badges, season grouping, and category filters" width="360">
 </p>
 
 ---

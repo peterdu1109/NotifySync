@@ -15,7 +15,12 @@
   <i>Le centre de notifications moderne que Jellyfin attendait.</i>
 </p>
 
-<!-- SCREENSHOT_PLACEHOLDER: drop a bell-preview.gif here to showcase the dropdown in action -->
+<p align="center">
+  <img src="docs/bell-desktop.png" alt="NotifySync — the notification bell open on desktop" width="850">
+</p>
+<p align="center">
+  <img src="docs/bell-mobile.png" alt="NotifySync — the notification bell on mobile" width="300">
+</p>
 
 ---
 

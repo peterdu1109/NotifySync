@@ -15,10 +15,6 @@
   <i>Le centre de notifications moderne que Jellyfin attendait.</i>
 </p>
 
-<p align="center">
-  <img src="docs/bell-mobile2.png" alt="NotifySync — the notification bell with NEW/UPD badges, season grouping, and category filters" width="360">
-</p>
-
 ---
 
 <p align="center">

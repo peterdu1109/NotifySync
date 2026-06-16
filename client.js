@@ -1,4 +1,4 @@
-/* NOTIFYSYNC V5.7.0.0 */
+/* NOTIFYSYNC V5.7.1.0 */
 (function () {
     let currentData = [];
     let groupedData = [];
@@ -88,9 +88,16 @@
 
     // Recency bucket for the dropdown's section separators (Netflix-style).
     // Items are already sorted newest-first, so sections render in order.
+    // Boundaries are CALENDAR-based, not a rolling window: "Today" means since
+    // local midnight (an item from yesterday evening reads as "This week", not
+    // "Today", even if it's less than 24h old).
     const sectionLabel = (date) => {
-        const h = (Date.now() - new Date(date).getTime()) / 3600000;
-        return h < 24 ? T.secToday : h < 168 ? T.secWeek : T.secOlder;
+        const t = new Date(date).getTime();
+        const now = new Date();
+        const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+        if (t >= midnight) return T.secToday;
+        if (t >= midnight - 6 * 86400000) return T.secWeek; // within the last 7 calendar days
+        return T.secOlder;
     };
 
     const escapeHtml = (unsafe) => {
@@ -236,6 +243,41 @@
         return runs.map(r => r.length === 1 ? `S${r[0]}` : `S${r[0]}-S${r[r.length - 1]}`).join(', ');
     };
 
+    // Same run-length encoding as formatSeasons, but for episode numbers within
+    // a single season: [1..10] → "E1-E10", [1,8] → "E1, E8", [1,2,4] → "E1-E2, E4".
+    // Only meaningful when a group covers ONE season — across seasons an episode
+    // number alone is ambiguous, so the caller falls back to a plain count.
+    const formatEpisodes = (episodes) => {
+        if (!episodes || episodes.length === 0) return null;
+        const sorted = [...new Set(episodes.filter(e => Number.isInteger(e) && e > 0))].sort((a, b) => a - b);
+        if (sorted.length === 0) return null;
+        const runs = [[sorted[0]]];
+        for (let i = 1; i < sorted.length; i++) {
+            const last = runs[runs.length - 1];
+            if (sorted[i] === last[last.length - 1] + 1) { last.push(sorted[i]); }
+            else { runs.push([sorted[i]]); }
+        }
+        return runs.map(r => r.length === 1 ? `E${r[0]}` : `E${r[0]}-E${r[r.length - 1]}`).join(', ');
+    };
+
+    // Builds the subtitle for a grouped card. Single-season groups show the exact
+    // episode range ("Saison 4 • E1-E10"); multi-season groups keep the season
+    // span + count ("S1-S5 • 120 épisodes"); music keeps a plain track count.
+    const groupSubtitle = (g) => {
+        const isMusic = g.Type === 'Audio';
+        const count = g.ShowBadge ? (g.NewCount || g.GroupCount) : g.GroupCount;
+        const lbl = isMusic ? (count > 1 ? T.tracks : T.tracks1) : (count > 1 ? T.eps : T.eps1);
+        if (isMusic) return `${count} ${lbl}`;
+        const seasonsLabel = formatSeasons(g.Seasons);
+        const uniqSeasons = g.Seasons ? [...new Set(g.Seasons.filter(s => Number.isInteger(s) && s > 0))] : [];
+        let detail = `${count} ${lbl}`;
+        if (uniqSeasons.length === 1) {
+            const epRange = formatEpisodes(g.Episodes);
+            if (epRange) detail = epRange;
+        }
+        return seasonsLabel ? `${seasonsLabel} • ${detail}` : detail;
+    };
+
     const processGrouping = (items) => {
         const seriesMap = new Map();
         const result = [];
@@ -271,7 +313,8 @@
                     // Carry the seasons covered by this group so the renderer can label
                     // it as "Saison N — X épisodes" or "S1-S2 — X épisodes".
                     const seasons = subset.map(e => e.ParentIndexNumber);
-                    result.push({ ...latest, IsGroup: true, GroupCount: subset.length, NewCount: newCount, Name: latest.SeriesName || latest.Name, Id: latest.SeriesId || latest.Id, IsNew: hasNew, ShowBadge: hasBadge, Seasons: seasons, IsFavorite: subset.some(e => e.IsFavorite) });
+                    const episodes = subset.map(e => e.IndexNumber);
+                    result.push({ ...latest, IsGroup: true, GroupCount: subset.length, NewCount: newCount, Name: latest.SeriesName || latest.Name, Id: latest.SeriesId || latest.Id, IsNew: hasNew, ShowBadge: hasBadge, Seasons: seasons, Episodes: episodes, IsFavorite: subset.some(e => e.IsFavorite) });
                 } else { result.push(latest); }
             });
         });
@@ -557,17 +600,7 @@
                 heroSub = escapeHtml(String(hero.ProductionYear ?? ''));
             }
             if (isGroup) {
-                const isMusic = hero.Type === 'Audio';
-                // Single neutral label ("épisodes" / "pistes") — the NEW/UPD badge already
-                // signals freshness/upgrade, no need to repeat it in the text.
-                const count = hero.ShowBadge ? (hero.NewCount || hero.GroupCount) : hero.GroupCount;
-                const lbl = isMusic ? (count > 1 ? T.tracks : T.tracks1) : (count > 1 ? T.eps : T.eps1);
-                // Season label is episode-only — Audio.ParentIndexNumber is the disc number,
-                // not a season, so emitting "Saison 1" on an album group is spurious.
-                const seasonsLabel = isMusic ? null : formatSeasons(hero.Seasons);
-                // Bullet separator matches the time/content separator on the same line —
-                // consistent metadata style (Spotify/YouTube convention).
-                heroSub = seasonsLabel ? `${seasonsLabel} • ${count} ${lbl}` : `${count} ${lbl}`;
+                heroSub = groupSubtitle(hero);
             }
 
             const safeHeroId = escapeHtml(hero.Id);
@@ -587,15 +620,7 @@
 
             let title = escapeHtml(item.Name), sub = escapeHtml(String(item.ProductionYear ?? ''));
             if (!isGroup && item.Type === 'Episode') { title = escapeHtml(formatEpisodeTitle(item)); sub = escapeHtml(item.SeriesName); }
-            if (isGroup) {
-                // Single neutral label — badge handles NEW/UPD signaling.
-                const count = item.ShowBadge ? (item.NewCount || item.GroupCount) : item.GroupCount;
-                const lbl = isMusic ? (count > 1 ? T.tracks : T.tracks1) : (count > 1 ? T.eps : T.eps1);
-                // Season label is episode-only — Audio.ParentIndexNumber is the disc number.
-                const seasonsLabel = isMusic ? null : formatSeasons(item.Seasons);
-                // Bullet separator (matches the time separator on the same line).
-                sub = seasonsLabel ? `${seasonsLabel} • ${count} ${lbl}` : `${count} ${lbl}`;
-            }
+            if (isGroup) { sub = groupSubtitle(item); }
 
             const safeId = escapeHtml(item.Id);
             const navId = escapeHtml(item.RealItemId || item.Id);

@@ -1,4 +1,4 @@
-/* NOTIFYSYNC V5.7.1.0 */
+/* NOTIFYSYNC V5.7.2.0 */
 (function () {
     let currentData = [];
     let groupedData = [];
@@ -50,8 +50,8 @@
 
     let userLang = navigator.language || 'en';
     const strings = {
-        fr: { header: "Quoi de neuf ?", empty: "Vous êtes à jour !", clearAll: "Vider la liste", clearCat: "Vider", dismiss: "Retirer", badgeNew: "NOUVEAU", badgeUpgrade: "MAJ", eps: "épisodes", eps1: "épisode", tracks: "pistes", tracks1: "piste", filterAll: "Tout", filterMovie: "Films", filterSeries: "Séries", filterMusic: "Musique", filterFav: "Favoris", kindQuality: "Qualité", kindCodec: "Codec", kindAudio: "Audio", kindAll: "Tout", season: "Saison", secToday: "Aujourd'hui", secWeek: "Cette semaine", secOlder: "Plus ancien" },
-        en: { header: "What's New?", empty: "You're all caught up!", clearAll: "Clear list", clearCat: "Clear", dismiss: "Dismiss", badgeNew: "NEW", badgeUpgrade: "UPD", eps: "episodes", eps1: "episode", tracks: "tracks", tracks1: "track", filterAll: "All", filterMovie: "Movies", filterSeries: "Series", filterMusic: "Music", filterFav: "Favorites", kindQuality: "Quality", kindCodec: "Codec", kindAudio: "Audio", kindAll: "All", season: "Season", secToday: "Today", secWeek: "This week", secOlder: "Earlier" }
+        fr: { header: "Quoi de neuf ?", empty: "Vous êtes à jour !", clearAll: "Vider la liste", clearCat: "Vider", dismiss: "Retirer", badgeNew: "NOUVEAU", badgeUpgrade: "MAJ", eps: "épisodes", eps1: "épisode", epPrefix: "Ép.", tracks: "pistes", tracks1: "piste", filterAll: "Tout", filterMovie: "Films", filterSeries: "Séries", filterMusic: "Musique", filterFav: "Favoris", kindQuality: "Qualité", kindCodec: "Codec", kindAudio: "Audio", kindAll: "Tout", season: "Saison", secToday: "Aujourd'hui", secWeek: "Cette semaine", secOlder: "Plus ancien" },
+        en: { header: "What's New?", empty: "You're all caught up!", clearAll: "Clear list", clearCat: "Clear", dismiss: "Dismiss", badgeNew: "NEW", badgeUpgrade: "UPD", eps: "episodes", eps1: "episode", epPrefix: "Ep.", tracks: "tracks", tracks1: "track", filterAll: "All", filterMovie: "Movies", filterSeries: "Series", filterMusic: "Music", filterFav: "Favorites", kindQuality: "Quality", kindCodec: "Codec", kindAudio: "Audio", kindAll: "All", season: "Season", secToday: "Today", secWeek: "This week", secOlder: "Earlier" }
     };
     let T = strings[userLang.startsWith('fr') ? 'fr' : 'en'];
 
@@ -244,7 +244,8 @@
     };
 
     // Same run-length encoding as formatSeasons, but for episode numbers within
-    // a single season: [1..10] → "E1-E10", [1,8] → "E1, E8", [1,2,4] → "E1-E2, E4".
+    // a single season, with a localized prefix once at the front:
+    //   [1..10] → "Ép. 1-10", [1,8] → "Ép. 1, 8", [1,2,4] → "Ép. 1-2, 4".
     // Only meaningful when a group covers ONE season — across seasons an episode
     // number alone is ambiguous, so the caller falls back to a plain count.
     const formatEpisodes = (episodes) => {
@@ -257,7 +258,8 @@
             if (sorted[i] === last[last.length - 1] + 1) { last.push(sorted[i]); }
             else { runs.push([sorted[i]]); }
         }
-        return runs.map(r => r.length === 1 ? `E${r[0]}` : `E${r[0]}-E${r[r.length - 1]}`).join(', ');
+        const body = runs.map(r => r.length === 1 ? `${r[0]}` : `${r[0]}-${r[r.length - 1]}`).join(', ');
+        return `${T.epPrefix} ${body}`;
     };
 
     // Builds the subtitle for a grouped card. Single-season groups show the exact

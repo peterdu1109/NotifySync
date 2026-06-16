@@ -1,4 +1,4 @@
-/* NOTIFYSYNC V5.7.2.0 */
+/* NOTIFYSYNC V5.7.3.0 */
 (function () {
     let currentData = [];
     let groupedData = [];
@@ -55,7 +55,15 @@
     };
     let T = strings[userLang.startsWith('fr') ? 'fr' : 'en'];
 
-    let rtf = new Intl.RelativeTimeFormat(userLang, { numeric: 'auto' });
+    // Locale-aware date/time formatters, rebuilt when the Jellyfin language changes.
+    // Intl picks the right convention per locale (FR → "14:30" 24h, EN → "2:30 PM").
+    const buildFormatters = (lang) => ({
+        time: new Intl.DateTimeFormat(lang, { hour: '2-digit', minute: '2-digit' }),
+        day: new Intl.DateTimeFormat(lang, { weekday: 'short' }),
+        date: new Intl.DateTimeFormat(lang, { day: 'numeric', month: 'short' }),
+        dateYear: new Intl.DateTimeFormat(lang, { day: 'numeric', month: 'short', year: 'numeric' })
+    });
+    let fmt = buildFormatters(userLang);
 
     const detectJellyfinLang = () => {
         try {
@@ -66,7 +74,7 @@
             if (T !== strings[key]) {
                 T = strings[key];
                 userLang = jfLang;
-                rtf = new Intl.RelativeTimeFormat(userLang, { numeric: 'auto' });
+                fmt = buildFormatters(userLang);
                 updateBadge();
                 const drop = document.getElementById('notification-dropdown');
                 if (drop && drop.style.display === 'flex') updateList(drop);
@@ -74,16 +82,18 @@
         } catch (e) { /* silently use browser fallback */ }
     };
 
+    // Absolute timestamp that complements the recency sections instead of repeating
+    // them: clock time for today (the section already says "Today"), weekday for
+    // this week, date for older. Boundaries mirror sectionLabel exactly.
     const timeAgo = (date) => {
         const d = new Date(date);
         if (isNaN(d.getTime())) return '';
-        const diff = (d - new Date()) / 1000;
-        if (Math.abs(diff) < 60) return rtf.format(Math.round(diff), 'second');
-        if (Math.abs(diff) < 3600) return rtf.format(Math.round(diff / 60), 'minute');
-        if (Math.abs(diff) < 86400) return rtf.format(Math.round(diff / 3600), 'hour');
-        if (Math.abs(diff) < 2592000) return rtf.format(Math.round(diff / 86400), 'day');
-        if (Math.abs(diff) < 31536000) return rtf.format(Math.round(diff / 2592000), 'month');
-        return rtf.format(Math.round(diff / 31536000), 'year');
+        const now = new Date();
+        const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+        const t = d.getTime();
+        if (t >= midnight) return fmt.time.format(d);
+        if (t >= midnight - 6 * 86400000) return fmt.day.format(d);
+        return (d.getFullYear() === now.getFullYear() ? fmt.date : fmt.dateYear).format(d);
     };
 
     // Recency bucket for the dropdown's section separators (Netflix-style).

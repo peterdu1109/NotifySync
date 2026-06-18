@@ -51,7 +51,7 @@ That's it. The bell appears in the top-right header and starts populating as new
 
 ## ✨ Key Features
 
-*   **Netflix-style bell** — A sleek glass dropdown with the latest addition as a large hero spotlight. The red counter clears when you open the bell; NEW / UPD badges stay visible for 72 hours.
+*   **Netflix-style bell** — A sleek glass dropdown with the latest addition as a large hero spotlight. The red counter clears when you open the bell; each item keeps a NEW / UPD badge until you dismiss it or it's played.
 *   **Real-time** — Notifications appear instantly when content is added. No page refresh, ever.
 *   **Organized by recency** — The list is split into **Today**, **This week**, and **Earlier** sections, newest first.
 *   **Smart grouping** — Episodes grouped by series and labeled with the exact range that landed (`Season 4 • Ep. 1-12`, or `Ep. 1, 8` for a partial batch); tracks grouped by album.
@@ -191,7 +191,7 @@ C'est tout. La cloche apparaît en haut à droite de l'interface et se remplit a
 
 ## ✨ Fonctionnalités
 
-*   **Cloche style Netflix** — Un menu déroulant élégant en verre dépoli, avec le dernier ajout en grand en vedette. Le compteur rouge disparaît à l'ouverture ; les badges NOUVEAU / MAJ restent visibles 72 heures.
+*   **Cloche style Netflix** — Un menu déroulant élégant en verre dépoli, avec le dernier ajout en grand en vedette. Le compteur rouge disparaît à l'ouverture ; chaque élément garde un badge NOUVEAU / MAJ jusqu'à ce que vous le retiriez ou qu'il soit marqué vu.
 *   **Temps réel** — Les notifications apparaissent instantanément quand un contenu est ajouté. Aucun rafraîchissement, jamais.
 *   **Organisé par fraîcheur** — La liste est découpée en sections **Aujourd'hui**, **Cette semaine** et **Plus ancien**, du plus récent au plus ancien.
 *   **Regroupement intelligent** — Épisodes groupés par série avec la plage exacte qui est arrivée (`Saison 4 • Ép. 1-12`, ou `Ép. 1, 8` pour un lot partiel) ; pistes groupées par album.

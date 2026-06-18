@@ -1,4 +1,4 @@
-/* NOTIFYSYNC V5.7.4.0 */
+/* NOTIFYSYNC V5.7.5.0 */
 (function () {
     let currentData = [];
     let groupedData = [];
@@ -45,8 +45,6 @@
             return res.ok;
         } catch (e) { return false; }
     };
-
-    const BADGE_DURATION_MS = 72 * 60 * 60 * 1000; // 72h — badges stay visible like Netflix
 
     let userLang = navigator.language || 'en';
     const strings = {
@@ -189,9 +187,9 @@
             .dropdown-item:hover { background: rgba(255,255,255,0.08); }
             .item-badge { display: none; font-size: 9px; font-weight: bold; padding: 2px 5px; border-radius: 3px; color: #fff; line-height: 1; letter-spacing: 0.5px; width: fit-content; margin-bottom: 2px; box-shadow: 0 2px 5px rgba(0,0,0,0.5); text-transform: uppercase; }
             .style-new .item-badge { display: block; background: var(--ns-red); box-shadow: 0 1px 3px rgba(229,9,20,0.5); }
-            .style-new { background: rgba(229, 9, 20, 0.05); }
+            .style-new { box-shadow: inset 3px 0 0 var(--ns-red); }
             .style-upgrade .item-badge { display: block; background: var(--ns-upgrade); box-shadow: 0 1px 3px rgba(33,150,243,0.5); }
-            .style-upgrade { background: rgba(33, 150, 243, 0.05); }
+            .style-upgrade { box-shadow: inset 3px 0 0 var(--ns-upgrade); }
             .thumb-wrapper { width:90px; height:50px; margin-right:15px; flex-shrink:0; background:#222; border-radius:6px; overflow:hidden; display:flex; justify-content:center; align-items:center; box-shadow: 0 2px 5px rgba(0,0,0,0.3); position:relative; }
             .dropdown-thumb { width:100%; height:100%; object-fit:cover; opacity:0; transition:opacity 0.3s; position:absolute; inset:0; z-index:1; }
             .dropdown-thumb.music { object-fit:contain; }
@@ -401,13 +399,13 @@
     };
 
     const recalculateNewStatus = () => {
-        const now = Date.now();
         currentData.forEach(item => {
-            // IsNew = unread (for bell counter)
+            // IsNew = unread (drives the red bell counter, cleared on open).
             item.IsNew = !item.IsRead;
-            // ShowBadge = recent item (for visual NEW/UPD badges, Netflix-style persistence)
-            const age = now - new Date(item.DateCreated).getTime();
-            item.ShowBadge = age < BADGE_DURATION_MS;
+            // The NEW/UPD pill no longer fades on a timer — recency is conveyed by
+            // the Today/This week/Earlier sections and the timestamp, so the pill is
+            // a pure type marker that stays as long as the item is in the list.
+            item.ShowBadge = true;
         });
         groupedData = processGrouping(currentData);
         updateBadge();
@@ -622,7 +620,7 @@
             const safeHeroId = escapeHtml(hero.Id);
             const heroNavId = escapeHtml(hero.RealItemId || hero.Id);
             const heroFallbackImg = client.getUrl(`Items/${encodeURIComponent(hero.SeriesId || hero.Id)}/Images/Primary?quality=70&fillWidth=380&fillHeight=160&format=webp`);
-            htmlParts.push(`<div class="hero-section" onclick="document.dispatchEvent(new CustomEvent('ns-navigate', {detail: '${heroNavId}'}))"><div class="hero-bg"><img src="${escapeHtml(heroImg)}" alt="" style="width:100%;height:100%;object-fit:cover;" onerror="if(this.dataset.fb){this.src=this.dataset.fb;this.removeAttribute('data-fb')}else{this.style.display='none'}" data-fb="${escapeHtml(heroFallbackImg)}"></div><div class="hero-overlay"></div><button class="dismiss-btn" title="${T.dismiss}" aria-label="${T.dismiss}" onclick="event.stopPropagation(); document.dispatchEvent(new CustomEvent('ns-dismiss', {detail: '${safeHeroId}'}))">close</button><div class="hero-content">${hero.IsUpgrade && hero.ShowBadge ? `<span class="hero-badge-upgrade">${escapeHtml(upgradeBadgeText(hero))}</span>` : hero.ShowBadge ? `<span class="hero-badge">${T.badgeNew}</span>` : ''}<div style="font-size:18px;font-weight:700;text-shadow:0 2px 4px #000;line-height:1.2;">${heroTitle}${hero.IsFavorite ? ' <span class="ns-fav">★</span>' : ''}</div><div style="font-size:12px;opacity:0.8;margin-top:4px">${timeAgo(hero.DateCreated)} &bull; ${heroSub}</div></div></div>`);
+            htmlParts.push(`<div class="hero-section" onclick="document.dispatchEvent(new CustomEvent('ns-navigate', {detail: '${heroNavId}'}))"><div class="hero-bg"><img src="${escapeHtml(heroImg)}" alt="" style="width:100%;height:100%;object-fit:cover;" onerror="if(this.dataset.fb){this.src=this.dataset.fb;this.removeAttribute('data-fb')}else{this.style.display='none'}" data-fb="${escapeHtml(heroFallbackImg)}"></div><div class="hero-overlay"></div><button class="dismiss-btn" title="${T.dismiss}" aria-label="${T.dismiss}" onclick="event.stopPropagation(); document.dispatchEvent(new CustomEvent('ns-dismiss', {detail: '${safeHeroId}'}))">close</button><div class="hero-content">${hero.IsUpgrade ? `<span class="hero-badge-upgrade">${escapeHtml(upgradeBadgeText(hero))}</span>` : `<span class="hero-badge">${T.badgeNew}</span>`}<div style="font-size:18px;font-weight:700;text-shadow:0 2px 4px #000;line-height:1.2;">${heroTitle}${hero.IsFavorite ? ' <span class="ns-fav">★</span>' : ''}</div><div style="font-size:12px;opacity:0.8;margin-top:4px">${timeAgo(hero.DateCreated)} &bull; ${heroSub}</div></div></div>`);
         }
 
         let curSection = null;
@@ -640,8 +638,8 @@
 
             const safeId = escapeHtml(item.Id);
             const navId = escapeHtml(item.RealItemId || item.Id);
-            const badgeHtml = item.ShowBadge ? `<span class="item-badge">${escapeHtml(upgradeBadgeText(item))}</span>` : '';
-            htmlParts.push(`<div class="dropdown-item ${item.IsUpgrade && item.ShowBadge ? 'style-upgrade' : item.ShowBadge ? 'style-new' : 'style-seen'}" data-item-id="${safeId}" onclick="document.dispatchEvent(new CustomEvent('ns-navigate', {detail: '${navId}'}))"><button class="dismiss-btn" title="${T.dismiss}" aria-label="${T.dismiss}" onclick="event.stopPropagation(); document.dispatchEvent(new CustomEvent('ns-dismiss', {detail: '${safeId}'}))">close</button><div class="swipe-delete">${T.dismiss}</div><div class="thumb-wrapper"><img data-src="${imgUrl}" decoding="async" class="dropdown-thumb ${isMusic ? 'music' : ''}" loading="lazy" onerror="if(this.dataset.fallback){this.src=this.dataset.fallback;this.removeAttribute('data-fallback')}else{this.style.display='none'}" data-fallback="${fallbackUrl}"><span class="material-icons" style="color:#555;font-size:24px;">${isMusic ? 'album' : 'movie'}</span></div><div class="dropdown-info">${badgeHtml}<div class="dropdown-title" title="${title}">${title}${item.IsFavorite ? ' <span class="ns-fav">★</span>' : ''}</div><div class="dropdown-subtitle" title="${sub}"><span class="sub-time">${timeAgo(item.DateCreated)} &bull;</span><span class="sub-text">${sub}</span></div></div></div>`);
+            const badgeHtml = `<span class="item-badge">${escapeHtml(upgradeBadgeText(item))}</span>`;
+            htmlParts.push(`<div class="dropdown-item ${item.IsUpgrade ? 'style-upgrade' : 'style-new'}" data-item-id="${safeId}" onclick="document.dispatchEvent(new CustomEvent('ns-navigate', {detail: '${navId}'}))"><button class="dismiss-btn" title="${T.dismiss}" aria-label="${T.dismiss}" onclick="event.stopPropagation(); document.dispatchEvent(new CustomEvent('ns-dismiss', {detail: '${safeId}'}))">close</button><div class="swipe-delete">${T.dismiss}</div><div class="thumb-wrapper"><img data-src="${imgUrl}" decoding="async" class="dropdown-thumb ${isMusic ? 'music' : ''}" loading="lazy" onerror="if(this.dataset.fallback){this.src=this.dataset.fallback;this.removeAttribute('data-fallback')}else{this.style.display='none'}" data-fallback="${fallbackUrl}"><span class="material-icons" style="color:#555;font-size:24px;">${isMusic ? 'album' : 'movie'}</span></div><div class="dropdown-info">${badgeHtml}<div class="dropdown-title" title="${title}">${title}${item.IsFavorite ? ' <span class="ns-fav">★</span>' : ''}</div><div class="dropdown-subtitle" title="${sub}"><span class="sub-time">${timeAgo(item.DateCreated)} &bull;</span><span class="sub-text">${sub}</span></div></div></div>`);
         });
 
         if (activeFilter === 'All') {

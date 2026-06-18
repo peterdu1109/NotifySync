@@ -1,4 +1,4 @@
-/* NOTIFYSYNC V5.7.3.0 */
+/* NOTIFYSYNC V5.7.4.0 */
 (function () {
     let currentData = [];
     let groupedData = [];
@@ -322,10 +322,14 @@
                 const hasBadge = subset.some(e => e.ShowBadge);
                 const newCount = subset.filter(e => e.ShowBadge).length;
                 if (subset.length > 1) {
-                    // Carry the seasons covered by this group so the renderer can label
-                    // it as "Saison N — X épisodes" or "S1-S2 — X épisodes".
-                    const seasons = subset.map(e => e.ParentIndexNumber);
-                    const episodes = subset.map(e => e.IndexNumber);
+                    // The label must describe the SAME items the count describes.
+                    // When the card shows the badged (recent) count, restrict the
+                    // season/episode label to those recent items — otherwise old
+                    // episodes still lingering in the list drag their seasons into
+                    // the label, producing nonsense like "S1-S2, S5 • 1 épisode".
+                    const labelSet = newCount > 0 ? subset.filter(e => e.ShowBadge) : subset;
+                    const seasons = labelSet.map(e => e.ParentIndexNumber);
+                    const episodes = labelSet.map(e => e.IndexNumber);
                     result.push({ ...latest, IsGroup: true, GroupCount: subset.length, NewCount: newCount, Name: latest.SeriesName || latest.Name, Id: latest.SeriesId || latest.Id, IsNew: hasNew, ShowBadge: hasBadge, Seasons: seasons, Episodes: episodes, IsFavorite: subset.some(e => e.IsFavorite) });
                 } else { result.push(latest); }
             });

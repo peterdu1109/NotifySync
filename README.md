@@ -56,7 +56,7 @@ That's it. The bell appears in the top-right header and starts populating as new
 *   **Organized by recency** — The list is split into **Today**, **This week**, and **Earlier** sections, newest first.
 *   **Smart grouping** — Episodes grouped by series and labeled with the exact range that landed (`Season 4 • Ep. 1-12`, or `Ep. 1, 8` for a partial batch); tracks grouped by album.
 *   **Upgrade detection** — Replace a media file and the notification comes back with a blue **UPD** badge telling you *what* changed: **Quality**, **Codec**, **Audio**, or a combination. Subtitle additions and metadata refreshes stay silent.
-*   **⭐ Favorites filter** — Favorite a series in Jellyfin and filter the bell down to just the content you care about.
+*   **Favorites filter** — Favorite a series in Jellyfin and filter the bell down to just the content you care about.
 *   **Filters & dismiss** — Quick category pills, dismiss per item or per group, swipe-left on mobile. Clearing the list never marks anything as "Played".
 *   **Collections** — Monitored Jellyfin collections (BoxSets) notify you on new additions.
 *   **Deletion history** — Admins get a log of recently deleted media, with configurable retention.
@@ -196,7 +196,7 @@ C'est tout. La cloche apparaît en haut à droite de l'interface et se remplit a
 *   **Organisé par fraîcheur** — La liste est découpée en sections **Aujourd'hui**, **Cette semaine** et **Plus ancien**, du plus récent au plus ancien.
 *   **Regroupement intelligent** — Épisodes groupés par série avec la plage exacte qui est arrivée (`Saison 4 • Ép. 1-12`, ou `Ép. 1, 8` pour un lot partiel) ; pistes groupées par album.
 *   **Détection des mises à jour** — Remplacez un fichier média et la notification revient avec un badge bleu **MAJ** qui indique *ce qui* a changé : **Qualité**, **Codec**, **Audio**, ou une combinaison. Les ajouts de sous-titres et rafraîchissements de métadonnées restent silencieux.
-*   **Filtre ⭐ Favoris** — Mettez une série en favori dans Jellyfin et filtrez la cloche sur les seuls contenus qui vous intéressent.
+*   **Filtre Favoris** — Mettez une série en favori dans Jellyfin et filtrez la cloche sur les seuls contenus qui vous intéressent.
 *   **Filtres & suppression** — Pills de catégories, suppression à l'unité ou par groupe, swipe gauche sur mobile. Vider la liste ne marque jamais rien comme « Vu ».
 *   **Collections** — Les collections Jellyfin surveillées (BoxSets) vous notifient des nouveaux ajouts.
 *   **Historique des suppressions** — Les admins disposent d'un journal des médias récemment supprimés, avec rétention paramétrable.

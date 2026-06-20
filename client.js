@@ -1,4 +1,4 @@
-/* NOTIFYSYNC V5.7.5.0 */
+/* NOTIFYSYNC V5.7.6.0 */
 (function () {
     let currentData = [];
     let groupedData = [];
@@ -380,7 +380,12 @@
 
         // '__fav' is the virtual favorites filter, not a real category.
         const matches = category === '__fav' ? (i) => i.IsFavorite : (i) => i.Category === category;
-        const idsToDismiss = currentData.filter(matches).map(i => i.Id);
+        // Dismiss by CARD id (group id = SeriesId, or the item id for singles): the
+        // server expands each id to all its episodes, so we send a handful of ids
+        // instead of the raw episode list — which for a big category (long-running
+        // anime: maxItems series × up to 500 episodes) blows past the server's
+        // 500-item bulk cap and makes the whole clear silently fail.
+        const idsToDismiss = (groupedData || []).filter(matches).map(i => i.Id);
         if (idsToDismiss.length === 0) return;
 
         // Dismiss all items in a single bulk request

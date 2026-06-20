@@ -508,13 +508,15 @@ namespace NotifySync
 
         private void OnUserDataSaved(object? sender, UserDataSaveEventArgs e)
         {
-            // Invalidate cache on ANY user data change (played, unplayed, season-level, etc.)
-            // This ensures the bell updates when:
-            //   - An item is marked as watched (disappears from bell)
-            //   - An item is unmarked (reappears in bell)
-            //   - A whole season is toggled (propagates to episodes)
-            Interlocked.Increment(ref _versionCounter);
-            NotifyController.InvalidateUserCache(e.UserId.ToString("N"));
+            // A played/unplayed/favorite change only affects THIS user's view of the
+            // bell (played items drop out, favorites light up). Bump only this user's
+            // state version — NOT the global counter — so we don't invalidate every
+            // other user's cached view and force a server-wide N+1 recompute on each
+            // play event. The global counter stays reserved for real library changes
+            // (add/remove/update) that genuinely affect everyone.
+            var normalizedUserId = NormalizeUserId(e.UserId.ToString("N"));
+            IncrementUserStateVersion(normalizedUserId);
+            NotifyController.InvalidateUserCache(normalizedUserId);
         }
 
         private void OnItemAdded(object? sender, ItemChangeEventArgs e)

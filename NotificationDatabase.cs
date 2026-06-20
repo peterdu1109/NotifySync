@@ -963,23 +963,6 @@ namespace NotifySync
         }
 
         /// <summary>
-        /// Checks if a recently deleted item matches (upgrade detection).
-        /// For episodes: matches by SeriesName + season + episode number.
-        /// For movies/other: matches by Name + Type + Year.
-        /// </summary>
-        /// <param name="name">The item name.</param>
-        /// <param name="type">The item type.</param>
-        /// <param name="productionYear">The production year.</param>
-        /// <param name="seriesName">The series name (for episodes).</param>
-        /// <param name="indexNumber">The episode number (for episodes).</param>
-        /// <param name="parentIndexNumber">The season number (for episodes).</param>
-        /// <returns>True if a matching deleted item was found within the last 7 days.</returns>
-        public bool HasRecentDeletedMatch(string name, string type, int? productionYear, string? seriesName = null, int? indexNumber = null, int? parentIndexNumber = null)
-        {
-            return TryGetDeletedMatch(name, type, productionYear, seriesName, indexNumber, parentIndexNumber) != null;
-        }
-
-        /// <summary>
         /// Returns the most recent deleted record that matches the given identity (within 7 days), or null.
         /// Used by <c>ProcessBuffer</c> to feed ClassifyUpgrade with the &quot;before&quot; file properties.
         /// </summary>

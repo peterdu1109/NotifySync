@@ -1,4 +1,4 @@
-/* NOTIFYSYNC V5.7.6.0 */
+/* NOTIFYSYNC V5.7.7.0 */
 (function () {
     let currentData = [];
     let groupedData = [];
@@ -275,7 +275,7 @@
     // span + count ("S1-S5 • 120 épisodes"); music keeps a plain track count.
     const groupSubtitle = (g) => {
         const isMusic = g.Type === 'Audio';
-        const count = g.ShowBadge ? (g.NewCount || g.GroupCount) : g.GroupCount;
+        const count = g.GroupCount;
         const lbl = isMusic ? (count > 1 ? T.tracks : T.tracks1) : (count > 1 ? T.eps : T.eps1);
         if (isMusic) return `${count} ${lbl}`;
         const seasonsLabel = formatSeasons(g.Seasons);
@@ -317,18 +317,12 @@
                 if (subset.length === 0) return;
                 const latest = subset[0];
                 const hasNew = subset.some(e => e.IsNew);
-                const hasBadge = subset.some(e => e.ShowBadge);
-                const newCount = subset.filter(e => e.ShowBadge).length;
                 if (subset.length > 1) {
-                    // The label must describe the SAME items the count describes.
-                    // When the card shows the badged (recent) count, restrict the
-                    // season/episode label to those recent items — otherwise old
-                    // episodes still lingering in the list drag their seasons into
-                    // the label, producing nonsense like "S1-S2, S5 • 1 épisode".
-                    const labelSet = newCount > 0 ? subset.filter(e => e.ShowBadge) : subset;
-                    const seasons = labelSet.map(e => e.ParentIndexNumber);
-                    const episodes = labelSet.map(e => e.IndexNumber);
-                    result.push({ ...latest, IsGroup: true, GroupCount: subset.length, NewCount: newCount, Name: latest.SeriesName || latest.Name, Id: latest.SeriesId || latest.Id, IsNew: hasNew, ShowBadge: hasBadge, Seasons: seasons, Episodes: episodes, IsFavorite: subset.some(e => e.IsFavorite) });
+                    // Label covers the whole group: badges no longer fade, so every
+                    // member is current and the count == the group size.
+                    const seasons = subset.map(e => e.ParentIndexNumber);
+                    const episodes = subset.map(e => e.IndexNumber);
+                    result.push({ ...latest, IsGroup: true, GroupCount: subset.length, Name: latest.SeriesName || latest.Name, Id: latest.SeriesId || latest.Id, IsNew: hasNew, Seasons: seasons, Episodes: episodes, IsFavorite: subset.some(e => e.IsFavorite) });
                 } else { result.push(latest); }
             });
         });
@@ -404,14 +398,11 @@
     };
 
     const recalculateNewStatus = () => {
-        currentData.forEach(item => {
-            // IsNew = unread (drives the red bell counter, cleared on open).
-            item.IsNew = !item.IsRead;
-            // The NEW/UPD pill no longer fades on a timer — recency is conveyed by
-            // the Today/This week/Earlier sections and the timestamp, so the pill is
-            // a pure type marker that stays as long as the item is in the list.
-            item.ShowBadge = true;
-        });
+        // IsNew = unread; drives the red bell counter (cleared on open). The NEW/UPD
+        // pill itself no longer fades on a timer — recency is carried by the
+        // Today/This week/Earlier sections and the timestamp — so it's a pure type
+        // marker shown on every item, no per-item flag needed.
+        currentData.forEach(item => { item.IsNew = !item.IsRead; });
         groupedData = processGrouping(currentData);
         updateBadge();
     };
@@ -591,7 +582,7 @@
         // Favorites pill — only rendered when the list actually contains favorites,
         // so users who never favorite anything don't get a dead filter.
         if (groupedData.some(i => i.IsFavorite)) {
-            pillsHtml += `<div class="filter-pill ${activeFilter === '__fav' ? 'active' : ''}" data-category="__fav" tabindex="0" role="button" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="ns-fav">★</span> ${T.filterFav}</div>`;
+            pillsHtml += `<div class="filter-pill ${activeFilter === '__fav' ? 'active' : ''}" data-category="__fav" tabindex="0" role="button" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">${T.filterFav}</div>`;
         }
         filterBar.innerHTML = pillsHtml;
 
@@ -605,7 +596,7 @@
 
         const htmlParts = [];
         const client = window.ApiClient;
-        const hero = filtered.find(i => i.ShowBadge) || filtered[0];
+        const hero = filtered[0];
 
         if (hero) {
             const isGroup = !!hero.IsGroup;
@@ -650,7 +641,7 @@
         if (activeFilter === 'All') {
             htmlParts.push(`<div class="footer-tools" data-action="clearall">${T.clearAll}</div>`);
         } else {
-            const catLabel = activeFilter === '__fav' ? `★ ${T.filterFav}` : (T['filter' + activeFilter] || escapeHtml(activeFilter));
+            const catLabel = activeFilter === '__fav' ? T.filterFav : (T['filter' + activeFilter] || escapeHtml(activeFilter));
             htmlParts.push(`<div class="footer-tools" data-action="clearcat" data-category="${escapeHtml(activeFilter)}">${T.clearCat} ${catLabel}</div>`);
         }
         const finalHtml = htmlParts.join('');

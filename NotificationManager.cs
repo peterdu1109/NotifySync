@@ -828,8 +828,8 @@ namespace NotifySync
                     if (notif != null)
                     {
                         // Skip items that already exist in notifications (library rescan noise).
-                        // OnItemUpdated handles upgrade detection for existing items via
-                        // HasRecentDeletedMatch, so we can skip the DB query here entirely.
+                        // OnItemUpdated handles upgrade detection for existing items, so we
+                        // can skip the DB query here entirely.
                         bool alreadyExists = false;
                         try
                         {

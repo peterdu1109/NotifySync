@@ -94,7 +94,7 @@
         return (d.getFullYear() === now.getFullYear() ? fmt.date : fmt.dateYear).format(d);
     };
 
-    // Recency bucket for the dropdown's section separators (Netflix-style).
+    // Recency bucket for the dropdown's section separators (streaming-style).
     // Items are already sorted newest-first, so sections render in order.
     // Boundaries are CALENDAR-based, not a rolling window: "Today" means since
     // local midnight (an item from yesterday evening reads as "This week", not

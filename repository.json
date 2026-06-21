@@ -5,7 +5,7 @@
     "name": "NotifySync",
     "description": "NotifySync transforms the Jellyfin interface by adding a native notification bell, inspired by major streaming platforms. Your users instantly see the latest additions — Movies, Series, Music — without ever leaving their current page.\n\nNotifySync transforme l'interface Jellyfin en ajoutant une cloche de notifications native, inspirée des grandes plateformes de streaming. Vos utilisateurs voient instantanément les derniers ajouts — Films, Séries, Musique — sans quitter leur page.",
     "owner": "ElieM & Peterdu1109",
-    "overview": "A Netflix-style notification bell for Jellyfin — see new media without leaving the page.\nUne cloche de notifications style Netflix pour Jellyfin.",
+    "overview": "A streaming-style notification bell for Jellyfin — see new media without leaving the page.\nUne cloche de notifications style streaming pour Jellyfin.",
     "supportUrl": "https://github.com/peterdu1109/NotifySync",
     "imageUrl": "https://raw.githubusercontent.com/peterdu1109/NotifySync/main/icon.svg",
     "versions": [

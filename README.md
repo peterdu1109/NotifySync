@@ -51,7 +51,7 @@ That's it. The bell appears in the top-right header and starts populating as new
 
 ## ✨ Key Features
 
-*   **Netflix-style bell** — A sleek glass dropdown with the latest addition as a large hero spotlight. The red counter clears when you open the bell; each item keeps a NEW / UPD badge until you dismiss it or it's played.
+*   **Streaming-style bell** — A sleek glass dropdown with the latest addition as a large hero spotlight. The red counter clears when you open the bell; each item keeps a NEW / UPD badge until you dismiss it or it's played.
 *   **Real-time** — Notifications appear instantly when content is added. No page refresh, ever.
 *   **Organized by recency** — The list is split into **Today**, **This week**, and **Earlier** sections, newest first.
 *   **Smart grouping** — Episodes grouped by series and labeled with the exact range that landed (`Season 4 • Ep. 1-12`, or `Ep. 1, 8` for a partial batch); tracks grouped by album.
@@ -135,13 +135,14 @@ Go to **Dashboard > Plugins > NotifySync**.
 | **Content missing** | Ensure the library is checked in "Monitored Libraries". |
 | **New TV episode missing** | Make sure the **Series-type library** containing the episode is checked in "Monitored Libraries". |
 | **Replaced file shows NEW instead of UPD** | Enable **Deleted Items Tracking** in config — required for the delete+re-import detection path. |
+| **A renamed file shows a false UPD badge** | UPD detection is **filename-based** — it reads quality/codec/audio tags from the name. Renaming a file so it adds or changes one of these tags (e.g. `x264` → `HEVC`) looks like a real upgrade. Just dismiss it, or avoid touching those tags when renaming. |
 | **Unauthorized content visible** | Plugin respects Jellyfin permissions — check user restrictions in the dashboard. |
 | **429 Error** | Wait 30 seconds between "Regenerate history" clicks (anti-spam). |
 | **Incompatible** | Ensure you are running Jellyfin **10.11.X**. |
 
 ## 🎨 Recommended Theme
 
-NotifySync integrates beautifully with the [**ElegantFin Cinema Edition**](https://github.com/peterdu1109/ElegantFin) theme — a Netflix-inspired CSS theme for Jellyfin with 27 cinematic modules including dedicated styling for the NotifySync notification bell.
+NotifySync integrates beautifully with the [**ElegantFin Cinema Edition**](https://github.com/peterdu1109/ElegantFin) theme — a streaming-inspired CSS theme for Jellyfin with 27 cinematic modules including dedicated styling for the NotifySync notification bell.
 
 Both projects work flawlessly together on **PC (browser)** and **mobile (Jellyfin app + browser)**.
 
@@ -191,7 +192,7 @@ C'est tout. La cloche apparaît en haut à droite de l'interface et se remplit a
 
 ## ✨ Fonctionnalités
 
-*   **Cloche style Netflix** — Un menu déroulant élégant en verre dépoli, avec le dernier ajout en grand en vedette. Le compteur rouge disparaît à l'ouverture ; chaque élément garde un badge NOUVEAU / MAJ jusqu'à ce que vous le retiriez ou qu'il soit marqué vu.
+*   **Cloche style streaming** — Un menu déroulant élégant en verre dépoli, avec le dernier ajout en grand en vedette. Le compteur rouge disparaît à l'ouverture ; chaque élément garde un badge NOUVEAU / MAJ jusqu'à ce que vous le retiriez ou qu'il soit marqué vu.
 *   **Temps réel** — Les notifications apparaissent instantanément quand un contenu est ajouté. Aucun rafraîchissement, jamais.
 *   **Organisé par fraîcheur** — La liste est découpée en sections **Aujourd'hui**, **Cette semaine** et **Plus ancien**, du plus récent au plus ancien.
 *   **Regroupement intelligent** — Épisodes groupés par série avec la plage exacte qui est arrivée (`Saison 4 • Ép. 1-12`, ou `Ép. 1, 8` pour un lot partiel) ; pistes groupées par album.
@@ -274,13 +275,14 @@ Allez dans **Tableau de bord > Extensions > NotifySync**.
 | **Contenu manquant** | Vérifiez que la bibliothèque est cochée dans "Bibliothèques Surveillées". |
 | **Nouvel épisode TV manquant** | Vérifiez que la **bibliothèque de type Série** contenant l'épisode est cochée dans "Bibliothèques Surveillées". |
 | **Fichier remplacé apparaît en NOUVEAU au lieu de MAJ** | Activez le **Suivi des Suppressions** dans la config — nécessaire pour la détection du scénario delete+ré-import. |
+| **Un fichier renommé affiche un faux badge MAJ** | La détection MAJ est **basée sur le nom de fichier** — elle lit les tags qualité/codec/audio dans le nom. Renommer un fichier en ajoutant ou changeant un de ces tags (ex. `x264` → `HEVC`) ressemble à un vrai upgrade. Retirez la notification, ou évitez de toucher à ces tags en renommant. |
 | **Contenu non autorisé visible** | Le plugin respecte les permissions Jellyfin — vérifiez les restrictions utilisateur. |
 | **Erreur 429** | Attendez 30 secondes entre chaque clic sur "Régénérer l'historique" (anti-spam). |
 | **Incompatible** | Vérifiez que vous utilisez Jellyfin **10.11.X**. |
 
 ## 🎨 Thème recommandé
 
-NotifySync s'intègre parfaitement avec le thème [**ElegantFin Cinema Edition**](https://github.com/peterdu1109/ElegantFin) — un thème CSS inspiré de Netflix pour Jellyfin avec 27 modules cinématographiques, dont un styling dédié pour la cloche de notifications NotifySync.
+NotifySync s'intègre parfaitement avec le thème [**ElegantFin Cinema Edition**](https://github.com/peterdu1109/ElegantFin) — un thème CSS inspiré des plateformes de streaming pour Jellyfin avec 27 modules cinématographiques, dont un styling dédié pour la cloche de notifications NotifySync.
 
 Les deux projets fonctionnent ensemble sur **PC (navigateur)** et **mobile (app Jellyfin + navigateur)**.
 

@@ -2,7 +2,7 @@
   "guid": "95655672-2342-4321-8291-321312312312",
   "name": "NotifySync",
   "version": "5.7.8.0",
-  "description": "NotifySync ajoute une cloche de notifications native à Jellyfin. Injection automatique via File Transformation, notifications en temps réel via WebSockets, design Netflix-Style.",
+  "description": "NotifySync ajoute une cloche de notifications native à Jellyfin. Injection automatique via File Transformation, notifications en temps réel via WebSockets, design moderne style streaming.",
   "owner": "ElieM & Peterdu1109",
   "category": "UI",
   "targetAbi": "10.11.0.0"

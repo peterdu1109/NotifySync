@@ -863,6 +863,21 @@
                         }
                     } catch (e) { /* keep browser lang */ }
 
+                    // Version badge — read from the installed plugin so the page never needs
+                    // a per-release edit. The hardcoded value in the HTML is only a fallback
+                    // if this lookup fails.
+                    try {
+                        const plugins = await ApiClient.getPlugins();
+                        const me = plugins.find(p => p.Id === this.pluginId);
+                        if (me && me.Version) {
+                            const v = 'v' + me.Version;
+                            const badge = page.querySelector('#ns-version-badge');
+                            const link = page.querySelector('#ns-version-link');
+                            if (badge) badge.textContent = v;
+                            if (link) link.href = 'https://github.com/peterdu1109/NotifySync/releases/tag/' + v;
+                        }
+                    } catch (e) { /* keep the static fallback in the HTML */ }
+
                     // Plugin config fetch — this one is required; if it fails, abort load gracefully.
                     try {
                         const cfg = await ApiClient.getPluginConfiguration(this.pluginId);

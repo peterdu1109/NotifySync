@@ -1,7 +1,7 @@
 <h1 align="center">🔔 NotifySync</h1>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-5.7.8.0-blue" alt="Version">
+  <img src="https://img.shields.io/badge/version-5.7.9.0-blue" alt="Version">
   <img src="https://img.shields.io/badge/.NET-9.0-purple" alt=".NET Framework">
   <img src="https://img.shields.io/badge/Jellyfin-10.11.X-blueviolet" alt="Jellyfin">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="License">
@@ -135,7 +135,7 @@ Go to **Dashboard > Plugins > NotifySync**.
 | **Content missing** | Ensure the library is checked in "Monitored Libraries". |
 | **New TV episode missing** | Make sure the **Series-type library** containing the episode is checked in "Monitored Libraries". |
 | **Replaced file shows NEW instead of UPD** | Enable **Deleted Items Tracking** in config — required for the delete+re-import detection path. |
-| **A renamed file shows a false UPD badge** | UPD detection is **filename-based** — it reads quality/codec/audio tags from the name. Renaming a file so it adds or changes one of these tags (e.g. `x264` → `HEVC`) looks like a real upgrade. Just dismiss it, or avoid touching those tags when renaming. |
+| **A renamed file shows a false UPD badge** | UPD detection is **filename-based**. A plain rename of the same file is now suppressed automatically (identical file size). A false UPD can only slip through if the rename also changes the file's content/size, or for items added before v5.7.9 (no stored size) — just dismiss it. |
 | **Unauthorized content visible** | Plugin respects Jellyfin permissions — check user restrictions in the dashboard. |
 | **429 Error** | Wait 30 seconds between "Regenerate history" clicks (anti-spam). |
 | **Incompatible** | Ensure you are running Jellyfin **10.11.X**. |
@@ -275,7 +275,7 @@ Allez dans **Tableau de bord > Extensions > NotifySync**.
 | **Contenu manquant** | Vérifiez que la bibliothèque est cochée dans "Bibliothèques Surveillées". |
 | **Nouvel épisode TV manquant** | Vérifiez que la **bibliothèque de type Série** contenant l'épisode est cochée dans "Bibliothèques Surveillées". |
 | **Fichier remplacé apparaît en NOUVEAU au lieu de MAJ** | Activez le **Suivi des Suppressions** dans la config — nécessaire pour la détection du scénario delete+ré-import. |
-| **Un fichier renommé affiche un faux badge MAJ** | La détection MAJ est **basée sur le nom de fichier** — elle lit les tags qualité/codec/audio dans le nom. Renommer un fichier en ajoutant ou changeant un de ces tags (ex. `x264` → `HEVC`) ressemble à un vrai upgrade. Retirez la notification, ou évitez de toucher à ces tags en renommant. |
+| **Un fichier renommé affiche un faux badge MAJ** | La détection MAJ est **basée sur le nom de fichier**. Un simple renommage du même fichier est maintenant supprimé automatiquement (taille identique). Un faux MAJ ne peut subsister que si le renommage change aussi le contenu/la taille, ou pour les éléments ajoutés avant la v5.7.9 (taille non stockée) — retirez la notification. |
 | **Contenu non autorisé visible** | Le plugin respecte les permissions Jellyfin — vérifiez les restrictions utilisateur. |
 | **Erreur 429** | Attendez 30 secondes entre chaque clic sur "Régénérer l'historique" (anti-spam). |
 | **Incompatible** | Vérifiez que vous utilisez Jellyfin **10.11.X**. |

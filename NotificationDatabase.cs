@@ -83,7 +83,8 @@ namespace NotifySync
                             ParentIndexNumber INTEGER,
                             IsUpgrade INTEGER NOT NULL DEFAULT 0,
                             FilePath TEXT,
-                            UpgradeKind TEXT
+                            UpgradeKind TEXT,
+                            Size INTEGER
                         );
                         CREATE INDEX IF NOT EXISTS idx_notifications_date ON Notifications(DateCreated DESC);
 
@@ -117,7 +118,8 @@ namespace NotifySync
                             ParentIndexNumber INTEGER,
                             DeletedAt TEXT NOT NULL,
                             FilePath TEXT,
-                            MatchedNotificationId TEXT
+                            MatchedNotificationId TEXT,
+                            Size INTEGER
                         );
                         CREATE INDEX IF NOT EXISTS idx_deleted_date ON DeletedItems(DeletedAt DESC);
                     ";
@@ -128,10 +130,12 @@ namespace NotifySync
                 MigrateAddColumn(connection, "Notifications", "IsUpgrade", "INTEGER NOT NULL DEFAULT 0");
                 MigrateAddColumn(connection, "Notifications", "FilePath", "TEXT");
                 MigrateAddColumn(connection, "Notifications", "UpgradeKind", "TEXT");
+                MigrateAddColumn(connection, "Notifications", "Size", "INTEGER");
                 MigrateAddColumn(connection, "DeletedItems", "IndexNumber", "INTEGER");
                 MigrateAddColumn(connection, "DeletedItems", "ParentIndexNumber", "INTEGER");
                 MigrateAddColumn(connection, "DeletedItems", "FilePath", "TEXT");
                 MigrateAddColumn(connection, "DeletedItems", "MatchedNotificationId", "TEXT");
+                MigrateAddColumn(connection, "DeletedItems", "Size", "INTEGER");
 
                 // Drop columns no longer consumed by the slim classifier. Phase B Lite
                 // (VideoWidth/Height/Container/MediaBitrate) was tried and removed;
@@ -251,12 +255,12 @@ namespace NotifySync
                     Id, Name, Category, SeriesName, SeriesId, DateCreated,
                     Type, RunTimeTicks, ProductionYear, BackdropImageTags,
                     PrimaryImageTag, IndexNumber, ParentIndexNumber,
-                    IsUpgrade, FilePath, UpgradeKind
+                    IsUpgrade, FilePath, UpgradeKind, Size
                 ) VALUES (
                     @Id, @Name, @Category, @SeriesName, @SeriesId, @DateCreated,
                     @Type, @RunTimeTicks, @ProductionYear, @Backdrop,
                     @Primary, @Index, @ParentIndex,
-                    @IsUpgrade, @FilePath, @UpgradeKind
+                    @IsUpgrade, @FilePath, @UpgradeKind, @Size
                 )";
 
             var pId = cmd.Parameters.Add("@Id", SqliteType.Text);
@@ -275,6 +279,7 @@ namespace NotifySync
             var pUpgrade = cmd.Parameters.Add("@IsUpgrade", SqliteType.Integer);
             var pFilePath = cmd.Parameters.Add("@FilePath", SqliteType.Text);
             var pUpgradeKind = cmd.Parameters.Add("@UpgradeKind", SqliteType.Text);
+            var pSize = cmd.Parameters.Add("@Size", SqliteType.Integer);
 
             void Bind(NotificationItem item)
             {
@@ -294,6 +299,7 @@ namespace NotifySync
                 pUpgrade.Value = item.IsUpgrade ? 1 : 0;
                 pFilePath.Value = (object?)item.FilePath ?? DBNull.Value;
                 pUpgradeKind.Value = (object?)item.UpgradeKind ?? DBNull.Value;
+                pSize.Value = (object?)item.Size ?? DBNull.Value;
             }
 
             return (cmd, Bind);
@@ -520,6 +526,7 @@ namespace NotifySync
                 int oIsUpgrade = reader.GetOrdinal("IsUpgrade");
                 int oFilePath = reader.GetOrdinal("FilePath");
                 int oUpgradeKind = TryGetOrdinal(reader, "UpgradeKind");
+                int oSize = TryGetOrdinal(reader, "Size");
 
                 while (reader.Read())
                 {
@@ -540,7 +547,8 @@ namespace NotifySync
                         ParentIndexNumber = reader.IsDBNull(oParentIndex) ? null : reader.GetInt32(oParentIndex),
                         IsUpgrade = !reader.IsDBNull(oIsUpgrade) && reader.GetInt32(oIsUpgrade) != 0,
                         FilePath = reader.IsDBNull(oFilePath) ? null : reader.GetString(oFilePath),
-                        UpgradeKind = (oUpgradeKind < 0 || reader.IsDBNull(oUpgradeKind)) ? null : reader.GetString(oUpgradeKind)
+                        UpgradeKind = (oUpgradeKind < 0 || reader.IsDBNull(oUpgradeKind)) ? null : reader.GetString(oUpgradeKind),
+                        Size = (oSize < 0 || reader.IsDBNull(oSize)) ? null : reader.GetInt64(oSize)
                     });
                 }
             }
@@ -891,7 +899,8 @@ namespace NotifySync
         /// <param name="indexNumber">The episode number, if applicable.</param>
         /// <param name="parentIndexNumber">The season number, if applicable.</param>
         /// <param name="filePath">The file path of the deleted source, used by ClassifyUpgrade.</param>
-        public void SaveDeletedItem(string itemId, string name, string type, string? seriesName, int? productionYear, int? indexNumber = null, int? parentIndexNumber = null, string? filePath = null)
+        /// <param name="size">The deleted file's size in bytes, used by ClassifyUpgrade as a rename suppressor.</param>
+        public void SaveDeletedItem(string itemId, string name, string type, string? seriesName, int? productionYear, int? indexNumber = null, int? parentIndexNumber = null, string? filePath = null, long? size = null)
         {
             try
             {
@@ -899,8 +908,8 @@ namespace NotifySync
                 connection.Open();
                 using var cmd = connection.CreateCommand();
                 cmd.CommandText = @"
-                    INSERT INTO DeletedItems (ItemId, Name, Type, SeriesName, ProductionYear, IndexNumber, ParentIndexNumber, DeletedAt, FilePath)
-                    VALUES (@ItemId, @Name, @Type, @SeriesName, @ProductionYear, @IndexNumber, @ParentIndexNumber, @DeletedAt, @FilePath)";
+                    INSERT INTO DeletedItems (ItemId, Name, Type, SeriesName, ProductionYear, IndexNumber, ParentIndexNumber, DeletedAt, FilePath, Size)
+                    VALUES (@ItemId, @Name, @Type, @SeriesName, @ProductionYear, @IndexNumber, @ParentIndexNumber, @DeletedAt, @FilePath, @Size)";
                 cmd.Parameters.AddWithValue("@ItemId", itemId);
                 cmd.Parameters.AddWithValue("@Name", name);
                 cmd.Parameters.AddWithValue("@Type", type);
@@ -910,6 +919,7 @@ namespace NotifySync
                 cmd.Parameters.AddWithValue("@ParentIndexNumber", (object?)parentIndexNumber ?? DBNull.Value);
                 cmd.Parameters.AddWithValue("@DeletedAt", DateTime.UtcNow.ToString("O"));
                 cmd.Parameters.AddWithValue("@FilePath", (object?)filePath ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@Size", (object?)size ?? DBNull.Value);
                 cmd.ExecuteNonQuery();
             }
             catch (Exception ex)
@@ -986,7 +996,7 @@ namespace NotifySync
                 if (type == "Episode" && !string.IsNullOrEmpty(seriesName) && indexNumber.HasValue && parentIndexNumber.HasValue)
                 {
                     cmd.CommandText = @"
-                        SELECT Id, ItemId, Name, Type, SeriesName, ProductionYear, IndexNumber, ParentIndexNumber, DeletedAt, FilePath, MatchedNotificationId
+                        SELECT Id, ItemId, Name, Type, SeriesName, ProductionYear, IndexNumber, ParentIndexNumber, DeletedAt, FilePath, MatchedNotificationId, Size
                         FROM DeletedItems
                         WHERE Type = 'Episode' AND SeriesName = @SeriesName
                         AND IndexNumber = @IndexNumber AND ParentIndexNumber = @ParentIndexNumber
@@ -1000,7 +1010,7 @@ namespace NotifySync
                 else
                 {
                     cmd.CommandText = @"
-                        SELECT Id, ItemId, Name, Type, SeriesName, ProductionYear, IndexNumber, ParentIndexNumber, DeletedAt, FilePath, MatchedNotificationId
+                        SELECT Id, ItemId, Name, Type, SeriesName, ProductionYear, IndexNumber, ParentIndexNumber, DeletedAt, FilePath, MatchedNotificationId, Size
                         FROM DeletedItems
                         WHERE Name = @Name AND Type = @Type AND DeletedAt > @Cutoff
                         AND (@Year IS NULL OR ProductionYear IS NULL OR ProductionYear = @Year)
@@ -1029,7 +1039,8 @@ namespace NotifySync
                     ParentIndexNumber = reader.IsDBNull(7) ? null : reader.GetInt32(7),
                     DeletedAt = DateTime.Parse(reader.GetString(8), CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.RoundtripKind),
                     FilePath = reader.IsDBNull(9) ? null : reader.GetString(9),
-                    MatchedNotificationId = reader.IsDBNull(10) ? null : reader.GetString(10)
+                    MatchedNotificationId = reader.IsDBNull(10) ? null : reader.GetString(10),
+                    Size = reader.IsDBNull(11) ? null : reader.GetInt64(11)
                 };
             }
             catch (Exception ex)

@@ -60,6 +60,13 @@ namespace NotifySync
         public string? FilePath { get; set; }
 
         /// <summary>
+        /// Gets or sets the deleted file's size in bytes. Used by upgrade detection as a
+        /// suppressor: a re-imported file with the exact same size is the same file
+        /// (a rename), not a real replacement, so it raises no UPD badge.
+        /// </summary>
+        public long? Size { get; set; }
+
+        /// <summary>
         /// Gets or sets the ID of the notification that ultimately replaced this deleted item
         /// (when ClassifyUpgrade matched a re-import to this record). Null when no replacement
         /// has been observed — the deletion is &quot;orphan&quot; from the perspective of upgrade detection.

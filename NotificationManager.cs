@@ -253,6 +253,16 @@ namespace NotifySync
                 return null;
             }
 
+            // Size suppressor: when both file sizes are known and byte-for-byte identical,
+            // this is the same file under a different name (a manual rename/move), not a
+            // real replacement — suppress even if the filename tokens differ. An exact
+            // size match never occurs for a genuine re-encode (which always changes size).
+            // Only applies when both sizes exist; otherwise we fall back to token logic.
+            if (existing.Size.HasValue && updated.Size.HasValue && existing.Size.Value == updated.Size.Value)
+            {
+                return null;
+            }
+
             var kinds = new List<string>(3);
 
             // 1. Quality — resolution or source token differs (in either direction).
@@ -578,8 +588,9 @@ namespace NotifySync
                     int? indexNum = item.IndexNumber;
                     int? parentIndexNum = item.ParentIndexNumber;
                     string? filePath = item.Path;
+                    long? size = item.Size;
 
-                    _db.SaveDeletedItem(item.Id.ToString(), item.Name ?? "Unknown", type, seriesName, year, indexNum, parentIndexNum, filePath);
+                    _db.SaveDeletedItem(item.Id.ToString(), item.Name ?? "Unknown", type, seriesName, year, indexNum, parentIndexNum, filePath, size);
 
                     // Purge at most once per day to avoid unnecessary DB writes
                     var nowTicks = DateTime.UtcNow.Ticks;
@@ -717,7 +728,7 @@ namespace NotifySync
                                 updatedNotif.ParentIndexNumber);
                             if (deletedRecord != null)
                             {
-                                var deletedAsNotif = new NotificationItem { FilePath = deletedRecord.FilePath };
+                                var deletedAsNotif = new NotificationItem { FilePath = deletedRecord.FilePath, Size = deletedRecord.Size };
                                 var kind = ClassifyUpgrade(deletedAsNotif, updatedNotif);
                                 if (kind != null)
                                 {
@@ -1459,7 +1470,8 @@ namespace NotifySync
                     PrimaryImageTag = item.ImageInfos.Where(i => i.Type == ImageType.Primary).Select(i => i.DateModified.Ticks.ToString(CultureInfo.InvariantCulture)).FirstOrDefault(),
                     IndexNumber = item.IndexNumber,
                     ParentIndexNumber = item.ParentIndexNumber,
-                    FilePath = item.Path
+                    FilePath = item.Path,
+                    Size = item.Size
                 };
 
                 if (item.GetBaseItemKind() == BaseItemKind.Audio && item is MediaBrowser.Controller.Entities.Audio.Audio audioItem)
@@ -1564,7 +1576,8 @@ namespace NotifySync
                     PrimaryImageTag = item.ImageInfos.Where(i => i.Type == ImageType.Primary).Select(i => i.DateModified.Ticks.ToString(System.Globalization.CultureInfo.InvariantCulture)).FirstOrDefault(),
                     IndexNumber = item.IndexNumber,
                     ParentIndexNumber = item.ParentIndexNumber,
-                    FilePath = item.Path
+                    FilePath = item.Path,
+                    Size = item.Size
                 };
 
                 if (item.GetBaseItemKind() == BaseItemKind.Audio && item is MediaBrowser.Controller.Entities.Audio.Audio audioItem)

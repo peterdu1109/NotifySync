@@ -121,6 +121,15 @@ namespace NotifySync
         public string? FilePath { get; set; }
 
         /// <summary>
+        /// Gets or sets the media file size in bytes. Used by upgrade detection as a
+        /// suppressor: when the path changed but the size is byte-for-byte identical,
+        /// it's the same file under a different name (a rename/move), not a real
+        /// replacement — so no UPD badge is raised. Internal only.
+        /// </summary>
+        [JsonIgnore]
+        public long? Size { get; set; }
+
+        /// <summary>
         /// Creates a shallow copy of the current notification item.
         /// </summary>
         /// <returns>A new <see cref="NotificationItem"/>.</returns>

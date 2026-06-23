@@ -885,7 +885,7 @@ namespace NotifySync
 
                         if (!notif.IsUpgrade && deletedRecord != null)
                         {
-                            var deletedAsNotif = new NotificationItem { FilePath = deletedRecord.FilePath };
+                            var deletedAsNotif = new NotificationItem { FilePath = deletedRecord.FilePath, Size = deletedRecord.Size };
                             var kind = ClassifyUpgrade(deletedAsNotif, notif);
                             if (kind != null)
                             {

@@ -1,8 +1,7 @@
-/* NOTIFYSYNC V5.7.11.0 */
+/* NOTIFYSYNC V5.7.12.0 */
 (function () {
     let currentData = [];
     let groupedData = [];
-    let lastSeenDate = new Date(0);
     let isFetching = false;
     let retryDelay = 2000;
     let activeFilter = 'All';
@@ -329,25 +328,6 @@
         return result.sort((a, b) => new Date(b.DateCreated) - new Date(a.DateCreated));
     };
 
-    const fetchLastSeen = async () => {
-        const userId = getUserId();
-        if (!userId) return; // Keep existing lastSeenDate (from cache)
-
-        try {
-            const res = await fetch(`/NotifySync/Cleared/${userId}`, { headers: getAuthHeaders() });
-            if (res.ok) {
-                const text = await res.text();
-                // Ensure valid date string
-                if (text && text.length > 5) {
-                    // Support both plain ISO string and JSON-encoded string
-                    const parsed = text.startsWith('"') ? JSON.parse(text) : text;
-                    lastSeenDate = new Date(parsed);
-                    localStorage.setItem(nsKey('cleared'), lastSeenDate.toISOString());
-                }
-            }
-        } catch (e) { /* use cache */ }
-    };
-
     const clearAllNotifications = async () => {
         const userId = getUserId();
         if (!userId) return;
@@ -357,7 +337,6 @@
             if (!res.ok) return;
         } catch (e) { return; }
 
-        lastSeenDate = new Date();
         currentData = [];
         groupedData = [];
         previousDataIds = new Set();
@@ -425,14 +404,11 @@
 
         isFetching = true;
         try {
-            const lastSeenPromise = fetchLastSeen();
             const lastEtag = localStorage.getItem(nsKey('etag')) || '';
             const headers = getAuthHeaders();
             if (lastEtag) headers['If-None-Match'] = lastEtag;
 
-            const dataPromise = fetch(`/NotifySync/Data?userId=${userId}`, { headers: headers });
-
-            const [_, res] = await Promise.all([lastSeenPromise, dataPromise]);
+            const res = await fetch(`/NotifySync/Data?userId=${userId}`, { headers: headers });
 
             if (res.status === 304) {
                 // Data unchanged, recalculate with existing state
@@ -498,12 +474,6 @@
                 }
                 return val;
             };
-
-            // Restore lastSeenDate from localStorage first
-            const cachedCleared = getWithLegacy('cleared');
-            if (cachedCleared) {
-                lastSeenDate = new Date(cachedCleared);
-            }
 
             // Check TTL (1 hour max)
             const cachedTime = parseInt(getWithLegacy('data-ts') || '0');

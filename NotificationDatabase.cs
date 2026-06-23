@@ -139,14 +139,16 @@ namespace NotifySync
 
                 // Drop columns no longer consumed by the slim classifier. Phase B Lite
                 // (VideoWidth/Height/Container/MediaBitrate) was tried and removed;
-                // Size/DateModifiedTicks were used by the dropped "(sizeChanged && dateChanged)"
+                // DateModifiedTicks was used by the dropped "(sizeChanged && dateChanged)"
                 // detection branch. SQLite ≥ 3.35 supports DROP COLUMN natively; Jellyfin
                 // embeds a much newer build.
+                // NOTE: Size is NOT dropped here — it was re-added in 5.7.9 as the rename
+                // suppressor. Dropping it would delete the column right after creating it,
+                // breaking every notification INSERT.
                 MigrateDropColumn(connection, "Notifications", "VideoWidth");
                 MigrateDropColumn(connection, "Notifications", "VideoHeight");
                 MigrateDropColumn(connection, "Notifications", "Container");
                 MigrateDropColumn(connection, "Notifications", "MediaBitrate");
-                MigrateDropColumn(connection, "Notifications", "Size");
                 MigrateDropColumn(connection, "Notifications", "DateModifiedTicks");
                 MigrateDropColumn(connection, "DeletedItems", "VideoWidth");
                 MigrateDropColumn(connection, "DeletedItems", "VideoHeight");

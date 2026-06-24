@@ -419,10 +419,10 @@
                         <div class="ns-header-info">
                             <h2>NotifySync</h2>
                             <a class="ns-version-link" id="ns-version-link"
-                               href="https://github.com/peterdu1109/NotifySync/releases/tag/v5.7.9.0"
+                               href="https://github.com/peterdu1109/NotifySync/releases/tag/v5.7.13.0"
                                target="_blank" rel="noopener"
                                title="Voir les release notes sur GitHub / View release notes on GitHub">
-                                <span class="ns-version" id="ns-version-badge">v5.7.9.0</span>
+                                <span class="ns-version" id="ns-version-badge">v5.7.13.0</span>
                                 <span class="material-icons ns-version-icon">open_in_new</span>
                             </a>
                         </div>
@@ -868,7 +868,13 @@
                     // if this lookup fails.
                     try {
                         const plugins = await ApiClient.getPlugins();
-                        const me = plugins.find(p => p.Id === this.pluginId);
+                        // Match by GUID (normalized — Jellyfin may return it dash-less or
+                        // upper-case, so a strict === on the dashed lowercase constant fails
+                        // and the page silently showed the stale hard-coded version below),
+                        // then fall back to the plugin name for full robustness.
+                        const norm = (s) => (s || '').toString().replace(/-/g, '').toLowerCase();
+                        const me = plugins.find(p => norm(p.Id) === norm(this.pluginId))
+                            || plugins.find(p => p.Name === 'NotifySync');
                         if (me && me.Version) {
                             const v = 'v' + me.Version;
                             const badge = page.querySelector('#ns-version-badge');

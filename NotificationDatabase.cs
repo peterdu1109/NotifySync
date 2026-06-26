@@ -194,7 +194,9 @@ namespace NotifySync
             {
                 return reader.GetOrdinal(columnName);
             }
-            catch (IndexOutOfRangeException)
+#pragma warning disable CA1031 // Microsoft.Data.Sqlite throws ArgumentOutOfRangeException (not IndexOutOfRangeException) for a missing column; catch broadly so a pre-migration DB degrades to -1 instead of throwing the whole read.
+            catch (Exception)
+#pragma warning restore CA1031
             {
                 return -1;
             }

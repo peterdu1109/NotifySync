@@ -1,7 +1,8 @@
-/* NOTIFYSYNC V5.7.13.0 */
+/* NOTIFYSYNC V5.7.14.0 */
 (function () {
     let currentData = [];
     let groupedData = [];
+    let firstLoadDone = false;
     let isFetching = false;
     let retryDelay = 2000;
     let activeFilter = 'All';
@@ -47,8 +48,8 @@
 
     let userLang = navigator.language || 'en';
     const strings = {
-        fr: { header: "Quoi de neuf ?", empty: "Vous êtes à jour !", clearAll: "Vider la liste", clearCat: "Vider", dismiss: "Retirer", badgeNew: "NOUVEAU", badgeUpgrade: "MAJ", eps: "épisodes", eps1: "épisode", epPrefix: "Ép.", tracks: "pistes", tracks1: "piste", filterAll: "Tout", filterMovie: "Films", filterSeries: "Séries", filterMusic: "Musique", filterFav: "Favoris", kindQuality: "Qualité", kindCodec: "Codec", kindAudio: "Audio", kindAll: "Tout", season: "Saison", secToday: "Aujourd'hui", secWeek: "Cette semaine", secOlder: "Plus ancien" },
-        en: { header: "What's New?", empty: "You're all caught up!", clearAll: "Clear list", clearCat: "Clear", dismiss: "Dismiss", badgeNew: "NEW", badgeUpgrade: "UPD", eps: "episodes", eps1: "episode", epPrefix: "Ep.", tracks: "tracks", tracks1: "track", filterAll: "All", filterMovie: "Movies", filterSeries: "Series", filterMusic: "Music", filterFav: "Favorites", kindQuality: "Quality", kindCodec: "Codec", kindAudio: "Audio", kindAll: "All", season: "Season", secToday: "Today", secWeek: "This week", secOlder: "Earlier" }
+        fr: { header: "Quoi de neuf ?", empty: "Vous êtes à jour !", loading: "Chargement…", clearAll: "Vider la liste", clearCat: "Vider", dismiss: "Retirer", badgeNew: "NOUVEAU", badgeUpgrade: "MAJ", eps: "épisodes", eps1: "épisode", epPrefix: "Ép.", tracks: "pistes", tracks1: "piste", filterAll: "Tout", filterMovie: "Films", filterSeries: "Séries", filterMusic: "Musique", filterFav: "Favoris", kindQuality: "Qualité", kindCodec: "Codec", kindAudio: "Audio", kindAll: "Tout", season: "Saison", secToday: "Aujourd'hui", secWeek: "Cette semaine", secOlder: "Plus ancien" },
+        en: { header: "What's New?", empty: "You're all caught up!", loading: "Loading…", clearAll: "Clear list", clearCat: "Clear", dismiss: "Dismiss", badgeNew: "NEW", badgeUpgrade: "UPD", eps: "episodes", eps1: "episode", epPrefix: "Ep.", tracks: "tracks", tracks1: "track", filterAll: "All", filterMovie: "Movies", filterSeries: "Series", filterMusic: "Music", filterFav: "Favorites", kindQuality: "Quality", kindCodec: "Codec", kindAudio: "Audio", kindAll: "All", season: "Season", secToday: "Today", secWeek: "This week", secOlder: "Earlier" }
     };
     let T = strings[userLang.startsWith('fr') ? 'fr' : 'en'];
 
@@ -386,6 +387,22 @@
         updateBadge();
     };
 
+    // Marks everything currently in the list as read on the server and clears the bell
+    // counter. Called whenever the dropdown is open — on explicit open AND when a late
+    // fetch fills an already-open dropdown, so items that arrived after the click still
+    // get marked read instead of lingering in the counter.
+    const markVisibleAsRead = () => {
+        const unreadIds = [];
+        currentData.forEach(i => {
+            if (!i.IsRead) { i.IsRead = true; unreadIds.push(i.Id); }
+        });
+        if (unreadIds.length > 0) {
+            const badge = document.querySelector('.ns-badge');
+            if (badge) badge.classList.remove('visible');
+            markReadOnServer(unreadIds);
+        }
+    };
+
     const fetchData = async () => {
         if (isFetching) return;
 
@@ -412,6 +429,7 @@
 
             if (res.status === 304) {
                 // Data unchanged, recalculate with existing state
+                firstLoadDone = true;
                 recalculateNewStatus();
             }
             else if (res.ok) {
@@ -425,7 +443,8 @@
                 if (newEtag) localStorage.setItem(nsKey('etag'), newEtag);
                 localStorage.setItem(nsKey('data'), JSON.stringify(currentData)); localStorage.setItem(nsKey('data-ts'), Date.now().toString());
 
-                // Server already filters out played items in GetData(), no need for BulkUserData
+                // Server already filters out played items in GetData().
+                firstLoadDone = true;
                 recalculateNewStatus();
                 retryDelay = 2000;
 
@@ -449,7 +468,7 @@
             }
 
             const drop = document.getElementById('notification-dropdown');
-            if (drop && drop.style.display === 'flex') updateList(drop);
+            if (drop && drop.style.display === 'flex') { updateList(drop); markVisibleAsRead(); }
 
             lastFetchTime = Date.now();
         } catch (e) {
@@ -562,7 +581,7 @@
             pill.onclick = () => document.dispatchEvent(new CustomEvent('ns-filter', { detail: pill.dataset.category }));
         });
 
-        if (filtered.length === 0) { container.innerHTML = `<div style="padding:60px 20px;text-align:center;color:#666;font-style:italic;">${T.empty}</div>`; return; }
+        if (filtered.length === 0) { container.innerHTML = `<div style="padding:60px 20px;text-align:center;color:#666;font-style:italic;">${firstLoadDone ? T.empty : T.loading}</div>`; return; }
 
         const htmlParts = [];
         const client = window.ApiClient;
@@ -782,24 +801,11 @@
 
         if (drop.style.display !== 'flex') {
             lastFetchTime = 0; // Bypass throttle on explicit user click
+            retryDelay = 1000; // Explicit open = "load now": keep the auth retry snappy
+                               // instead of letting the click grow the backoff.
             fetchData().then(() => {
                 updateList(drop);
-                
-                // Mark as read on server but keep visual badges in the dropdown
-                const unreadIds = [];
-                currentData.forEach(i => {
-                    if (!i.IsRead) {
-                        i.IsRead = true;
-                        unreadIds.push(i.Id);
-                    }
-                });
-
-                if (unreadIds.length > 0) {
-                    // Hide bell counter only — list badges (NEW/UPD) stay visible
-                    const badge = document.querySelector('.ns-badge');
-                    if (badge) badge.classList.remove('visible');
-                    markReadOnServer(unreadIds);
-                }
+                markVisibleAsRead();
             });
             positionDropdown(drop);
             document.getElementById('notify-backdrop').style.display = 'block';

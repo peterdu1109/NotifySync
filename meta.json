@@ -5,5 +5,5 @@
   "description": "NotifySync ajoute une cloche de notifications native à Jellyfin. Injection automatique via File Transformation, notifications en temps réel via WebSockets, design moderne style streaming.",
   "owner": "ElieM & Peterdu1109",
   "category": "UI",
-  "targetAbi": "10.11.0.0"
+  "targetAbi": "12.0.0.0"
 }

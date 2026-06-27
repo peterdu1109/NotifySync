@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <EnableDynamicLoading>true</EnableDynamicLoading>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
@@ -11,7 +11,7 @@
          is pulled transitively by Microsoft.Data.Sqlite but is NOT shipped by this plugin
          (PrivateAssets=All + CopyLocalLockFileAssemblies=false) — at runtime the host's
          SQLite is used. Auditing transitive, host-provided libs only produces false-positive
-         vulnerability warnings the plugin can't act on. Matches the jellyfin-12 branch. -->
+         vulnerability warnings the plugin can't act on. -->
     <NuGetAuditMode>direct</NuGetAuditMode>
 
     <!-- Versioning & Metadata -->
@@ -28,21 +28,25 @@
     <TieredPGO>true</TieredPGO>
     <AnalysisMode>AllEnabledByDefault</AnalysisMode>
     <CodeAnalysisRuleSet>jellyfin.ruleset</CodeAnalysisRuleSet>
+
+    <!-- CA1873 is a .NET 10 analyzer flagging logging args evaluated even when the level is
+         off. Our flagged args are cheap property reads, so the perf concern is negligible —
+         suppress rather than guard ~40 call sites. -->
+    <NoWarn>$(NoWarn);CA1873</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Jellyfin.Controller" Version="10.11.0" PrivateAssets="All" />
-    <PackageReference Include="Jellyfin.Model" Version="10.11.0" PrivateAssets="All" />
-    <PackageReference Include="Jellyfin.Data" Version="10.11.0" PrivateAssets="All" />
+    <PackageReference Include="Jellyfin.Controller" Version="12.0.0-rc1" PrivateAssets="All" />
+    <PackageReference Include="Jellyfin.Model" Version="12.0.0-rc1" PrivateAssets="All" />
+    <PackageReference Include="Jellyfin.Data" Version="12.0.0-rc1" PrivateAssets="All" />
 
-    <!-- MUST match the Microsoft.Data.Sqlite version Jellyfin 10.11 ships. The plugin does
-         NOT bundle this assembly (PrivateAssets=All + CopyLocalLockFileAssemblies=false), so
-         at runtime it binds to the host's copy — and .NET refuses a host version LOWER than
-         the compiled reference. 9.0.2 is the proven-good version (5.7.11). Do NOT bump it:
-         9.0.17 raised the AssemblyVersion to 9.0.17.0, which the 10.11 host can't satisfy
-         (FileLoadException -> plugin "Malfunctioned"). The transitive SQLite-vuln warning is
-         handled by NuGetAuditMode=direct above, not by bumping this. -->
-    <PackageReference Include="Microsoft.Data.Sqlite" Version="9.0.2" PrivateAssets="All" />
+    <!-- MUST match the Microsoft.Data.Sqlite version Jellyfin 12 ships (the plugin does NOT
+         bundle it: PrivateAssets=All + CopyLocalLockFileAssemblies=false, so at runtime it
+         binds to the host's copy, and .NET refuses a host version LOWER than the compiled
+         reference — a too-high pin causes FileLoadException / "Malfunctioned"). 10.0.9 ran on
+         12.0.0-rc1; RE-VERIFY against the exact version Jellyfin 12 stable bundles before
+         publishing. The transitive SQLite-vuln warning is handled by NuGetAuditMode=direct. -->
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.9" PrivateAssets="All" />
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
   

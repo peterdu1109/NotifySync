@@ -1,4 +1,4 @@
-/* NOTIFYSYNC V5.7.14.0 */
+/* NOTIFYSYNC V5.7.15.0 */
 (function () {
     let currentData = [];
     let groupedData = [];
@@ -18,10 +18,15 @@
         const userId = getUserId();
         if (!userId || !itemIds || itemIds.length === 0) return;
         try {
-            await fetch(`/NotifySync/MarkRead?userId=${userId}`, {
+            const res = await fetch(`/NotifySync/MarkRead?userId=${userId}`, {
                 method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(itemIds)
             });
-        } catch (e) { /* MarkRead failed silently */ }
+            // On failure (e.g. 429 when a late fill re-marks within the server's 500ms
+            // throttle) the server still has these items unread while local state says
+            // read. Drop the ETag so the next poll refetches and reconciles instead of
+            // 304-ing on the stale assumption.
+            if (!res.ok) localStorage.removeItem(nsKey('etag'));
+        } catch (e) { localStorage.removeItem(nsKey('etag')); }
     };
 
     const dismissOnServer = async (itemId) => {

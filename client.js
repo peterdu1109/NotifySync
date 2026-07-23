@@ -1,8 +1,8 @@
-/* NOTIFYSYNC V5.7.15.0 (jellyfin-12 branch, build r10) */
+/* NOTIFYSYNC V5.7.15.0 (jellyfin-12 branch, build r11) */
 (function () {
     // Build marker for live-test cycles: lets the console prove which client
     // build the page actually executes (cache vs fresh).
-    console.info('[NotifySync] client jf12 r10');
+    console.info('[NotifySync] client jf12 r11');
     let currentData = [];
     let groupedData = [];
     let firstLoadDone = false;
@@ -1001,16 +1001,52 @@
         }
     };
 
-    // Jellyfin 12's React client uses its own SDK socket and never opens the
-    // legacy ApiClient one our listener is attached to (isWebSocketOpen() is
-    // false there) — without an explicit open, no LibraryChanged/UserDataChanged
-    // ever reaches us and the bell only refreshes when opened. Harmless on
-    // <=10.11 where the socket is already open (ensureWebSocket is a no-op).
+    // --- Real-time socket ----------------------------------------------------
+    // Jellyfin 12 removed the legacy `api_key` query auth on /socket: the old
+    // apiclient's own websocket is REFUSED by the server (observed
+    // NS_ERROR_WEBSOCKET_CONNECTION_REFUSED), while the modern SDK connects fine
+    // with the `ApiKey` parameter (observed HTTP 101). On <=10.11 the legacy
+    // socket opens by itself and feeds window.Events — nothing to do there. When
+    // it isn't open (12), open OUR OWN socket with the accepted parameter and
+    // feed the same handler — including the KeepAlive protocol (the server
+    // closes clients that don't answer ForceKeepAlive).
+    let nsWs = null;
+    let nsWsKeepAlive = null;
+    const openOwnWebSocket = () => {
+        if (nsWs && (nsWs.readyState === WebSocket.CONNECTING || nsWs.readyState === WebSocket.OPEN)) return;
+        const token = window.ApiClient && window.ApiClient.accessToken && window.ApiClient.accessToken();
+        if (!token) return;
+        try {
+            const base = (window.ApiClient.serverAddress ? window.ApiClient.serverAddress() : location.origin).replace(/^http/i, 'ws');
+            const ws = new WebSocket(base + '/socket?ApiKey=' + encodeURIComponent(token));
+            nsWs = ws;
+            ws.onmessage = (ev) => {
+                let msg = null;
+                try { msg = JSON.parse(ev.data); } catch (e) { return; }
+                if (!msg) return;
+                if (msg.MessageType === 'ForceKeepAlive') {
+                    if (nsWsKeepAlive) clearInterval(nsWsKeepAlive);
+                    const period = Math.max(5, (msg.Data || 60) / 2) * 1000;
+                    nsWsKeepAlive = setInterval(() => {
+                        try { if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ MessageType: 'KeepAlive' })); } catch (e) { /* dropped */ }
+                    }, period);
+                    return;
+                }
+                onWebSocketMessage(null, msg);
+            };
+            ws.onclose = () => {
+                if (nsWsKeepAlive) { clearInterval(nsWsKeepAlive); nsWsKeepAlive = null; }
+                if (nsWs === ws) nsWs = null;
+                // Reconnection happens via ensureWs() callers (authenticated,
+                // visibilitychange, 5-min poll).
+            };
+        } catch (e) { nsWs = null; }
+    };
+
     const ensureWs = () => {
         try {
-            if (window.ApiClient && typeof window.ApiClient.ensureWebSocket === 'function') {
-                window.ApiClient.ensureWebSocket();
-            }
+            if (window.ApiClient && typeof window.ApiClient.isWebSocketOpen === 'function' && window.ApiClient.isWebSocketOpen()) return;
+            openOwnWebSocket();
         } catch (e) { /* non-critical */ }
     };
 
@@ -1049,6 +1085,7 @@
     document.addEventListener("visibilitychange", () => {
         if (!document.hidden) {
             retryDelay = 1000;
+            ensureWs();
             detectJellyfinLang();
             fetchData();
         }

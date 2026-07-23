@@ -1039,11 +1039,13 @@
         if (drop && drop.style.display === 'flex') positionDropdown(drop);
     });
 
-    // Close the dropdown on any route change (standard notification-panel UX).
-    // In-app clicks already close it via the backdrop, but browser back/forward
-    // and direct URL edits change the route without any click — the fixed-position
-    // dropdown would survive and float orphaned over the new page.
+    // Route changes: re-evaluate the bell deterministically (the MutationObserver
+    // tick is not guaranteed to fire on every SPA navigation path — the bell was
+    // observed surviving home -> dashboard), and close an open dropdown (standard
+    // notification-panel UX; browser back/forward and URL edits change the route
+    // without any click, so the backdrop never catches them).
     window.addEventListener('hashchange', () => {
+        repositionOverlayBell();
         const drop = document.getElementById('notification-dropdown');
         if (drop && drop.style.display === 'flex') closeDropdown();
     });

@@ -1,5 +1,8 @@
-/* NOTIFYSYNC V5.7.15.0 */
+/* NOTIFYSYNC V5.7.15.0 (jellyfin-12 branch, build r7) */
 (function () {
+    // Build marker for live-test cycles: lets the console prove which client
+    // build the page actually executes (cache vs fresh).
+    console.info('[NotifySync] client jf12 r7');
     let currentData = [];
     let groupedData = [];
     let firstLoadDone = false;
@@ -1039,16 +1042,22 @@
         if (drop && drop.style.display === 'flex') positionDropdown(drop);
     });
 
-    // Route changes: re-evaluate the bell deterministically (the MutationObserver
-    // tick is not guaranteed to fire on every SPA navigation path — the bell was
-    // observed surviving home -> dashboard), and close an open dropdown (standard
-    // notification-panel UX; browser back/forward and URL edits change the route
-    // without any click, so the backdrop never catches them).
-    window.addEventListener('hashchange', () => {
+    // Route changes: re-evaluate the bell and close an open dropdown (standard
+    // notification-panel UX). React Router navigates via history.pushState, which
+    // fires NEITHER hashchange NOR popstate — no event covers every path, so a
+    // cheap 500ms URL watcher is the only deterministic hook. hashchange is kept
+    // for the paths that do fire it (back/forward, manual URL edits) to react
+    // instantly.
+    const onRouteChange = () => {
         repositionOverlayBell();
         const drop = document.getElementById('notification-dropdown');
         if (drop && drop.style.display === 'flex') closeDropdown();
-    });
+    };
+    window.addEventListener('hashchange', onRouteChange);
+    let _lastHref = location.href;
+    setInterval(() => {
+        if (location.href !== _lastHref) { _lastHref = location.href; onRouteChange(); }
+    }, 500);
 
     setupEvents();
     startMainObserver();

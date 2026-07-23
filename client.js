@@ -860,6 +860,10 @@
         const route = (location.hash + ' ' + location.pathname).toLowerCase();
         if (route.indexOf('dashboard') !== -1 || route.indexOf('configurationpage') !== -1) {
             bell.style.display = 'none';
+            // A dropdown left open (fixed in <body>, it survives SPA route changes)
+            // would float orphaned over the admin UI — close it with its bell.
+            const openDrop = document.getElementById('notification-dropdown');
+            if (openDrop && openDrop.style.display === 'flex') closeDropdown();
             return;
         }
         const anchor = findMuiSearchAnchor();
@@ -1033,6 +1037,15 @@
         repositionOverlayBell();
         const drop = document.getElementById('notification-dropdown');
         if (drop && drop.style.display === 'flex') positionDropdown(drop);
+    });
+
+    // Close the dropdown on any route change (standard notification-panel UX).
+    // In-app clicks already close it via the backdrop, but browser back/forward
+    // and direct URL edits change the route without any click — the fixed-position
+    // dropdown would survive and float orphaned over the new page.
+    window.addEventListener('hashchange', () => {
+        const drop = document.getElementById('notification-dropdown');
+        if (drop && drop.style.display === 'flex') closeDropdown();
     });
 
     setupEvents();

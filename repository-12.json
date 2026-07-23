@@ -1,0 +1,22 @@
+[
+  {
+    "category": "UI",
+    "guid": "95655672-2342-4321-8291-321312312312",
+    "name": "NotifySync (Jellyfin 12 Preview)",
+    "description": "🧪 JELLYFIN 12 PREVIEW — NotifySync built for Jellyfin 12.0 (rc3+). Requires manual bell injection (File Transformation has no Jellyfin 12 build yet). For Jellyfin 10.11.x use the regular repository.\n\nNotifySync transforms the Jellyfin interface by adding a native notification bell, inspired by major streaming platforms. Your users instantly see the latest additions — Movies, Series, Music — without ever leaving their current page.\n\n🧪 APERÇU JELLYFIN 12 — NotifySync compilé pour Jellyfin 12.0 (rc3+). Injection manuelle de la cloche requise. Pour Jellyfin 10.11.x, utilisez le dépôt standard.",
+    "owner": "ElieM & Peterdu1109",
+    "overview": "🧪 Jellyfin 12 preview channel for NotifySync. On Jellyfin 10.11.x use the main repository.\n🧪 Canal aperçu Jellyfin 12 pour NotifySync. Sur Jellyfin 10.11.x, utilisez le dépôt principal.",
+    "supportUrl": "https://github.com/peterdu1109/NotifySync",
+    "imageUrl": "https://raw.githubusercontent.com/peterdu1109/NotifySync/main/icon.svg",
+    "versions": [
+      {
+        "version": "5.7.15.0",
+        "changelog": "<a style='color:white;text-decoration:none' href=\"https://github.com/peterdu1109/NotifySync/releases/tag/v5.7.15.0-jf12\">🧪 <span style='text-decoration:underline'>Jellyfin 12 Preview — Release Notes</span></a>",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/v5.7.15.0-jf12/NotifySync.zip",
+        "checksum": "035C70964D9E95DD2F0715807E110DF5",
+        "timestamp": "2026-07-23T22:21:00Z"
+      }
+    ]
+  }
+]

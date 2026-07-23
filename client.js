@@ -1,8 +1,5 @@
-/* NOTIFYSYNC V5.7.15.0 (jellyfin-12 branch, build r11) */
+/* NOTIFYSYNC V5.7.15.0 (Jellyfin 12 preview) */
 (function () {
-    // Build marker for live-test cycles: lets the console prove which client
-    // build the page actually executes (cache vs fresh).
-    console.info('[NotifySync] client jf12 r11');
     let currentData = [];
     let groupedData = [];
     let firstLoadDone = false;

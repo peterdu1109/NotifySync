@@ -125,9 +125,14 @@
 
     const getAuthHeaders = () => {
         if (!window.ApiClient) return {};
+        const token = window.ApiClient.accessToken();
         return {
             'Content-Type': 'application/json',
-            'X-Emby-Token': window.ApiClient.accessToken()
+            // Jellyfin 12 disabled the deprecated X-Emby-Token header auth. The
+            // MediaBrowser Authorization scheme is accepted by 10.x and 12 alike;
+            // the legacy header is kept as a harmless fallback for older servers.
+            'Authorization': 'MediaBrowser Client="NotifySync", Device="Web", DeviceId="notifysync-client", Version="5.7.15.0", Token="' + token + '"',
+            'X-Emby-Token': token
         };
     };
 
@@ -818,20 +823,67 @@
         } else { closeDropdown(); }
     };
 
-    const installBell = () => {
-        const header = document.querySelector('.headerRight') || document.querySelector('.headerButtons-right') || document.querySelector('.emby-header-right') || document.querySelector('.skinHeader-content');
-        if (!header || document.getElementById('netflix-bell')) {
-            if (document.getElementById('netflix-bell') && observerInstance) { observerInstance.disconnect(); observerInstance = null; monitorBellDisappearance(); }
-            return;
+    // ---- Bell installation --------------------------------------------------
+    // Two worlds:
+    //  * Legacy header (Jellyfin <=10.11 and legacy pages): a VISIBLE .headerRight
+    //    exists -> prepend the bell inside it (safe, non-React DOM).
+    //  * Jellyfin 12 React/MUI app bar: the legacy containers still exist in the
+    //    DOM but are hidden (0x0), and the visible bar is React-managed. Never
+    //    insert INTO React-managed DOM (its reconciliation can crash on foreign
+    //    nodes) -> the bell lives in <body> instead (like the dropdown already
+    //    does) as a fixed overlay glued just left of the search icon, and is
+    //    repositioned on every observer tick / resize.
+    const findVisibleLegacyHeader = () => {
+        const sels = ['.headerRight', '.headerButtons-right', '.emby-header-right', '.skinHeader-content'];
+        for (const s of sels) {
+            const el = document.querySelector(s);
+            if (el && el.offsetParent !== null) return el;
         }
+        return null;
+    };
+
+    const findMuiSearchAnchor = () => {
+        const el = document.querySelector('.MuiAppBar-root a[href*="search"], .MuiAppBar-root [data-testid="SearchIcon"]');
+        return el ? (el.closest('a,button') || el) : null;
+    };
+
+    const repositionOverlayBell = () => {
+        const bell = document.getElementById('netflix-bell');
+        if (!bell || !bell.dataset.nsOverlay) return;
+        const anchor = findMuiSearchAnchor();
+        const r = anchor ? anchor.getBoundingClientRect() : null;
+        if (!r || !r.width) { bell.style.display = 'none'; return; }
+        bell.style.display = 'inline-flex';
+        bell.style.top = (r.top + (r.height - 35) / 2) + 'px';
+        bell.style.left = (r.left - 40) + 'px';
+        // Keep an open dropdown glued to the bell's new position.
+        const drop = document.getElementById('notification-dropdown');
+        if (drop && drop.style.display === 'flex') positionDropdown(drop);
+    };
+
+    const installBell = () => {
+        if (document.getElementById('netflix-bell')) { repositionOverlayBell(); return; }
+        const legacy = findVisibleLegacyHeader();
+        const muiAnchor = legacy ? null : findMuiSearchAnchor();
+        if (!legacy && !muiAnchor) return;
         injectStyles();
         const bellBtn = document.createElement('button');
         bellBtn.id = 'netflix-bell';
-        bellBtn.className = 'paper-icon-button-light headerButton headerButtonRight';
-        bellBtn.setAttribute('aria-label', T === strings.fr ? 'Notifications' : 'Notifications');
-        bellBtn.innerHTML = '<span class="material-icons notifications"></span>';
+        bellBtn.setAttribute('aria-label', 'Notifications');
         bellBtn.onclick = (e) => { e.preventDefault(); e.stopPropagation(); toggleDropdown(); };
-        header.prepend(bellBtn);
+        if (legacy) {
+            bellBtn.className = 'paper-icon-button-light headerButton headerButtonRight';
+            bellBtn.innerHTML = '<span class="material-icons notifications"></span>';
+            legacy.prepend(bellBtn);
+        } else {
+            bellBtn.dataset.nsOverlay = '1';
+            // Inline SVG (same glyph as the sidebar swap): React pages may not ship
+            // the Material Icons ligature font, an SVG always renders.
+            bellBtn.innerHTML = '<svg viewBox="0 0 24 24" width="24" height="24" style="fill:currentColor;display:block;" aria-hidden="true"><path d="' + NS_NOTIFICATIONS_PATH + '"/></svg>';
+            bellBtn.style.cssText = 'position:fixed;z-index:1300;color:#fff;';
+            document.body.appendChild(bellBtn);
+            repositionOverlayBell();
+        }
         loadFromCache();
 
         // Initial fetch attempt
@@ -863,11 +915,6 @@
                 iconSpan.textContent = 'notifications';
             }
         }
-    };
-
-    const monitorBellDisappearance = () => {
-        const obs = new MutationObserver(() => { if (!document.getElementById('netflix-bell')) { obs.disconnect(); startMainObserver(); } });
-        obs.observe(document.body, { childList: true, subtree: true });
     };
 
     let _installDebounce = null;
@@ -958,6 +1005,7 @@
     // window is resized (its position is computed from the bell's bounding rect,
     // which moves with the layout). 'resize' also fires on orientation change.
     window.addEventListener('resize', () => {
+        repositionOverlayBell();
         const drop = document.getElementById('notification-dropdown');
         if (drop && drop.style.display === 'flex') positionDropdown(drop);
     });

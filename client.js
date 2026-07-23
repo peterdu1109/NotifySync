@@ -577,10 +577,15 @@
         else if (activeFilter !== 'All') filtered = filtered.filter(i => i.Category === activeFilter);
         const cats = new Set(['All']); groupedData.forEach(i => cats.add(i.Category));
         const filterBar = drop.querySelector('.filter-bar');
-        // With a single distinct category, its pill is an exact duplicate of "All"
-        // (both filters show the same list) — render only "All" until a second
-        // category exists.
-        const catList = cats.size > 2 ? Array.from(cats) : ['All'];
+        // Category pills only earn their place when they add a distinction:
+        //   - 2+ distinct categories → show them all.
+        //   - a single USER-NAMED category → show it (the user created it on
+        //     purpose and expects to see it).
+        //   - a single "Other" (the default fallback for un-mapped libraries) →
+        //     hide it: it's an exact duplicate of "All" (same list).
+        const realCats = Array.from(cats).filter(c => c !== 'All');
+        const showCats = realCats.length > 1 || (realCats.length === 1 && realCats[0] !== 'Other');
+        const catList = showCats ? ['All', ...realCats] : ['All'];
         let pillsHtml = catList.map(c => `<div class="filter-pill ${activeFilter === c ? 'active' : ''}" data-category="${escapeHtml(c)}" tabindex="0" role="button" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">${T['filter' + c] || escapeHtml(c)}</div>`).join('');
         // Favorites pill — only rendered when the list actually contains favorites,
         // so users who never favorite anything don't get a dead filter.

@@ -1,8 +1,8 @@
-/* NOTIFYSYNC V5.7.15.0 (jellyfin-12 branch, build r8) */
+/* NOTIFYSYNC V5.7.15.0 (jellyfin-12 branch, build r10) */
 (function () {
     // Build marker for live-test cycles: lets the console prove which client
     // build the page actually executes (cache vs fresh).
-    console.info('[NotifySync] client jf12 r8');
+    console.info('[NotifySync] client jf12 r10');
     let currentData = [];
     let groupedData = [];
     let firstLoadDone = false;
@@ -1001,9 +1001,23 @@
         }
     };
 
+    // Jellyfin 12's React client uses its own SDK socket and never opens the
+    // legacy ApiClient one our listener is attached to (isWebSocketOpen() is
+    // false there) — without an explicit open, no LibraryChanged/UserDataChanged
+    // ever reaches us and the bell only refreshes when opened. Harmless on
+    // <=10.11 where the socket is already open (ensureWebSocket is a no-op).
+    const ensureWs = () => {
+        try {
+            if (window.ApiClient && typeof window.ApiClient.ensureWebSocket === 'function') {
+                window.ApiClient.ensureWebSocket();
+            }
+        } catch (e) { /* non-critical */ }
+    };
+
     const setupEvents = () => {
         if (window.Events && window.ApiClient) {
             window.Events.on(window.ApiClient, "websocketmessage", onWebSocketMessage);
+            ensureWs();
 
             // Detect Jellyfin user language preference
             detectJellyfinLang();
@@ -1011,6 +1025,7 @@
             // Re-fetch data instantly when user logs in or reconnects
             window.Events.on(window.ApiClient, "authenticated", () => {
                 retryDelay = 1000;
+                ensureWs();
                 detectJellyfinLang();
                 fetchData();
             });
@@ -1027,7 +1042,8 @@
     });
 
     // Background polling every 5 min to catch metadata updates (images, etc.)
-    setInterval(() => { if (!document.hidden && !isFetching) fetchData(); }, 300000);
+    // Also re-ensures the websocket (auto-heal if the connection dropped).
+    setInterval(() => { if (!document.hidden && !isFetching) { ensureWs(); fetchData(); } }, 300000);
 
     // Handle SPA navigation visibility changes
     document.addEventListener("visibilitychange", () => {

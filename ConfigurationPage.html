@@ -257,10 +257,13 @@
                 background: var(--ns-card-hover); border: 1px solid var(--ns-border);
                 border-radius: 6px; color: var(--ns-text); font-size: 13px;
                 box-sizing: border-box;
+                /* Native <option> popups can't be styled reliably (Firefox applies
+                   author colors inconsistently across rest/hover states). Ask the
+                   browser to render the whole native widget with its DARK system
+                   palette instead — consistent and accessible in every state. */
+                color-scheme: dark;
             }
-            /* Native <option> popups don't inherit the dark select styling — on
-               Firefox the light inherited text lands on the light popup and the
-               options are unreadable until hovered. Style them explicitly. */
+            /* Belt-and-braces for engines that do honor option colors. */
             .ns-select-input option {
                 background: #1a1a1a; color: var(--ns-text);
             }

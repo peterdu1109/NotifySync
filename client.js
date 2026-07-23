@@ -853,15 +853,22 @@
         const anchor = findMuiSearchAnchor();
         const r = anchor ? anchor.getBoundingClientRect() : null;
         if (!r || !r.width) { bell.style.display = 'none'; return; }
-        // Glue the bell left of the WHOLE right-icon cluster (the search button's
-        // parent groups the people/cast/search icons) — the slot immediately left
-        // of the search icon is occupied by the cast button. Fall back to the
-        // search rect if the parent doesn't look like a compact icon cluster.
-        let box = anchor.parentElement ? anchor.parentElement.getBoundingClientRect() : null;
-        if (!box || !box.width || box.width > 400 || box.height > 80) box = r;
+        // Glue the bell left of the WHOLE right-icon cluster, not just left of the
+        // search icon (that slot is occupied by the cast button). The DOM around
+        // the icons varies (Box/Stack wrappers with flexible spacers — the search
+        // anchor's parent measured 602px wide in live testing), so don't trust
+        // ancestors: scan every MUI icon button in the app bar, keep those in the
+        // right half of the viewport (left half can hold nav/hamburger icons) and
+        // take the leftmost edge.
+        const vw = document.documentElement.clientWidth || window.innerWidth;
+        let clusterLeft = null;
+        document.querySelectorAll('.MuiAppBar-root .MuiIconButton-root').forEach(el => {
+            const q = el.getBoundingClientRect();
+            if (q.width && q.left > vw / 2 && (clusterLeft === null || q.left < clusterLeft)) clusterLeft = q.left;
+        });
         bell.style.display = 'inline-flex';
         bell.style.top = (r.top + (r.height - 35) / 2) + 'px';
-        bell.style.left = (box.left - 40) + 'px';
+        bell.style.left = ((clusterLeft !== null ? clusterLeft : r.left) - 40) + 'px';
         // Keep an open dropdown glued to the bell's new position.
         const drop = document.getElementById('notification-dropdown');
         if (drop && drop.style.display === 'flex') positionDropdown(drop);

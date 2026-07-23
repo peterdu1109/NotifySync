@@ -53,8 +53,8 @@
 
     let userLang = navigator.language || 'en';
     const strings = {
-        fr: { header: "Quoi de neuf ?", empty: "Vous êtes à jour !", loading: "Chargement…", clearAll: "Vider la liste", clearCat: "Vider", dismiss: "Retirer", badgeNew: "NOUVEAU", badgeUpgrade: "MAJ", eps: "épisodes", eps1: "épisode", epPrefix: "Ép.", tracks: "pistes", tracks1: "piste", filterAll: "Tout", filterMovie: "Films", filterSeries: "Séries", filterMusic: "Musique", filterFav: "Favoris", kindQuality: "Qualité", kindCodec: "Codec", kindAudio: "Audio", kindAll: "Tout", season: "Saison", secToday: "Aujourd'hui", secWeek: "Cette semaine", secOlder: "Plus ancien" },
-        en: { header: "What's New?", empty: "You're all caught up!", loading: "Loading…", clearAll: "Clear list", clearCat: "Clear", dismiss: "Dismiss", badgeNew: "NEW", badgeUpgrade: "UPD", eps: "episodes", eps1: "episode", epPrefix: "Ep.", tracks: "tracks", tracks1: "track", filterAll: "All", filterMovie: "Movies", filterSeries: "Series", filterMusic: "Music", filterFav: "Favorites", kindQuality: "Quality", kindCodec: "Codec", kindAudio: "Audio", kindAll: "All", season: "Season", secToday: "Today", secWeek: "This week", secOlder: "Earlier" }
+        fr: { header: "Quoi de neuf ?", empty: "Vous êtes à jour !", loading: "Chargement…", clearAll: "Vider la liste", clearCat: "Vider", dismiss: "Retirer", badgeNew: "NOUVEAU", badgeUpgrade: "MAJ", eps: "épisodes", eps1: "épisode", epPrefix: "Ép.", tracks: "pistes", tracks1: "piste", filterAll: "Tout", filterMovie: "Films", filterSeries: "Séries", filterMusic: "Musique", filterOther: "Autre", filterFav: "Favoris", kindQuality: "Qualité", kindCodec: "Codec", kindAudio: "Audio", kindAll: "Tout", season: "Saison", secToday: "Aujourd'hui", secWeek: "Cette semaine", secOlder: "Plus ancien" },
+        en: { header: "What's New?", empty: "You're all caught up!", loading: "Loading…", clearAll: "Clear list", clearCat: "Clear", dismiss: "Dismiss", badgeNew: "NEW", badgeUpgrade: "UPD", eps: "episodes", eps1: "episode", epPrefix: "Ep.", tracks: "tracks", tracks1: "track", filterAll: "All", filterMovie: "Movies", filterSeries: "Series", filterMusic: "Music", filterOther: "Other", filterFav: "Favorites", kindQuality: "Quality", kindCodec: "Codec", kindAudio: "Audio", kindAll: "All", season: "Season", secToday: "Today", secWeek: "This week", secOlder: "Earlier" }
     };
     let T = strings[userLang.startsWith('fr') ? 'fr' : 'en'];
 
@@ -577,7 +577,11 @@
         else if (activeFilter !== 'All') filtered = filtered.filter(i => i.Category === activeFilter);
         const cats = new Set(['All']); groupedData.forEach(i => cats.add(i.Category));
         const filterBar = drop.querySelector('.filter-bar');
-        let pillsHtml = Array.from(cats).map(c => `<div class="filter-pill ${activeFilter === c ? 'active' : ''}" data-category="${escapeHtml(c)}" tabindex="0" role="button" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">${T['filter' + c] || escapeHtml(c)}</div>`).join('');
+        // With a single distinct category, its pill is an exact duplicate of "All"
+        // (both filters show the same list) — render only "All" until a second
+        // category exists.
+        const catList = cats.size > 2 ? Array.from(cats) : ['All'];
+        let pillsHtml = catList.map(c => `<div class="filter-pill ${activeFilter === c ? 'active' : ''}" data-category="${escapeHtml(c)}" tabindex="0" role="button" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">${T['filter' + c] || escapeHtml(c)}</div>`).join('');
         // Favorites pill — only rendered when the list actually contains favorites,
         // so users who never favorite anything don't get a dead filter.
         if (groupedData.some(i => i.IsFavorite)) {
@@ -850,6 +854,14 @@
     const repositionOverlayBell = () => {
         const bell = document.getElementById('netflix-bell');
         if (!bell || !bell.dataset.nsOverlay) return;
+        // No bell on admin pages. On <=10.11 this was implicit (.headerRight is
+        // absent from the admin area so the bell never installed); the overlay
+        // needs the guard to be explicit.
+        const route = (location.hash + ' ' + location.pathname).toLowerCase();
+        if (route.indexOf('dashboard') !== -1 || route.indexOf('configurationpage') !== -1) {
+            bell.style.display = 'none';
+            return;
+        }
         const anchor = findMuiSearchAnchor();
         const r = anchor ? anchor.getBoundingClientRect() : null;
         if (!r || !r.width) { bell.style.display = 'none'; return; }

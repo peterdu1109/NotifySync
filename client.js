@@ -853,9 +853,15 @@
         const anchor = findMuiSearchAnchor();
         const r = anchor ? anchor.getBoundingClientRect() : null;
         if (!r || !r.width) { bell.style.display = 'none'; return; }
+        // Glue the bell left of the WHOLE right-icon cluster (the search button's
+        // parent groups the people/cast/search icons) — the slot immediately left
+        // of the search icon is occupied by the cast button. Fall back to the
+        // search rect if the parent doesn't look like a compact icon cluster.
+        let box = anchor.parentElement ? anchor.parentElement.getBoundingClientRect() : null;
+        if (!box || !box.width || box.width > 400 || box.height > 80) box = r;
         bell.style.display = 'inline-flex';
         bell.style.top = (r.top + (r.height - 35) / 2) + 'px';
-        bell.style.left = (r.left - 40) + 'px';
+        bell.style.left = (box.left - 40) + 'px';
         // Keep an open dropdown glued to the bell's new position.
         const drop = document.getElementById('notification-dropdown');
         if (drop && drop.style.display === 'flex') positionDropdown(drop);

@@ -1,8 +1,8 @@
-/* NOTIFYSYNC V5.7.15.0 (jellyfin-12 branch, build r7) */
+/* NOTIFYSYNC V5.7.15.0 (jellyfin-12 branch, build r8) */
 (function () {
     // Build marker for live-test cycles: lets the console prove which client
     // build the page actually executes (cache vs fresh).
-    console.info('[NotifySync] client jf12 r7');
+    console.info('[NotifySync] client jf12 r8');
     let currentData = [];
     let groupedData = [];
     let firstLoadDone = false;
@@ -860,9 +860,14 @@
         // No bell on admin pages. On <=10.11 this was implicit (.headerRight is
         // absent from the admin area so the bell never installed); the overlay
         // needs the guard to be explicit.
+        // Hiding MUST be inline-!important: our own stylesheet armors the bell with
+        // `display:inline-flex!important` (against theme CSS), and a stylesheet
+        // !important beats a plain inline style — a bare style.display='none' was
+        // silently overridden (probe: inline "none" yet computed "flex").
+        const hideBell = () => bell.style.setProperty('display', 'none', 'important');
         const route = (location.hash + ' ' + location.pathname).toLowerCase();
         if (route.indexOf('dashboard') !== -1 || route.indexOf('configurationpage') !== -1) {
-            bell.style.display = 'none';
+            hideBell();
             // A dropdown left open (fixed in <body>, it survives SPA route changes)
             // would float orphaned over the admin UI — close it with its bell.
             const openDrop = document.getElementById('notification-dropdown');
@@ -871,7 +876,7 @@
         }
         const anchor = findMuiSearchAnchor();
         const r = anchor ? anchor.getBoundingClientRect() : null;
-        if (!r || !r.width) { bell.style.display = 'none'; return; }
+        if (!r || !r.width) { hideBell(); return; }
         // Glue the bell left of the WHOLE right-icon cluster, not just left of the
         // search icon (that slot is occupied by the cast button). The DOM around
         // the icons varies (Box/Stack wrappers with flexible spacers — the search
@@ -885,7 +890,7 @@
             const q = el.getBoundingClientRect();
             if (q.width && q.left > vw / 2 && (clusterLeft === null || q.left < clusterLeft)) clusterLeft = q.left;
         });
-        bell.style.display = 'inline-flex';
+        bell.style.setProperty('display', 'inline-flex', 'important');
         bell.style.top = (r.top + (r.height - 35) / 2) + 'px';
         bell.style.left = ((clusterLeft !== null ? clusterLeft : r.left) - 40) + 'px';
         // Keep an open dropdown glued to the bell's new position.

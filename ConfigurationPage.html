@@ -419,10 +419,10 @@
                         <div class="ns-header-info">
                             <h2>NotifySync</h2>
                             <a class="ns-version-link" id="ns-version-link"
-                               href="https://github.com/peterdu1109/NotifySync/releases/tag/v5.7.14.0"
+                               href="https://github.com/peterdu1109/NotifySync/releases/tag/v5.7.15.0"
                                target="_blank" rel="noopener"
                                title="Voir les release notes sur GitHub / View release notes on GitHub">
-                                <span class="ns-version" id="ns-version-badge">v5.7.14.0</span>
+                                <span class="ns-version" id="ns-version-badge">v5.7.15.0</span>
                                 <span class="material-icons ns-version-icon">open_in_new</span>
                             </a>
                         </div>
@@ -833,6 +833,12 @@
                 delSort: { col: 'DeletedAt', dir: 'desc' },
                 delPage: 1,
                 delPageSize: 20,
+                // Render-success flags: save() only harvests a checkbox list when its
+                // section actually rendered. If renderLibs/renderCollections failed
+                // (transient API error), the DOM has zero checkboxes and harvesting
+                // would silently wipe the saved selection.
+                libsRendered: false,
+                colsRendered: false,
 
                 load: async function (page) {
                     // Concurrency guard: Jellyfin's SPA can fire `pageshow` multiple times in
@@ -1005,6 +1011,7 @@
                 renderLibs: async function (page) {
                     const container = page.querySelector('#libraryCheckboxes');
                     const select = page.querySelector('#mappingLibrarySelect');
+                    this.libsRendered = false;
                     container.innerHTML = '<div class="ns-empty">' + CT.fetching + '</div>';
 
                     try {
@@ -1019,6 +1026,7 @@
 
                         if (items.length === 0) {
                             container.innerHTML = '<div class="ns-empty"><span class="material-icons">video_library</span>' + CT.noLibs + '</div>';
+                            this.libsRendered = true;
                             this.updateCounters(page);
                             return;
                         }
@@ -1058,6 +1066,7 @@
                             select.appendChild(option);
                         });
 
+                        this.libsRendered = true;
                         this.updateCounters(page);
                     } catch (err) {
                         console.error('getUserViews API error', err);
@@ -1067,6 +1076,7 @@
 
                 renderCollections: async function (page) {
                     const container = page.querySelector('#collectionCheckboxes');
+                    this.colsRendered = false;
                     container.innerHTML = '<div class="ns-empty">' + CT.fetching + '</div>';
 
                     try {
@@ -1082,6 +1092,7 @@
 
                         if (items.length === 0) {
                             container.innerHTML = '<div class="ns-empty"><span class="material-icons">collections_bookmark</span>' + CT.noCollections + '</div>';
+                            this.colsRendered = true;
                             this.updateCounters(page);
                             return;
                         }
@@ -1109,6 +1120,7 @@
                             container.appendChild(row);
                         });
 
+                        this.colsRendered = true;
                         this.updateCounters(page);
                     } catch (err) {
                         console.error('getItems BoxSet API error', err);
@@ -1213,7 +1225,9 @@
                     container.innerHTML = '<div class="ns-empty">' + CT.fetching + '</div>';
 
                     try {
-                        const resp = await ApiClient.ajax({ type: 'GET', url: '/NotifySync/DeletedItems', dataType: 'json' });
+                        // limit=500 = the server-side maximum (default is only 200, which
+                        // silently truncated the log on busy servers with 30d retention).
+                        const resp = await ApiClient.ajax({ type: 'GET', url: '/NotifySync/DeletedItems?limit=500', dataType: 'json' });
                         this.allDeleted = resp || [];
                         this.delPage = 1;
                         this.renderDeletedItems(page);
@@ -1395,11 +1409,17 @@
                         const rawMax = parseInt(page.querySelector('#maxItemsSlider').value, 10);
                         this.config.MaxItems = (isNaN(rawMax) || rawMax < 1) ? 10 : Math.min(rawMax, 50);
 
-                        const checkboxes = page.querySelectorAll('input[name="enabledLibs"]:checked');
-                        this.config.EnabledLibraries = Array.from(checkboxes).map(cb => cb.value);
+                        // Harvest checkbox lists only when their section rendered successfully —
+                        // otherwise keep the previously saved values (see libsRendered note above).
+                        if (this.libsRendered) {
+                            const checkboxes = page.querySelectorAll('input[name="enabledLibs"]:checked');
+                            this.config.EnabledLibraries = Array.from(checkboxes).map(cb => cb.value);
+                        }
 
-                        const colCheckboxes = page.querySelectorAll('input[name="enabledCollections"]:checked');
-                        this.config.EnabledCollections = Array.from(colCheckboxes).map(cb => cb.value);
+                        if (this.colsRendered) {
+                            const colCheckboxes = page.querySelectorAll('input[name="enabledCollections"]:checked');
+                            this.config.EnabledCollections = Array.from(colCheckboxes).map(cb => cb.value);
+                        }
 
                         this.config.EnableDeletedTracking = page.querySelector('#enableDeletedToggle').classList.contains('on');
                         const rawRet = parseInt(page.querySelector('#deletedRetentionDays').value, 10);

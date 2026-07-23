@@ -1,7 +1,7 @@
 <h1 align="center">🔔 NotifySync</h1>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-5.7.14.0-blue" alt="Version">
+  <img src="https://img.shields.io/badge/version-5.7.15.0-blue" alt="Version">
   <img src="https://img.shields.io/badge/.NET-9.0-purple" alt=".NET Framework">
   <img src="https://img.shields.io/badge/Jellyfin-10.11.X-blueviolet" alt="Jellyfin">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="License">
@@ -142,7 +142,7 @@ Go to **Dashboard > Plugins > NotifySync**.
 
 ## 🎨 Recommended Theme
 
-NotifySync integrates beautifully with the [**ElegantFin Cinema Edition**](https://github.com/peterdu1109/ElegantFin) theme — a streaming-inspired CSS theme for Jellyfin with 27 cinematic modules including dedicated styling for the NotifySync notification bell.
+NotifySync integrates beautifully with the [**ElegantFin Cinema Edition**](https://github.com/peterdu1109/ElegantFin) theme — a streaming-inspired CSS theme for Jellyfin with a full suite of cinematic modules, including dedicated styling for the NotifySync notification bell.
 
 Both projects work flawlessly together on **PC (browser)** and **mobile (Jellyfin app + browser)**.
 
@@ -282,7 +282,7 @@ Allez dans **Tableau de bord > Extensions > NotifySync**.
 
 ## 🎨 Thème recommandé
 
-NotifySync s'intègre parfaitement avec le thème [**ElegantFin Cinema Edition**](https://github.com/peterdu1109/ElegantFin) — un thème CSS inspiré des plateformes de streaming pour Jellyfin avec 27 modules cinématographiques, dont un styling dédié pour la cloche de notifications NotifySync.
+NotifySync s'intègre parfaitement avec le thème [**ElegantFin Cinema Edition**](https://github.com/peterdu1109/ElegantFin) — un thème CSS inspiré des plateformes de streaming pour Jellyfin avec une suite complète de modules cinématographiques, dont un styling dédié pour la cloche de notifications NotifySync.
 
 Les deux projets fonctionnent ensemble sur **PC (navigateur)** et **mobile (app Jellyfin + navigateur)**.
 

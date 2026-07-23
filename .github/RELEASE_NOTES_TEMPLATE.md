@@ -4,11 +4,10 @@
 
 ## Philosophy
 
-- **Summary first** — one sentence, plain language. If the reader stops here, they should still know what changed.
+- **TL;DR first** — one sentence in plain language at the very top, before any heading, with its French translation in italics right below. If the reader stops here, they should still know what changed.
 - **Details next** — concrete examples, tables, comparisons. No code symbols.
-- **Technical details last** — collapsible `<details>` section for the curious. Internal class names, schema changes, regex patterns go here.
-
-The standard update procedure (Plugins → Catalog → Update → Restart Jellyfin) is the same for every release and lives in the README. Don't repeat it in release notes unless this release has a non-standard migration step.
+- **Technical details after** — a single collapsible `<details>` section (shared by both languages) for the curious. Internal class names, schema changes, regex patterns go here.
+- **Upgrading section last** — every release ends with the fixed `## 📦 Upgrading / Mise à jour` two-liner (auto-update + hard-refresh). Add extra steps only when this release has a non-standard migration.
 
 ## ⛔ Hard Rules — above the `<details>` tag
 
@@ -43,36 +42,24 @@ If you can't tick all 5, rewrite the section.
 ## Format (copy-paste this)
 
 ```markdown
+[One TL;DR sentence in English. What the user sees / experiences differently after this release.]
+
+*[La même phrase TL;DR en français, en italique.]*
+
+---
+
 ## 🇬🇧 English
 
-### 📝 In Short
-
-[One sentence. What the user sees / experiences differently after this release.]
-
-### ✨ What's New / 🐛 What's Fixed
+### 🐛 Fixes  (or ✨ What's New / 🛡️ Fixes — pick the emoji that fits)
 
 - **[Feature/Fix Title]** — Plain-language description. Concrete example if possible.
 - **[Feature/Fix Title]** — ...
 
 ---
 
-<details>
-<summary>🔧 Technical details for the curious</summary>
-
-[All the dev jargon: file names, function names, schema changes,
-regex patterns, performance numbers, edge cases.]
-
-</details>
-
----
-
 ## 🇫🇷 Français
 
-### 📝 En bref
-
-[Une phrase. Ce que l'utilisateur voit / vit différemment après cette release.]
-
-### ✨ Quoi de Neuf / 🐛 Corrections
+### 🐛 Corrections  (ou ✨ Quoi de neuf — même emoji que la section EN)
 
 - **[Titre Feature/Fix]** — Description en langage humain. Exemple concret si possible.
 - **[Titre Feature/Fix]** — ...
@@ -80,12 +67,21 @@ regex patterns, performance numbers, edge cases.]
 ---
 
 <details>
-<summary>🔧 Détails techniques pour les curieux</summary>
+<summary>🔧 Technical details</summary>
 
-[Tout le jargon dev : noms de fichiers, fonctions, changements de schéma,
-patterns regex, chiffres de perf, cas limites.]
+[All the dev jargon, shared for both languages: file names, function names,
+schema changes, regex patterns, performance numbers, edge cases.
+End with "No database migration — self-contained update." when true.]
 
 </details>
+
+---
+
+## 📦 Upgrading / Mise à jour
+
+Auto-updates from the stable channel on your next Jellyfin restart. Hard-refresh your browser (`Ctrl+Shift+R`) to pick up the new client script.
+
+*Mise à jour auto depuis le canal stable au prochain redémarrage Jellyfin. Rafraîchissez votre navigateur (`Ctrl+Shift+R`) pour charger le nouveau script client.*
 ```
 
 ## DOs

@@ -1128,10 +1128,6 @@ namespace NotifySync
             int skippedNull = 0;
             var typeCounts = new Dictionary<string, int>();
 
-            var categoryCounts = new Dictionary<string, int>();
-            // Track unique series per category to count series, not episodes
-            var categorySeriesIds = new Dictionary<string, HashSet<string>>();
-
             _logger.LogInformation("NotifySync Scan: {Total} items returned by combined queries.", items.Count);
 
             foreach (var item in items)

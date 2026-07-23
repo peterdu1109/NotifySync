@@ -258,6 +258,12 @@
                 border-radius: 6px; color: var(--ns-text); font-size: 13px;
                 box-sizing: border-box;
             }
+            /* Native <option> popups don't inherit the dark select styling — on
+               Firefox the light inherited text lands on the light popup and the
+               options are unreadable until hovered. Style them explicitly. */
+            .ns-select-input option {
+                background: #1a1a1a; color: var(--ns-text);
+            }
 
             /* Deletion history table */
             .ns-table-wrap {

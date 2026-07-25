@@ -1,9 +1,9 @@
 <h1 align="center">🔔 NotifySync</h1>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-5.7.17.0-blue" alt="Version">
-  <img src="https://img.shields.io/badge/.NET-9.0-purple" alt=".NET Framework">
-  <img src="https://img.shields.io/badge/Jellyfin-10.11.X-blueviolet" alt="Jellyfin">
+  <img src="https://img.shields.io/badge/version-5.7.18.0-blue" alt="Version">
+  <img src="https://img.shields.io/badge/.NET-10.0-purple" alt=".NET Framework">
+  <img src="https://img.shields.io/badge/Jellyfin-12.0-blueviolet" alt="Jellyfin">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="License">
   <img src="https://img.shields.io/github/stars/peterdu1109/NotifySync?style=flat&color=yellow&cacheSeconds=3600" alt="GitHub stars">
   <img src="https://img.shields.io/github/downloads/peterdu1109/NotifySync/total?color=brightgreen&cacheSeconds=3600" alt="Downloads">

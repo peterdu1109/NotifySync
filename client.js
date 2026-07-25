@@ -1,4 +1,4 @@
-/* NOTIFYSYNC V5.7.17.0 (Jellyfin 12 preview) */
+/* NOTIFYSYNC V5.7.18.0 (Jellyfin 12 preview) */
 (function () {
     let currentData = [];
     let groupedData = [];
@@ -842,6 +842,16 @@
     //    nodes) -> the bell lives in <body> instead (like the dropdown already
     //    does) as a fixed overlay glued just left of the search icon, and is
     //    repositioned on every observer tick / resize.
+    // offsetParent is null for position:fixed elements (the app bar IS fixed), so
+    // visibility is checked via computed display/visibility + a real rect.
+    const isVisible = (el) => {
+        if (!el) return false;
+        const r = el.getBoundingClientRect();
+        if (r.height <= 0 || r.width <= 0) return false;
+        const cs = getComputedStyle(el);
+        return cs.display !== 'none' && cs.visibility !== 'hidden';
+    };
+
     const findVisibleLegacyHeader = () => {
         const sels = ['.headerRight', '.headerButtons-right', '.emby-header-right', '.skinHeader-content'];
         for (const s of sels) {
@@ -851,77 +861,122 @@
         return null;
     };
 
-    const findMuiSearchAnchor = () => {
-        const el = document.querySelector('.MuiAppBar-root a[href*="search"], .MuiAppBar-root [data-testid="SearchIcon"]');
-        return el ? (el.closest('a,button') || el) : null;
+    // Leftmost icon button of the bar's right-hand cluster — the bell is inserted
+    // just before it. Scan ICON buttons only: a generic button/a scan also catches
+    // the nav links (Favoris, library tabs), which sit past the viewport midpoint
+    // on wide screens and would drag the anchor far too far left.
+    const findRightIconAnchor = (bar) => {
+        const vw = document.documentElement.clientWidth || window.innerWidth;
+        let controls = bar.querySelectorAll('.MuiIconButton-root, .paper-icon-button-light');
+        if (!controls.length) controls = bar.querySelectorAll('button, a');
+        let best = null, bestLeft = null;
+        controls.forEach(el => {
+            if (el.id === 'netflix-bell') return;
+            const q = el.getBoundingClientRect();
+            if (!q.width || !q.height || q.left <= vw / 2) return;
+            if (bestLeft === null || q.left < bestLeft) { bestLeft = q.left; best = el; }
+        });
+        return best;
     };
 
-    const repositionOverlayBell = () => {
-        const bell = document.getElementById('netflix-bell');
-        if (!bell || !bell.dataset.nsOverlay) return;
-        // No bell on admin pages. On <=10.11 this was implicit (.headerRight is
-        // absent from the admin area so the bell never installed); the overlay
-        // needs the guard to be explicit.
-        // Hiding MUST be inline-!important: our own stylesheet armors the bell with
-        // `display:inline-flex!important` (against theme CSS), and a stylesheet
-        // !important beats a plain inline style — a bare style.display='none' was
-        // silently overridden (probe: inline "none" yet computed "flex").
-        const hideBell = () => bell.style.setProperty('display', 'none', 'important');
+    // Which bar should host the bell right now.
+    //  - legacy visible header (<=10.11 and legacy pages)
+    //  - during playback: the video OSD header ONLY (never the app bar, which stays
+    //    mounted behind the video). When the controls are auto-hidden we return null
+    //    so the bell simply stays inside the hidden OSD and rides along with it.
+    //  - otherwise: the main app bar.
+    const findBellHost = () => {
+        const legacy = findVisibleLegacyHeader();
+        if (legacy) return { kind: 'legacy', container: legacy, anchor: null };
+        const osds = Array.from(document.querySelectorAll('.osdHeader'));
+        if (osds.length) {
+            const osd = osds.find(isVisible);
+            if (!osd) return null;
+            const a = findRightIconAnchor(osd);
+            return a ? { kind: 'osd', anchor: a } : null;
+        }
+        const appBar = document.querySelector('.MuiAppBar-root');
+        if (isVisible(appBar)) {
+            const a = findRightIconAnchor(appBar);
+            if (a) return { kind: 'appbar', anchor: a };
+        }
+        return null;
+    };
+
+    const currentHostKind = (bell) => {
+        if (!bell || !bell.isConnected) return null;
+        if (bell.closest('.osdHeader')) return 'osd';
+        if (bell.closest('.MuiAppBar-root')) return 'appbar';
+        return 'legacy';
+    };
+
+    const isAdminRoute = () => {
         const route = (location.hash + ' ' + location.pathname).toLowerCase();
-        if (route.indexOf('dashboard') !== -1 || route.indexOf('configurationpage') !== -1) {
-            hideBell();
-            // A dropdown left open (fixed in <body>, it survives SPA route changes)
-            // would float orphaned over the admin UI — close it with its bell.
+        return route.indexOf('dashboard') !== -1 || route.indexOf('configurationpage') !== -1;
+    };
+
+    const installBell = () => {
+        const existing = document.getElementById('netflix-bell');
+
+        // No bell on admin pages. On <=10.11 this is implicit (.headerRight is
+        // absent from the admin area, so the bell never installs there).
+        if (isAdminRoute()) {
+            if (existing) existing.remove();
             const openDrop = document.getElementById('notification-dropdown');
             if (openDrop && openDrop.style.display === 'flex') closeDropdown();
             return;
         }
-        const anchor = findMuiSearchAnchor();
-        const r = anchor ? anchor.getBoundingClientRect() : null;
-        if (!r || !r.width) { hideBell(); return; }
-        // Glue the bell left of the WHOLE right-icon cluster, not just left of the
-        // search icon (that slot is occupied by the cast button). The DOM around
-        // the icons varies (Box/Stack wrappers with flexible spacers — the search
-        // anchor's parent measured 602px wide in live testing), so don't trust
-        // ancestors: scan every MUI icon button in the app bar, keep those in the
-        // right half of the viewport (left half can hold nav/hamburger icons) and
-        // take the leftmost edge.
-        const vw = document.documentElement.clientWidth || window.innerWidth;
-        let clusterLeft = null;
-        document.querySelectorAll('.MuiAppBar-root .MuiIconButton-root').forEach(el => {
-            const q = el.getBoundingClientRect();
-            if (q.width && q.left > vw / 2 && (clusterLeft === null || q.left < clusterLeft)) clusterLeft = q.left;
-        });
-        bell.style.setProperty('display', 'inline-flex', 'important');
-        bell.style.top = (r.top + (r.height - 35) / 2) + 'px';
-        bell.style.left = ((clusterLeft !== null ? clusterLeft : r.left) - 40) + 'px';
-        // Keep an open dropdown glued to the bell's new position.
-        const drop = document.getElementById('notification-dropdown');
-        if (drop && drop.style.display === 'flex') positionDropdown(drop);
-    };
 
-    const installBell = () => {
-        if (document.getElementById('netflix-bell')) { repositionOverlayBell(); return; }
-        const legacy = findVisibleLegacyHeader();
-        const muiAnchor = legacy ? null : findMuiSearchAnchor();
-        if (!legacy && !muiAnchor) return;
+        // Cheap early-exit — this runs on every observer tick, so it must not force
+        // layout when there's nothing to do. Only an app-bar <-> player-OSD swap
+        // requires a real re-install; the anchor scan below (getBoundingClientRect)
+        // is skipped otherwise.
+        if (existing && existing.isConnected) {
+            const inPlayer = !!document.querySelector('.osdHeader');
+            const kind = currentHostKind(existing);
+            if (inPlayer ? kind === 'osd' : kind !== 'osd') return;
+        }
+
+        const host = findBellHost();
+        // Nothing to host it right now (e.g. player controls auto-hidden): leave the
+        // bell exactly where it is — inside the hidden bar it hides along with it.
+        if (!host) return;
+        // Already sitting in the right bar: nothing to do.
+        if (existing && currentHostKind(existing) === host.kind) return;
+        if (existing) existing.remove();
+
         injectStyles();
         const bellBtn = document.createElement('button');
         bellBtn.id = 'netflix-bell';
+        bellBtn.type = 'button';
         bellBtn.setAttribute('aria-label', 'Notifications');
         bellBtn.onclick = (e) => { e.preventDefault(); e.stopPropagation(); toggleDropdown(); };
-        if (legacy) {
+
+        if (host.kind === 'legacy') {
             bellBtn.className = 'paper-icon-button-light headerButton headerButtonRight';
             bellBtn.innerHTML = '<span class="material-icons notifications"></span>';
-            legacy.prepend(bellBtn);
+            host.container.prepend(bellBtn);
         } else {
-            bellBtn.dataset.nsOverlay = '1';
+            // Inserted INTO the bar, like the legacy path — the bell then flows with
+            // the other icons: native alignment, no positioning math, and it shows or
+            // hides exactly when its bar does (including the player's auto-hiding
+            // OSD). Copy the neighbouring icon button's classes so MUI styles and
+            // sizes it identically (emotion class names are hashed, so they can't be
+            // hardcoded), and let those dimensions win over our own 35px rule.
+            bellBtn.className = host.anchor.className;
+            bellBtn.style.width = 'auto';
+            bellBtn.style.height = 'auto';
             // Inline SVG (same glyph as the sidebar swap): React pages may not ship
-            // the Material Icons ligature font, an SVG always renders.
-            bellBtn.innerHTML = '<svg viewBox="0 0 24 24" width="24" height="24" style="fill:currentColor;display:block;" aria-hidden="true"><path d="' + NS_NOTIFICATIONS_PATH + '"/></svg>';
-            bellBtn.style.cssText = 'position:fixed;z-index:1300;color:#fff;';
-            document.body.appendChild(bellBtn);
-            repositionOverlayBell();
+            // the Material Icons ligature font, an SVG always renders. Reuse the
+            // neighbour's SvgIcon classes so MUI sizes the glyph exactly like the
+            // other icons — a hardcoded 24px box made the button 48px against their
+            // 46px and left the narrow bell glyph looking loosely spaced.
+            const refSvg = host.anchor.querySelector('svg');
+            const svgCls = refSvg ? (refSvg.getAttribute('class') || '') : '';
+            bellBtn.innerHTML = svgCls
+                ? '<svg class="' + svgCls + '" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="' + NS_NOTIFICATIONS_PATH + '"/></svg>'
+                : '<svg viewBox="0 0 24 24" width="24" height="24" style="fill:currentColor;display:block;" aria-hidden="true"><path d="' + NS_NOTIFICATIONS_PATH + '"/></svg>';
+            host.anchor.parentElement.insertBefore(bellBtn, host.anchor);
         }
         loadFromCache();
 
@@ -956,14 +1011,21 @@
         }
     };
 
-    let _installDebounce = null;
+    let _installThrottle = null;
     const startMainObserver = () => {
         observerInstance = new MutationObserver(() => {
-            if (_installDebounce) clearTimeout(_installDebounce);
-            _installDebounce = setTimeout(() => {
+            // Throttle (fixed 50ms window), NOT a trailing debounce. React mounts the
+            // bar's icons one by one during boot (search, then cast once a device is
+            // detected, then the avatar); a trailing debounce was rearmed by each of
+            // them, so the bell only landed ~200ms after the LAST icon and visibly
+            // trailed the others. A throttle runs on schedule instead of waiting for
+            // silence, so the bell appears alongside them.
+            if (_installThrottle) return;
+            _installThrottle = setTimeout(() => {
+                _installThrottle = null;
                 installBell();
                 installAdminSidebarIcon();
-            }, 200);
+            }, 50);
         });
         // childList: catches node add/remove (SPA navigation, lazy renders).
         // attributes + attributeFilter[d]: catches in-place SVG path updates when
@@ -1097,7 +1159,6 @@
     // window is resized (its position is computed from the bell's bounding rect,
     // which moves with the layout). 'resize' also fires on orientation change.
     window.addEventListener('resize', () => {
-        repositionOverlayBell();
         const drop = document.getElementById('notification-dropdown');
         if (drop && drop.style.display === 'flex') positionDropdown(drop);
     });
@@ -1109,11 +1170,17 @@
     // for the paths that do fire it (back/forward, manual URL edits) to react
     // instantly.
     const onRouteChange = () => {
-        repositionOverlayBell();
+        installBell();
+        // The new page's bar is mounted by React a few frames later; without a short
+        // burst of re-checks the bell lands visibly after the other icons.
+        [50, 150, 300, 600].forEach(d => setTimeout(installBell, d));
         const drop = document.getElementById('notification-dropdown');
         if (drop && drop.style.display === 'flex') closeDropdown();
     };
     window.addEventListener('hashchange', onRouteChange);
+    // URL watcher only — entering/leaving the player mounts/unmounts the OSD header,
+    // which the MutationObserver already catches (childList), so no layout polling
+    // is needed on top of it.
     let _lastHref = location.href;
     setInterval(() => {
         if (location.href !== _lastHref) { _lastHref = location.href; onRouteChange(); }

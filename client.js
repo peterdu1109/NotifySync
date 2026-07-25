@@ -912,7 +912,13 @@
 
     const isAdminRoute = () => {
         const route = (location.hash + ' ' + location.pathname).toLowerCase();
-        return route.indexOf('dashboard') !== -1 || route.indexOf('configurationpage') !== -1;
+        // The metadata manager is a TOP-LEVEL route in 12, not a child of /dashboard —
+        // verified in the web bundle's route table, where it is rendered right after
+        // the "admin-dashboard-link" entry of the admin menu. It was the only admin
+        // page the bell still installed on.
+        return route.indexOf('dashboard') !== -1
+            || route.indexOf('metadata') !== -1
+            || route.indexOf('configurationpage') !== -1;
     };
 
     const installBell = () => {

@@ -231,6 +231,18 @@ namespace NotifySync
         private string NormalizeUserId(string userId) => IdHelper.NormalizeId(userId);
 
         /// <summary>
+        /// Returns null for an unusable item reference — an empty/all-zeros GUID.
+        /// During a library scan Jellyfin creates episodes before linking them to their
+        /// series, so <c>Episode.SeriesId</c> can still be <see cref="Guid.Empty"/>;
+        /// <c>ToString()</c> then yields "00000000-0000-0000-0000-000000000000", a
+        /// NON-empty string that passes IsNullOrEmpty checks and reaches
+        /// <c>GetItemById</c>, which rejects an empty GUID with ArgumentException.
+        /// Storing it also made every such episode share one bogus series group.
+        /// </summary>
+        private static string? UsableIdOrNull(string? id)
+            => (!string.IsNullOrEmpty(id) && Guid.TryParse(id, out var g) && g != Guid.Empty) ? id : null;
+
+        /// <summary>
         /// Classifies the type(s) of upgrade detected when replacing an existing notification's
         /// media file. Returns a comma-separated list of kinds (e.g. <c>"codec,audio"</c> or
         /// <c>"quality,codec,audio"</c>) in display priority order, or <c>null</c> when no
@@ -1457,7 +1469,7 @@ namespace NotifySync
                     Name = item.Name ?? "Unknown",
                     Category = collectionName,
                     SeriesName = (item as Episode)?.SeriesName,
-                    SeriesId = (item as Episode)?.SeriesId.ToString(),
+                    SeriesId = UsableIdOrNull((item as Episode)?.SeriesId.ToString()),
                     DateCreated = item.DateCreated.ToUniversalTime(),
                     Type = item.GetType().Name,
                     RunTimeTicks = item.RunTimeTicks,
@@ -1473,7 +1485,7 @@ namespace NotifySync
                 if (item.GetBaseItemKind() == BaseItemKind.Audio && item is MediaBrowser.Controller.Entities.Audio.Audio audioItem)
                 {
                     notif.SeriesName = audioItem.Album;
-                    notif.SeriesId = audioItem.ParentId.ToString();
+                    notif.SeriesId = UsableIdOrNull(audioItem.ParentId.ToString());
                 }
 
                 return notif;
@@ -1563,7 +1575,7 @@ namespace NotifySync
                     Name = item.Name ?? "Unknown",
                     Category = category,
                     SeriesName = (item as Episode)?.SeriesName,
-                    SeriesId = (item as Episode)?.SeriesId.ToString(),
+                    SeriesId = UsableIdOrNull((item as Episode)?.SeriesId.ToString()),
                     DateCreated = item.DateCreated.ToUniversalTime(),
                     Type = item.GetType().Name,
                     RunTimeTicks = item.RunTimeTicks,
@@ -1579,7 +1591,7 @@ namespace NotifySync
                 if (item.GetBaseItemKind() == BaseItemKind.Audio && item is MediaBrowser.Controller.Entities.Audio.Audio audioItem)
                 {
                     notif.SeriesName = audioItem.Album;
-                    notif.SeriesId = audioItem.ParentId.ToString();
+                    notif.SeriesId = UsableIdOrNull(audioItem.ParentId.ToString());
                 }
 
                 return notif;

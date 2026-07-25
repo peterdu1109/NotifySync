@@ -1,4 +1,4 @@
-/* NOTIFYSYNC V5.7.18.0 (Jellyfin 12 preview) */
+/* NOTIFYSYNC V5.7.19.0 (Jellyfin 12 preview) */
 (function () {
     let currentData = [];
     let groupedData = [];

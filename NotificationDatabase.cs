@@ -165,6 +165,21 @@ namespace NotifySync
                     clearMinor.ExecuteNonQuery();
                 }
 
+                // Clear all-zeros SeriesId values written before 5.7.19. An episode
+                // scanned before its series was linked stored Guid.Empty as a string:
+                // non-empty, so it passed IsNullOrEmpty checks and reached GetItemById,
+                // which rejects an empty GUID (the response then failed during scans).
+                // It also made every such episode collapse into one bogus series group.
+                using (var clearEmptySeries = connection.CreateCommand())
+                {
+                    clearEmptySeries.CommandText = "UPDATE Notifications SET SeriesId = NULL WHERE SeriesId = '00000000-0000-0000-0000-000000000000'";
+                    int cleared = clearEmptySeries.ExecuteNonQuery();
+                    if (cleared > 0)
+                    {
+                        _logger.LogInformation("NotifySync: {Count} notification(s) had an unresolved series reference cleared.", cleared);
+                    }
+                }
+
                 // Purge LiveTvProgram deletions accumulated by earlier builds. The plugin no
                 // longer tracks them (they cycle naturally and don't serve any debug purpose
                 // in the Deletions tab); the historic rows are pure noise.

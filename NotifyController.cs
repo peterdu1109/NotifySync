@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Security.Claims;
@@ -322,7 +323,11 @@ namespace NotifySync
                     }
 
                     bool isFav = userData?.IsFavorite == true;
-                    if (!isFav && !string.IsNullOrEmpty(n.SeriesId))
+                    // IsNullOrEmpty is not enough: rows written before 5.7.19 can hold an
+                    // all-zeros GUID (an episode scanned before its series was linked), a
+                    // non-empty string that GetItemById rejects with ArgumentException —
+                    // which aborted the whole response during library scans.
+                    if (!isFav && IsResolvableId(n.SeriesId))
                     {
                         if (!seriesFavCache.TryGetValue(n.SeriesId, out isFav))
                         {
@@ -686,6 +691,15 @@ namespace NotifySync
         }
 
         private static string NormalizeId(string userId) => IdHelper.NormalizeId(userId);
+
+        /// <summary>
+        /// True when the identifier can actually be resolved by the library manager —
+        /// i.e. a real GUID, not null/empty and not the all-zeros GUID.
+        /// </summary>
+        /// <param name="id">The identifier to test.</param>
+        /// <returns><c>true</c> when the id is usable.</returns>
+        private static bool IsResolvableId([NotNullWhen(true)] string? id)
+            => !string.IsNullOrEmpty(id) && Guid.TryParse(id, out var g) && g != Guid.Empty;
 
         private bool IsAuthorizedForUser(string userId)
         {

@@ -317,7 +317,7 @@ namespace NotifySync
                     }
 
                     var userData = _userDataManager.GetUserData(user, item);
-                    if (userData != null && userData.Played && !n.IsUpgrade)
+                    if (userData != null && userData.Played && !IsUpgradeSincePlay(n, userData))
                     {
                         continue;
                     }
@@ -351,7 +351,7 @@ namespace NotifySync
                 {
                     var clone = n.Clone();
                     userStates.TryGetValue(clone.Id, out var readState);
-                    clone.IsRead = readState.IsRead;
+                    clone.IsRead = readState.IsRead && !IsBumpedSinceRead(n, readState.ReadAt);
                     clone.IsFavorite = favoriteIds.Contains(clone.Id);
                     filteredClones.Add(clone);
                 }
@@ -647,7 +647,7 @@ namespace NotifySync
 
             var normalizedUserId = NormalizeId(userId);
             var states = NotificationManager.Instance?.Db.GetUserStates(normalizedUserId)
-                ?? new Dictionary<string, (bool IsRead, bool IsDismissed)>();
+                ?? new Dictionary<string, (bool IsRead, bool IsDismissed, DateTime? ReadAt)>();
 
             // Flatten to AOT-compatible Dictionary<string, bool> with composite keys
             var result = new Dictionary<string, bool>();
@@ -700,6 +700,41 @@ namespace NotifySync
         /// <returns><c>true</c> when the id is usable.</returns>
         private static bool IsResolvableId([NotNullWhen(true)] string? id)
             => !string.IsNullOrEmpty(id) && Guid.TryParse(id, out var g) && g != Guid.Empty;
+
+        /// <summary>
+        /// True when the notification carries an upgrade that landed *after* the user last
+        /// played the item — the only case where a watched item should stay in the bell.
+        /// <para>
+        /// Upgrade detection bumps <c>DateCreated</c> to the moment the replacement was
+        /// spotted, so comparing it to the last play date separates the two cases the flag
+        /// alone cannot: watched then upgraded (still worth showing) from upgraded then
+        /// watched (already consumed, hide it). When Jellyfin has no play date — an item
+        /// marked played by hand — the upgrade is kept visible rather than silently dropped.
+        /// </para>
+        /// </summary>
+        /// <param name="n">The notification being filtered.</param>
+        /// <param name="userData">The current user's data for the underlying item.</param>
+        /// <returns><c>true</c> when the item must survive the played filter.</returns>
+        private static bool IsUpgradeSincePlay(NotificationItem n, UserItemData userData)
+        {
+            if (!n.IsUpgrade)
+            {
+                return false;
+            }
+
+            return userData.LastPlayedDate == null
+                || n.DateCreated.ToUniversalTime() > userData.LastPlayedDate.Value.ToUniversalTime();
+        }
+
+        /// <summary>
+        /// True when the notification was bumped to the top *after* the user last read it,
+        /// which makes it unread again so the bell counter lights up for the upgrade.
+        /// </summary>
+        /// <param name="n">The notification being filtered.</param>
+        /// <param name="readAt">When the user last marked it read, if ever.</param>
+        /// <returns><c>true</c> when the stored read state is stale.</returns>
+        private static bool IsBumpedSinceRead(NotificationItem n, DateTime? readAt)
+            => readAt.HasValue && n.DateCreated.ToUniversalTime() > readAt.Value.ToUniversalTime();
 
         private bool IsAuthorizedForUser(string userId)
         {

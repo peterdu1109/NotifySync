@@ -584,20 +584,32 @@ namespace NotifySync
         /// </summary>
         /// <param name="userId">The normalized user identifier.</param>
         /// <returns>A dictionary mapping notification IDs to their read/dismissed state.</returns>
-        public Dictionary<string, (bool IsRead, bool IsDismissed)> GetUserStates(string userId)
+        public Dictionary<string, (bool IsRead, bool IsDismissed, DateTime? ReadAt)> GetUserStates(string userId)
         {
-            var result = new Dictionary<string, (bool, bool)>();
+            var result = new Dictionary<string, (bool, bool, DateTime?)>();
             try
             {
                 using var connection = new SqliteConnection(_connectionString);
                 connection.Open();
                 using var cmd = connection.CreateCommand();
-                cmd.CommandText = "SELECT NotificationId, IsRead, IsDismissed FROM UserNotificationState WHERE UserId = @UserId";
+
+                // ReadAt is returned so the caller can tell a notification that was read
+                // *before* it was bumped by an upgrade from one read after — an upgraded
+                // item must light the counter up again. It is always written alongside
+                // IsRead = 1, so it is non-null whenever IsRead is true.
+                cmd.CommandText = "SELECT NotificationId, IsRead, IsDismissed, ReadAt FROM UserNotificationState WHERE UserId = @UserId";
                 cmd.Parameters.AddWithValue("@UserId", userId);
                 using var reader = cmd.ExecuteReader();
                 while (reader.Read())
                 {
-                    result[reader.GetString(0)] = (reader.GetInt32(1) != 0, reader.GetInt32(2) != 0);
+                    DateTime? readAt = null;
+                    if (!reader.IsDBNull(3)
+                        && DateTime.TryParse(reader.GetString(3), CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.RoundtripKind, out var parsed))
+                    {
+                        readAt = parsed;
+                    }
+
+                    result[reader.GetString(0)] = (reader.GetInt32(1) != 0, reader.GetInt32(2) != 0, readAt);
                 }
             }
             catch (Exception ex)

@@ -1181,7 +1181,9 @@ namespace NotifySync
             // recreates items from the library, which knows nothing about past upgrade
             // detections — without this, a manual "Regenerate history" silently wipes
             // every UPD/MAJ badge. DateCreated is carried too so the upgraded item keeps
-            // its bumped position and its 72h badge window.
+            // its bumped position — which NotifyController also compares against the last
+            // play date and the last read date, so losing it would resurrect watched items
+            // and re-light the counter for upgrades the user has already seen.
             var upgradesById = new Dictionary<string, NotificationItem>(StringComparer.Ordinal);
             try
             {

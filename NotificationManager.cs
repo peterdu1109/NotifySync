@@ -816,7 +816,7 @@ namespace NotifySync
                             n.Size);
                         removedIds.Add(n.Id);
                     }
-                    else if (CameFromDeletedFolder(n.FilePath, goneFolder, out var leftFolder))
+                    else if (!n.IsUpgrade && CameFromDeletedFolder(n.FilePath, goneFolder, out var leftFolder))
                     {
                         _logger.LogWarning(
                             "NotifySync Move Detected: {Name} — already re-added elsewhere before \"{From}\" was reported gone; dropping its notification.",
@@ -1104,15 +1104,6 @@ namespace NotifySync
                             continue;
                         }
 
-                        if (CameFromDeletedFolder(notif.FilePath, deletedFolders, out var movedFrom))
-                        {
-                            _logger.LogWarning(
-                                "NotifySync Move Detected: {Name} — its folder left \"{From}\" moments ago; no notification created.",
-                                notif.Name,
-                                movedFrom);
-                            continue;
-                        }
-
                         // New item — check deleted history for upgrade detection.
                         // We fetch the actual record (not just a bool) so ClassifyUpgrade
                         // can compare the new filename against the deleted file's filename.
@@ -1135,6 +1126,19 @@ namespace NotifySync
                             notif.IndexNumber,
                             notif.Size,
                             deletedRecord != null);
+
+                        // Folder rule LAST, and only when no deleted file matched. A file that
+                        // replaced another is a replacement, whatever folder it landed in — and
+                        // a real quality upgrade dropped into a series moved less than six hours
+                        // ago would otherwise be swallowed as if it were part of the move.
+                        if (deletedRecord == null && CameFromDeletedFolder(notif.FilePath, deletedFolders, out var movedFrom))
+                        {
+                            _logger.LogWarning(
+                                "NotifySync Move Detected: {Name} — its folder left \"{From}\" moments ago; no notification created.",
+                                notif.Name,
+                                movedFrom);
+                            continue;
+                        }
 
                         if (!notif.IsUpgrade && deletedRecord != null)
                         {

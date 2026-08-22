@@ -29,13 +29,18 @@ namespace NotifySync
         private const int GlobalRetentionLimit = 2000;
 
         /// <summary>
-        /// How long a removed folder stays a candidate for move detection. Measured on a live
-        /// server, the folder removal and the re-added episodes were six seconds apart — same
-        /// scan. The margin is for libraries scanned separately; it stays far shorter than the
-        /// seven-day upgrade window, so re-downloading a series deleted last week is still
-        /// announced as new.
+        /// How long a removed folder stays a candidate for move detection.
+        /// <para>
+        /// This only covers the order where the source library is scanned FIRST: the folder has
+        /// to still be on record when the episodes reappear. Measured on a live server those two
+        /// moments were six seconds apart — the same scan — so an hour is six hundred times the
+        /// observed gap. The opposite order needs no window at all: the removal-side mirror
+        /// matches against notifications still in the bell, however long afterwards it arrives.
+        /// Kept deliberately short so that re-downloading a series deleted earlier today is
+        /// still announced as new.
+        /// </para>
         /// </summary>
-        private const int MovedFolderWindowHours = 6;
+        private const int MovedFolderWindowHours = 1;
 
         // Upgrade kind constants. Stored in NotificationItem.UpgradeKind and read by the
         // client to render a precise sub-label next to the UPD/MAJ badge.

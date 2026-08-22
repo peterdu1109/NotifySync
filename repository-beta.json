@@ -10,36 +10,12 @@
     "imageUrl": "https://raw.githubusercontent.com/peterdu1109/NotifySync/main/icon.svg",
     "versions": [
       {
-        "version": "5.7.22.5",
-        "changelog": "<a style='color:white;text-decoration:none' href=\"https://github.com/peterdu1109/NotifySync/releases/tag/v5.7.22.5-beta\">🧪 <span style='text-decoration:underline'>Beta — Release Notes</span></a>",
-        "targetAbi": "10.11.0.0",
-        "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/v5.7.22.5-beta/NotifySync.zip",
-        "checksum": "893C0524C970C1B15DF812E43012349A",
-        "timestamp": "2026-08-22T04:00:00Z"
-      },
-      {
-        "version": "5.7.22.3",
-        "changelog": "<a style='color:white;text-decoration:none' href=\"https://github.com/peterdu1109/NotifySync/releases/tag/v5.7.22.3-beta\">🧪 <span style='text-decoration:underline'>Beta — Release Notes</span></a>",
-        "targetAbi": "10.11.0.0",
-        "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/v5.7.22.3-beta/NotifySync.zip",
-        "checksum": "F4CC98B4404CF29FF24C3F4EF4760112",
-        "timestamp": "2026-08-22T03:00:00Z"
-      },
-      {
         "version": "5.7.22.2",
         "changelog": "<a style='color:white;text-decoration:none' href=\"https://github.com/peterdu1109/NotifySync/releases/tag/v5.7.22.2-beta\">🧪 <span style='text-decoration:underline'>Beta — Release Notes</span></a>",
         "targetAbi": "10.11.0.0",
         "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/v5.7.22.2-beta/NotifySync.zip",
-        "checksum": "1395B6475CD1951F33241A0482CD213F",
-        "timestamp": "2026-08-22T02:00:00Z"
-      },
-      {
-        "version": "5.7.22.1",
-        "changelog": "<a style='color:white;text-decoration:none' href=\"https://github.com/peterdu1109/NotifySync/releases/tag/v5.7.22.1-beta\">🧪 <span style='text-decoration:underline'>Beta — Release Notes</span></a>",
-        "targetAbi": "10.11.0.0",
-        "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/v5.7.22.1-beta/NotifySync.zip",
-        "checksum": "71C4DEB10CAB5A224FD7D926D79CD315",
-        "timestamp": "2026-08-22T01:00:00Z"
+        "checksum": "1146CDF50857882A13DC1E354021FAA8",
+        "timestamp": "2026-08-22T04:00:00Z"
       }
     ]
   }

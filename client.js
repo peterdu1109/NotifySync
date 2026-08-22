@@ -382,6 +382,26 @@
         if (drop) updateList(drop);
     };
 
+    // Takes one card out of the open list without rebuilding it. A full re-render rewrites
+    // the container's innerHTML, which destroys and recreates every <img> and re-arms the
+    // lazy loader — on a phone that reads as the whole panel reloading for a second.
+    // Returns false when the surrounding structure would break, and the caller falls back
+    // to a real re-render: a section heading left with nothing under it, or an emptied list.
+    const removeCardInPlace = (itemId) => {
+        const el = document.querySelector(`.dropdown-item[data-item-id="${CSS.escape(itemId)}"]`);
+        if (!el || !el.parentElement) return false;
+
+        const container = el.parentElement;
+        const before = el.previousElementSibling;
+        const after = el.nextElementSibling;
+        const wouldOrphanHeading = before && before.classList.contains('ns-section')
+            && (!after || !after.classList.contains('dropdown-item'));
+        if (wouldOrphanHeading) return false;
+
+        el.remove();
+        return !!container.querySelector('.dropdown-item');
+    };
+
     const recalculateNewStatus = () => {
         // IsNew = unread; drives the red bell counter (cleared on open). The NEW/UPD
         // pill itself no longer fades on a timer — recency is carried by the
@@ -790,20 +810,31 @@
                     const el = document.querySelector(`.dropdown-item[data-item-id="${CSS.escape(itemId)}"]`);
                     if (el) el.classList.add('dismissing');
 
+                    // Drop it from local state now instead of after the round-trip, so the
+                    // list settles at the speed of the animation rather than the network's.
+                    // The previous state is kept to put the card back if the server refuses:
+                    // a card that vanishes here but survives on the server would come back
+                    // on the next poll, which is more confusing than a card that never left.
+                    const previousData = currentData;
+                    currentData = currentData.filter(i => !(i.Id === itemId || i.SeriesId === itemId));
+                    recalculateNewStatus();
+
+                    setTimeout(() => {
+                        if (removeCardInPlace(itemId)) return;
+                        const d = document.getElementById('notification-dropdown');
+                        if (d) updateList(d);
+                    }, 300); // Wait for animation to finish
+
                     const success = await dismissOnServer(itemId);
                     if (success) {
-                        // Remove from local data (by Id OR by SeriesId for group dismiss)
-                        currentData = currentData.filter(i => !(i.Id === itemId || i.SeriesId === itemId));
                         localStorage.setItem(nsKey('data'), JSON.stringify(currentData)); localStorage.setItem(nsKey('data-ts'), Date.now().toString());
                         localStorage.removeItem(nsKey('etag')); // Force fresh fetch next time
-                        recalculateNewStatus();
-                        setTimeout(() => {
-                            const d = document.getElementById('notification-dropdown');
-                            if (d) updateList(d);
-                        }, 300); // Wait for animation to finish
                     } else {
-                        // Revert animation on failure
+                        currentData = previousData;
+                        recalculateNewStatus();
                         if (el) el.classList.remove('dismissing');
+                        const d = document.getElementById('notification-dropdown');
+                        if (d) updateList(d);
                     }
                 });
                 eventsRegistered = true;

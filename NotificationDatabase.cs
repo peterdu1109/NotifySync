@@ -971,17 +971,17 @@ namespace NotifySync
         /// </para>
         /// </summary>
         /// <param name="cutoffUtc">Oldest removal still eligible.</param>
-        /// <returns>The recorded folder paths.</returns>
-        public IReadOnlyList<string> GetDeletedFolderPathsSince(DateTime cutoffUtc)
+        /// <returns>The recorded containers.</returns>
+        public DeletedFolder[] GetDeletedFolderPathsSince(DateTime cutoffUtc)
         {
-            var result = new List<string>();
+            var result = new List<DeletedFolder>();
             try
             {
                 using var connection = new SqliteConnection(_connectionString);
                 connection.Open();
                 using var cmd = connection.CreateCommand();
                 cmd.CommandText = @"
-                    SELECT FilePath FROM DeletedItems
+                    SELECT FilePath, Type FROM DeletedItems
                     WHERE FilePath IS NOT NULL AND FilePath <> ''
                       AND Type IN ('Series', 'Season', 'Folder')
                       AND DeletedAt > @Cutoff";
@@ -991,7 +991,7 @@ namespace NotifySync
                 {
                     if (!reader.IsDBNull(0))
                     {
-                        result.Add(reader.GetString(0));
+                        result.Add(new DeletedFolder(reader.GetString(0), reader.IsDBNull(1) ? string.Empty : reader.GetString(1)));
                     }
                 }
             }
@@ -1000,7 +1000,7 @@ namespace NotifySync
                 _logger.LogError(ex, "NotifySync: Error reading recently deleted folders.");
             }
 
-            return result;
+            return result.ToArray();
         }
 
         /// <summary>

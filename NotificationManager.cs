@@ -439,52 +439,77 @@ namespace NotifySync
         /// True when the new file sits under a folder that was removed from somewhere else a
         /// moment ago — i.e. it did not arrive, it moved.
         /// <para>
-        /// Jellyfin identifies items by path, so relocating a series produces a removal for the
-        /// series FOLDER (never for its episodes) and then a fresh add per episode, with no
-        /// series name and no season/episode numbers yet. Nothing in that pair can be matched on
-        /// metadata. What does survive the move is the folder's own name, present on both sides.
+        /// Jellyfin identifies items by path, so relocating a series produces removals for its
+        /// CONTAINERS — the series folder, or only its season folders, depending on the scan —
+        /// and never for the episodes, which then arrive as fresh adds. Nothing in that pair can
+        /// be matched on metadata. What survives the move is the folder naming, present on both
+        /// sides.
+        /// </para>
+        /// <para>
+        /// A season folder is matched together with its parent, never alone: measured on a live
+        /// server, the only removal announced for one move was ".../Star Wars Visions (2021)
+        /// [tvdbid-393190]/Saison 01". Matching "Saison 01" on its own would have silenced new
+        /// episodes of every other series that numbers its seasons the same way — which is all
+        /// of them.
         /// </para>
         /// </summary>
         /// <param name="filePath">The new file's path.</param>
-        /// <param name="deletedFolders">Folder paths removed recently, fetched once per batch.</param>
+        /// <param name="deletedFolders">Containers removed recently, fetched once per batch.</param>
         /// <param name="matched">The folder that matched, for logging.</param>
         /// <returns><c>true</c> when this add is the tail of a move.</returns>
-        private static bool CameFromDeletedFolder(string? filePath, IReadOnlyList<string> deletedFolders, out string matched)
+        private static bool CameFromDeletedFolder(string? filePath, DeletedFolder[] deletedFolders, out string matched)
         {
             matched = string.Empty;
-            if (string.IsNullOrEmpty(filePath) || deletedFolders.Count == 0)
+            if (string.IsNullOrEmpty(filePath) || deletedFolders.Length == 0)
             {
                 return false;
             }
 
             var segments = filePath.Split('/', '\\');
 
-            // The last segment is the file itself; only its ancestors can be the moved folder.
-            for (int i = 0; i < segments.Length - 1; i++)
+            foreach (var folder in deletedFolders)
             {
-                if (string.IsNullOrEmpty(segments[i]))
+                string trimmed = folder.Path.TrimEnd('/', '\\');
+                var folderSegments = trimmed.Split('/', '\\');
+
+                // How much of the removed path has to be recognised. A series folder carries its
+                // own title, so its last segment identifies it. A season folder is called the
+                // same thing under every series, so it only means something with its parent.
+                int depth = string.Equals(folder.Type, "Season", StringComparison.Ordinal) && folderSegments.Length >= 2 ? 2 : 1;
+                if (folderSegments.Length < depth)
                 {
                     continue;
                 }
 
-                foreach (var folder in deletedFolders)
+                // Those segments have to appear consecutively among the new file's ancestors —
+                // the last segment is the file itself and cannot be a folder.
+                for (int i = 0; i + depth <= segments.Length - 1; i++)
                 {
-                    string trimmed = folder.TrimEnd('/', '\\');
-                    string folderName = trimmed.Split('/', '\\').LastOrDefault() ?? string.Empty;
-                    if (folderName.Length == 0 || !string.Equals(folderName, segments[i], StringComparison.OrdinalIgnoreCase))
+                    bool allMatch = true;
+                    for (int k = 0; k < depth; k++)
+                    {
+                        string expected = folderSegments[folderSegments.Length - depth + k];
+                        if (expected.Length == 0 || !string.Equals(expected, segments[i + k], StringComparison.OrdinalIgnoreCase))
+                        {
+                            allMatch = false;
+                            break;
+                        }
+                    }
+
+                    if (!allMatch)
                     {
                         continue;
                     }
 
-                    // Same name rebuilt at the same absolute location means the series never
-                    // went anywhere — a refresh that dropped and re-created it in place.
-                    string rebuilt = string.Join('/', segments.Take(i + 1));
+                    // Rebuilt at the same absolute location means the container never went
+                    // anywhere — a refresh that dropped and re-created it in place.
+                    string rebuilt = string.Join('/', segments.Take(i + depth));
                     if (string.Equals(rebuilt, trimmed.Replace('\\', '/'), StringComparison.OrdinalIgnoreCase))
                     {
                         continue;
                     }
 
-                    matched = folder;
+                    matched = folder.Path;
                     return true;
                 }
             }
@@ -848,8 +873,8 @@ namespace NotifySync
                 // relocated. If its episodes were re-added first, their notifications already
                 // exist and this is the last chance to recognise them.
                 var goneFolder = trackMoves && isFolderItem && !string.IsNullOrEmpty(e.Item.Path)
-                    ? new[] { e.Item.Path! }
-                    : Array.Empty<string>();
+                    ? new[] { new DeletedFolder(e.Item.Path!, e.Item.GetType().Name) }
+                    : Array.Empty<DeletedFolder>();
 
                 foreach (var n in _notifications)
                 {
@@ -868,7 +893,7 @@ namespace NotifySync
                     else if (!n.IsUpgrade && CameFromDeletedFolder(n.FilePath, goneFolder, out var leftFolder))
                     {
                         _logger.LogWarning(
-                            "NotifySync Move Detected: {Name} — already re-added elsewhere before \"{From}\" was reported gone; dropping its notification.",
+                            "NotifySync Move Detected: {Name} — already re-added elsewhere before {From} was reported gone; dropping its notification.",
                             n.Name,
                             leftFolder);
                         removedIds.Add(n.Id);
@@ -1116,7 +1141,7 @@ namespace NotifySync
                 // this list changes only when a folder disappears.
                 var deletedFolders = Plugin.Instance?.Configuration?.EnableDeletedTracking == true
                     ? _db.GetDeletedFolderPathsSince(MoveCandidateCutoffUtc())
-                    : Array.Empty<string>();
+                    : Array.Empty<DeletedFolder>();
 
                 while (_eventBuffer.TryDequeue(out var item))
                 {
@@ -1183,7 +1208,7 @@ namespace NotifySync
                         if (deletedRecord == null && CameFromDeletedFolder(notif.FilePath, deletedFolders, out var movedFrom))
                         {
                             _logger.LogWarning(
-                                "NotifySync Move Detected: {Name} — its folder left \"{From}\" moments ago; no notification created.",
+                                "NotifySync Move Detected: {Name} — its folder left {From} moments ago; no notification created.",
                                 notif.Name,
                                 movedFrom);
                             continue;

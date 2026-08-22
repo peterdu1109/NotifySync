@@ -29,23 +29,23 @@ namespace NotifySync
         private const int GlobalRetentionLimit = 2000;
 
         /// <summary>
-        /// How long a removed folder stays a candidate for move detection.
+        /// A removed folder counts as a move candidate if it disappeared during the scan that is
+        /// still running, or within the last few minutes, and never beyond the hard cap.
         /// <para>
-        /// It only covers the order where the source library is scanned FIRST — the folder has
-        /// to still be on record when the episodes reappear. Measured on a live server those two
-        /// moments were six seconds apart, the same scan, so five minutes is fifty times the
-        /// observed gap. The opposite order needs no window at all: the removal-side mirror
-        /// matches against notifications still in the bell, however long afterwards it arrives.
-        /// </para>
-        /// <para>
-        /// Deliberately short, because the two failure modes are not equally bad. Missing a move
-        /// shows one card too many — visible, and it ages out. Overreaching swallows a genuine
-        /// addition in silence, which is the one thing a notification plugin must never do: a
-        /// series deleted and re-downloaded elsewhere would go unannounced. Five minutes is far
-        /// too short for that to happen by accident.
+        /// The scan boundary is the honest bound — both halves of a move happen inside one scan,
+        /// however long that scan takes on a multi-terabyte library. The few minutes cover the
+        /// case where the two libraries are scanned in SEPARATE runs, which the scan boundary
+        /// alone would cut between. The cap is a safety net: if the end-of-scan hook never fires,
+        /// records must still expire, because the failure that matters is not missing a move —
+        /// that shows one card too many — but swallowing a genuine addition in silence.
         /// </para>
         /// </summary>
         private const int MovedFolderWindowMinutes = 5;
+
+        /// <summary>
+        /// Upper bound on a move candidate's age, whatever the scan boundary says.
+        /// </summary>
+        private const int MovedFolderCapHours = 24;
 
         // Upgrade kind constants. Stored in NotificationItem.UpgradeKind and read by the
         // client to render a precise sub-label next to the UPD/MAJ badge.
@@ -93,6 +93,7 @@ namespace NotifySync
         private int _isProcessingBuffer;
         private int _isDisposed;
         private long _lastPurgeTicks;
+        private long _lastScanCompletedTicks;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="NotificationManager"/> class.
@@ -396,6 +397,44 @@ namespace NotifySync
         /// and <see cref="OnItemUpdated"/> (metadata-refresh recovery) so ClassifyUpgrade
         /// can compare the new file against the path of the file that was just deleted.
         /// </summary>
+        /// <summary>
+        /// Called by <see cref="LibraryScanCompletedTask"/> when Jellyfin has finished validating
+        /// the media library. Everything removed before this point belongs to a finished scan and
+        /// stops being a move candidate, except for the few minutes of grace that cover libraries
+        /// scanned in separate runs.
+        /// </summary>
+        public void OnLibraryScanCompleted()
+        {
+            Interlocked.Exchange(ref _lastScanCompletedTicks, DateTime.UtcNow.Ticks);
+            _logger.LogWarning("NotifySync DIAG ScanEnd: library scan finished — move candidates now expire from this point.");
+        }
+
+        /// <summary>
+        /// The oldest removal still eligible for move detection: the start of the scan in
+        /// progress (i.e. the end of the previous one), widened to a few minutes so a move split
+        /// across two separate scans is still caught, and never older than the hard cap.
+        /// </summary>
+        /// <returns>The cutoff, in UTC.</returns>
+        private DateTime MoveCandidateCutoffUtc()
+        {
+            var now = DateTime.UtcNow;
+            var grace = now.AddMinutes(-MovedFolderWindowMinutes);
+
+            long scanTicks = Interlocked.Read(ref _lastScanCompletedTicks);
+            if (scanTicks == 0)
+            {
+                // No end-of-scan ever observed. Stay on the narrow rule rather than widening to
+                // the cap: a hook that never fires must not quietly make the plugin more willing
+                // to swallow genuine additions.
+                return grace;
+            }
+
+            var sinceScan = new DateTime(scanTicks, DateTimeKind.Utc);
+            var cutoff = sinceScan < grace ? sinceScan : grace;
+            var cap = now.AddHours(-MovedFolderCapHours);
+            return cutoff < cap ? cap : cutoff;
+        }
+
         /// <summary>
         /// True when the new file sits under a folder that was removed from somewhere else a
         /// moment ago — i.e. it did not arrive, it moved.
@@ -1076,7 +1115,7 @@ namespace NotifySync
                 // Fetched once for the whole batch: a scan can hand us hundreds of adds and
                 // this list changes only when a folder disappears.
                 var deletedFolders = Plugin.Instance?.Configuration?.EnableDeletedTracking == true
-                    ? _db.GetRecentlyDeletedFolderPaths(MovedFolderWindowMinutes)
+                    ? _db.GetDeletedFolderPathsSince(MoveCandidateCutoffUtc())
                     : Array.Empty<string>();
 
                 while (_eventBuffer.TryDequeue(out var item))

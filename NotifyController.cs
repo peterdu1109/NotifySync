@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Security.Claims;
@@ -29,6 +30,13 @@ namespace NotifySync
     [Route("NotifySync")]
     public class NotifyController : ControllerBase
     {
+        /// <summary>
+        /// How long an episode may stay hidden while it waits to be attached to its series.
+        /// A ceiling, not a delay: the moment Jellyfin attaches the series the notification
+        /// appears on the next refresh, typically within a minute.
+        /// </summary>
+        private const int SeriesLinkGraceMinutes = 10;
+
         private static readonly ConcurrentDictionary<string, byte[]> UserViewCache = new ();
         private static readonly ConcurrentDictionary<string, long> UserActionThrottle = new ();
         private static readonly Lazy<string?> _clientJsLazy = new (() =>
@@ -232,6 +240,21 @@ namespace NotifySync
             {
                 var normalizedId = NormalizeId(userId);
                 var hash = NotificationManager.Instance.GetVersionHash(normalizedId);
+                var allNotifs = NotificationManager.Instance.GetRecentNotifications();
+
+                // Holding an episode back until its series is attached is a time-based decision,
+                // and the cache key is not: without this the view would be frozen in the hidden
+                // state until something else in the library changed, and the grace period that is
+                // supposed to release it would never fire. While any episode is waiting, fold the
+                // current minute into the key so the view is rebuilt until they clear.
+                foreach (var pending in allNotifs)
+                {
+                    if (IsAwaitingSeriesLink(pending))
+                    {
+                        hash += "-w" + (DateTime.UtcNow.Ticks / TimeSpan.TicksPerMinute).ToString(CultureInfo.InvariantCulture);
+                        break;
+                    }
+                }
 
                 // ETag 304 support: if client already has this version, skip serialization
                 var ifNoneMatch = Request.Headers["If-None-Match"].ToString();
@@ -248,7 +271,6 @@ namespace NotifySync
                     return new FileContentResult(cachedData, "application/json");
                 }
 
-                var allNotifs = NotificationManager.Instance.GetRecentNotifications();
                 var user = _userManager.GetUserById(Guid.Parse(userId));
                 if (user == null)
                 {
@@ -274,6 +296,11 @@ namespace NotifySync
                     }
 
                     if (n.DateCreated.ToUniversalTime().Ticks <= clearedUntil)
+                    {
+                        continue;
+                    }
+
+                    if (IsAwaitingSeriesLink(n))
                     {
                         continue;
                     }
@@ -700,6 +727,30 @@ namespace NotifySync
         /// <returns><c>true</c> when the id is usable.</returns>
         private static bool IsResolvableId([NotNullWhen(true)] string? id)
             => !string.IsNullOrEmpty(id) && Guid.TryParse(id, out var g) && g != Guid.Empty;
+
+        /// <summary>
+        /// True while an episode is still waiting to be attached to its series, and recent enough
+        /// that the attachment is plausibly still coming.
+        /// <para>
+        /// Jellyfin creates episodes before linking them to their series — measured at about a
+        /// minute apart on a live scan. In that gap the bell has nothing to group them by and no
+        /// artwork to show, so a season arrives as a row of bare cards that then collapse into
+        /// one. Nothing is lost by waiting: the notification exists throughout, it is only held
+        /// back from display, and the grace period releases it anyway if the link never comes —
+        /// being told late beats never being told.
+        /// </para>
+        /// </summary>
+        /// <param name="n">The notification to test.</param>
+        /// <returns><c>true</c> while it should stay out of the bell.</returns>
+        private static bool IsAwaitingSeriesLink(NotificationItem n)
+        {
+            if (!string.Equals(n.Type, "Episode", StringComparison.Ordinal) || !string.IsNullOrEmpty(n.SeriesId))
+            {
+                return false;
+            }
+
+            return DateTime.UtcNow - n.DateCreated.ToUniversalTime() < TimeSpan.FromMinutes(SeriesLinkGraceMinutes);
+        }
 
         /// <summary>
         /// True when the notification carries an upgrade that landed *after* the user last

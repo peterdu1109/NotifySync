@@ -377,6 +377,53 @@ namespace NotifySync
         /// and <see cref="OnItemUpdated"/> (metadata-refresh recovery) so ClassifyUpgrade
         /// can compare the new file against the path of the file that was just deleted.
         /// </summary>
+        /// <summary>
+        /// True when two copies of a title are byte-for-byte the same size — the signature of
+        /// a file that was moved or renamed rather than replaced. A genuine re-encode always
+        /// changes the size, so this never masks a real upgrade.
+        /// </summary>
+        /// <param name="deletedSize">Size of the copy that disappeared.</param>
+        /// <param name="addedSize">Size of the copy that appeared.</param>
+        /// <returns><c>true</c> when both sizes are known and identical.</returns>
+        private static bool IsSameFileBackAgain(long? deletedSize, long? addedSize)
+            => deletedSize.HasValue && addedSize.HasValue && deletedSize.Value > 0 && deletedSize.Value == addedSize.Value;
+
+        /// <summary>
+        /// True when an existing notification describes the same title as the item being
+        /// removed, under a different id and with an identical size — i.e. the file has
+        /// already been re-added somewhere else and this removal is the tail of a move.
+        /// </summary>
+        /// <param name="candidate">An existing notification.</param>
+        /// <param name="removed">The item Jellyfin is removing.</param>
+        /// <returns><c>true</c> when the notification is the twin of the removed item.</returns>
+        private static bool IsSameFileReadded(NotificationItem candidate, BaseItem removed)
+        {
+            if (!IsSameFileBackAgain(removed.Size, candidate.Size))
+            {
+                return false;
+            }
+
+            string removedType = removed.GetType().Name;
+            if (!string.Equals(candidate.Type, removedType, StringComparison.Ordinal))
+            {
+                return false;
+            }
+
+            // Episodes are identified by their slot in the series, not by their title:
+            // the same episode can carry a different name across libraries (TBA, VO/VF).
+            if (removed is Episode episode)
+            {
+                return !string.IsNullOrEmpty(candidate.SeriesName)
+                    && string.Equals(candidate.SeriesName, episode.SeriesName, StringComparison.OrdinalIgnoreCase)
+                    && candidate.IndexNumber == removed.IndexNumber
+                    && candidate.ParentIndexNumber == removed.ParentIndexNumber;
+            }
+
+            return !string.IsNullOrEmpty(removed.Name)
+                && string.Equals(candidate.Name, removed.Name, StringComparison.OrdinalIgnoreCase)
+                && candidate.ProductionYear == removed.ProductionYear;
+        }
+
         private DeletedItemRecord? TryGetDeletedMatchRecord(string name, string type, int? year, string? seriesName, int? indexNumber, int? parentIndexNumber)
         {
             if (Plugin.Instance?.Configuration?.EnableDeletedTracking != true)
@@ -630,17 +677,33 @@ namespace NotifySync
                 // Without the RealItemId check, collection entries for a deleted media
                 // linger as zombies: GetData skips them (item unresolvable) but they
                 // still consume category-quota slots in memory and in the DB.
+                // Mirror of the move guard in ProcessBuffer. Which of the two fires depends
+                // on the order Jellyfin happens to scan the source and destination libraries
+                // in: if the add lands first, the notification already exists by the time the
+                // deletion reaches us, and only this side can catch it. Without both, the
+                // guard would work about one migration in two.
+                bool trackMoves = config != null && config.EnableDeletedTracking;
+
                 foreach (var n in _notifications)
                 {
                     if (n.Id == itemId || n.RealItemId == itemId)
                     {
                         removedIds.Add(n.Id);
                     }
+                    else if (trackMoves && IsSameFileReadded(n, e.Item))
+                    {
+                        _logger.LogInformation(
+                            "NotifySync Move Detected: {Name} | already re-added elsewhere with an identical size ({Size} bytes) — dropping its notification.",
+                            n.Name,
+                            n.Size);
+                        removedIds.Add(n.Id);
+                    }
                 }
 
                 if (removedIds.Count > 0)
                 {
-                    _notifications.RemoveAll(n => n.Id == itemId || n.RealItemId == itemId);
+                    var doomed = new HashSet<string>(removedIds, StringComparer.Ordinal);
+                    _notifications.RemoveAll(n => doomed.Contains(n.Id));
                     Interlocked.Increment(ref _versionCounter);
                 }
             }
@@ -910,6 +973,20 @@ namespace NotifySync
                                     kind,
                                     deletedRecord.FilePath ?? "NULL",
                                     notif.FilePath ?? "NULL");
+                            }
+                            else if (IsSameFileBackAgain(deletedRecord.Size, notif.Size))
+                            {
+                                // Moving a file between libraries (or between disks) makes
+                                // Jellyfin delete the old item and create a new one with a new
+                                // id, so it reaches us as a fresh add. A byte-for-byte identical
+                                // size against a recent deletion of the same episode is the
+                                // signature of that move — nothing was actually added, so
+                                // notifying would push real news out of everyone's bell.
+                                _logger.LogInformation(
+                                    "NotifySync Move Detected: {Name} | identical size ({Size} bytes) as a recently deleted copy — no notification created.",
+                                    notif.Name,
+                                    notif.Size);
+                                continue;
                             }
                             else
                             {

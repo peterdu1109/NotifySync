@@ -259,10 +259,8 @@
                 box-sizing: border-box;
             }
             /* Native <option> popups can't be themed dark reliably (Firefox applies
-               author colors inconsistently across rest/hover/selected states —
-               three attempts, three different glitches). Pragmatic compromise:
-               force a uniform LIGHT popup with black text. Not pretty against the
-               dark page, but readable in every state on every engine. */
+               author colors inconsistently across rest/hover states) — force a
+               uniform light popup with black text: readable everywhere. */
             .ns-select-input option {
                 background: #fff; color: #000;
             }
@@ -430,7 +428,10 @@
                                href="https://github.com/peterdu1109/NotifySync/releases/tag/v5.7.19.0"
                                target="_blank" rel="noopener"
                                title="Voir les release notes sur GitHub / View release notes on GitHub">
-                                <span class="ns-version" id="ns-version-badge">v5.7.19.0</span>
+                                <!-- Filled in from the running plugin. Deliberately empty: a
+                                     hardcoded number goes stale at the next release and then
+                                     lies about which version is installed. -->
+                                <span class="ns-version" id="ns-version-badge"></span>
                                 <span class="material-icons ns-version-icon">open_in_new</span>
                             </a>
                         </div>
@@ -881,14 +882,36 @@
                     // a per-release edit. The hardcoded value in the HTML is only a fallback
                     // if this lookup fails.
                     try {
-                        const plugins = await ApiClient.getPlugins();
+                        // Two ways in, because getPlugins() is a convenience helper that has
+                        // not always existed on every client build — when it is missing the
+                        // call throws, the badge silently kept its placeholder, and the page
+                        // reported a version that had not been installed for months.
+                        let plugins = [];
+                        try {
+                            plugins = await ApiClient.getPlugins();
+                        } catch (inner) {
+                            plugins = await ApiClient.getJSON(ApiClient.getUrl('Plugins'));
+                        }
                         // Match by GUID (normalized — Jellyfin may return it dash-less or
                         // upper-case, so a strict === on the dashed lowercase constant fails
                         // and the page silently showed the stale hard-coded version below),
                         // then fall back to the plugin name for full robustness.
                         const norm = (s) => (s || '').toString().replace(/-/g, '').toLowerCase();
-                        const me = plugins.find(p => norm(p.Id) === norm(this.pluginId))
-                            || plugins.find(p => p.Name === 'NotifySync');
+                        // Jellyfin returns ONE entry per installed version folder, all sharing
+                        // this GUID, so taking the first match showed whichever version happened
+                        // to come first — often an old superseded one. Prefer the entry Jellyfin
+                        // marks active, and fall back to the highest version number.
+                        const mine = plugins.filter(p => norm(p.Id) === norm(this.pluginId) || p.Name === 'NotifySync');
+                        const newestFirst = (a, b) => {
+                            const pa = String(a.Version || '0').split('.').map(n => parseInt(n, 10) || 0);
+                            const pb = String(b.Version || '0').split('.').map(n => parseInt(n, 10) || 0);
+                            for (let i = 0; i < 4; i++) {
+                                if ((pa[i] || 0) !== (pb[i] || 0)) return (pb[i] || 0) - (pa[i] || 0);
+                            }
+                            return 0;
+                        };
+                        const me = mine.filter(p => p.Status === 'Active').sort(newestFirst)[0]
+                            || mine.sort(newestFirst)[0];
                         if (me && me.Version) {
                             const v = 'v' + me.Version;
                             const badge = page.querySelector('#ns-version-badge');
@@ -896,7 +919,10 @@
                             if (badge) badge.textContent = v;
                             if (link) link.href = 'https://github.com/peterdu1109/NotifySync/releases/tag/' + v;
                         }
-                    } catch (e) { /* keep the static fallback in the HTML */ }
+                    } catch (e) {
+                        // Badge stays empty rather than showing a number we cannot vouch for.
+                        console.warn('NotifySync: could not read the installed plugin version.', e);
+                    }
 
                     // Plugin config fetch — this one is required; if it fails, abort load gracefully.
                     try {
@@ -918,8 +944,9 @@
                     try {
                         const versionEl = page.querySelector('#ns-version-badge');
                         const versionLink = page.querySelector('#ns-version-link');
-                        if (versionEl && versionLink) {
-                            const v = versionEl.textContent.trim().replace(/^v?/, 'v');
+                        const shown = versionEl ? versionEl.textContent.trim() : '';
+                        if (versionLink && shown) {
+                            const v = shown.replace(/^v?/, 'v');
                             versionLink.setAttribute('href', 'https://github.com/peterdu1109/NotifySync/releases/tag/' + v);
                         }
                     } catch (e) { /* non-critical */ }

@@ -394,11 +394,19 @@
         const container = el.parentElement;
         const before = el.previousElementSibling;
         const after = el.nextElementSibling;
-        const wouldOrphanHeading = before && before.classList.contains('ns-section')
-            && (!after || !after.classList.contains('dropdown-item'));
-        if (wouldOrphanHeading) return false;
+
+        // Last card of its section: the heading above goes with it, in the same breath.
+        // Leaving it for the re-render to clean up showed "Today" hanging over an empty
+        // gap for the length of the animation.
+        const orphanedHeading = before && before.classList.contains('ns-section')
+            && (!after || !after.classList.contains('dropdown-item'))
+            ? before
+            : null;
 
         el.remove();
+        if (orphanedHeading) orphanedHeading.remove();
+
+        // Nothing left: let the caller re-render so the empty state is drawn properly.
         return !!container.querySelector('.dropdown-item');
     };
 

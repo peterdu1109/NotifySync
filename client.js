@@ -13,6 +13,12 @@
     let lastPulseTime = 0;
     let previousDataIds = new Set();
     let lazyImageObserver = null;
+    // The HTML we last drew into the list. updateList used to compare against
+    // container.innerHTML read back from the DOM, which never matches what was written:
+    // the browser normalises it on the way out — measured, "&bull;" comes back as "•", and
+    // every card carries that separator. So the guard never held and the list was rebuilt
+    // on every refresh, recreating every <img> with it, several times an hour.
+    let lastRenderedHtml = null;
 
     const markReadOnServer = async (itemIds) => {
         const userId = getUserId();
@@ -592,7 +598,10 @@
         return se ? `${se} - ${item.Name}` : item.Name;
     };
 
-    const updateList = (drop) => {
+    // syncOnly: recompute and record what the list *should* look like without touching the
+    // DOM. Used after a card is taken out in place, so the next refresh recognises the DOM
+    // as current instead of rebuilding it.
+    const updateList = (drop, syncOnly) => {
         if (!drop) return;
         const container = drop.querySelector('.list-container');
         let filtered = groupedData || [];
@@ -623,7 +632,18 @@
             pill.onclick = () => document.dispatchEvent(new CustomEvent('ns-filter', { detail: pill.dataset.category }));
         });
 
-        if (filtered.length === 0) { container.innerHTML = `<div style="padding:60px 20px;text-align:center;color:#666;font-style:italic;">${firstLoadDone ? T.empty : T.loading}</div>`; return; }
+        if (filtered.length === 0) {
+            const emptyHtml = `<div style="padding:60px 20px;text-align:center;color:#666;font-style:italic;">${firstLoadDone ? T.empty : T.loading}</div>`;
+            if (syncOnly) { lastRenderedHtml = emptyHtml; return; }
+            // A leftover card in the DOM means it is not showing the empty state at all,
+            // whatever we last recorded — draw it.
+            if (lastRenderedHtml !== emptyHtml || container.querySelector('.dropdown-item')) {
+                container.innerHTML = emptyHtml;
+                lastRenderedHtml = emptyHtml;
+            }
+
+            return;
+        }
 
         const htmlParts = [];
         const client = window.ApiClient;
@@ -676,8 +696,20 @@
             htmlParts.push(`<div class="footer-tools" data-action="clearcat" data-category="${escapeHtml(activeFilter)}">${T.clearCat} ${catLabel}</div>`);
         }
         const finalHtml = htmlParts.join('');
-        if (container.innerHTML !== finalHtml) {
+
+        // The DOM is left alone only when it is provably still what we drew: same HTML, and
+        // the same number of cards actually present. That second check is what makes a
+        // desync self-healing — anything that edited the list behind our back forces a real
+        // render on the next pass, rather than freezing the bell on stale content.
+        const expectedCards = finalHtml.split('class="dropdown-item').length - 1;
+        const upToDate = lastRenderedHtml === finalHtml
+            && container.querySelectorAll('.dropdown-item').length === expectedCards;
+
+        if (syncOnly) {
+            lastRenderedHtml = finalHtml;
+        } else if (!upToDate) {
             container.innerHTML = finalHtml;
+            lastRenderedHtml = finalHtml;
             if (lazyImageObserver) lazyImageObserver.disconnect();
             lazyImageObserver = new IntersectionObserver((entries, o) => { entries.forEach(e => { if (e.isIntersecting) { const i = e.target; i.onload = () => i.classList.add('loaded'); i.src = i.dataset.src; o.unobserve(i); } }); });
             container.querySelectorAll('img[data-src]').forEach(i => lazyImageObserver.observe(i));
@@ -828,8 +860,15 @@
                     recalculateNewStatus();
 
                     setTimeout(() => {
-                        if (removeCardInPlace(itemId)) return;
                         const d = document.getElementById('notification-dropdown');
+                        if (removeCardInPlace(itemId)) {
+                            // The DOM is now one card ahead of what we recorded. Bring the
+                            // record in line without redrawing, so the next refresh sees the
+                            // list as current instead of rebuilding it.
+                            if (d) updateList(d, true);
+                            return;
+                        }
+
                         if (d) updateList(d);
                     }, 300); // Wait for animation to finish
 
@@ -849,10 +888,15 @@
             }
 
             drop.innerHTML = `<div class="dropdown-header"><span class="header-title">${T.header}</span></div><div class="filter-bar"></div><div class="list-container"></div>`;
+            lastRenderedHtml = null; // the list container is brand new — nothing drawn yet
         }
         if (!backdrop) { const b = document.createElement('div'); b.id = 'notify-backdrop'; b.onclick = closeDropdown; document.body.appendChild(b); }
 
         if (drop.style.display !== 'flex') {
+            // Opening is the one moment the user is certainly looking: redraw from scratch
+            // rather than trust the record. It also bounds any desync to a single session
+            // of the panel being open.
+            lastRenderedHtml = null;
             lastFetchTime = 0; // Bypass throttle on explicit user click
             retryDelay = 1000; // Explicit open = "load now": keep the auth retry snappy
                                // instead of letting the click grow the backoff.

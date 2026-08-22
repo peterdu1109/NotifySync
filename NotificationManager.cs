@@ -626,7 +626,7 @@ namespace NotifySync
             // On a live server, moving a library folder produced no deletion record at all while
             // deleting one episode by hand produced one instantly, and nothing in this code
             // explains the difference. This says what actually arrives.
-            _logger.LogInformation(
+            _logger.LogWarning(
                 "NotifySync DIAG Removal: name={Name} | type={Type} | isFolder={IsFolder} | series={Series} | S{Season}E{Episode} | size={Size} | path={Path}",
                 e.Item.Name ?? "NULL",
                 e.Item.GetType().Name,
@@ -667,7 +667,7 @@ namespace NotifySync
                     _db.SaveDeletedItem(item.Id.ToString(), item.Name ?? "Unknown", type, seriesName, year, indexNum, parentIndexNum, filePath, size);
 
                     // DIAGNOSTIC BUILD ONLY — confirms the row was written and with what.
-                    _logger.LogInformation(
+                    _logger.LogWarning(
                         "NotifySync DIAG Tracked: name={Name} | type={Type} | series={Series} | S{Season}E{Episode} | size={Size}",
                         item.Name ?? "NULL",
                         type,
@@ -693,7 +693,7 @@ namespace NotifySync
             else
             {
                 // DIAGNOSTIC BUILD ONLY — says which filter dropped this removal.
-                _logger.LogInformation(
+                _logger.LogWarning(
                     "NotifySync DIAG Skipped: name={Name} | configNull={NoConfig} | tracking={Tracking} | isFolder={IsFolder} | isFolderType={IsFolderType}",
                     e.Item.Name ?? "NULL",
                     config == null,
@@ -1020,7 +1020,7 @@ namespace NotifySync
 
                         // DIAGNOSTIC BUILD ONLY — raised from Debug so it shows at the default
                         // log level, next to the removal lines it needs to be read against.
-                        _logger.LogInformation(
+                        _logger.LogWarning(
                             "NotifySync DIAG Add: {Name} | type={Type} | series={Series} | S{Season}E{Episode} | size={Size} | deletedMatch={Match}",
                             notif.Name,
                             notif.Type,

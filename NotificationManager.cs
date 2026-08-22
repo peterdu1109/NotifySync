@@ -28,6 +28,15 @@ namespace NotifySync
         private const int DatabaseCategoryLimit = 100;
         private const int GlobalRetentionLimit = 2000;
 
+        /// <summary>
+        /// How long a removed folder stays a candidate for move detection. Measured on a live
+        /// server, the folder removal and the re-added episodes were six seconds apart — same
+        /// scan. The margin is for libraries scanned separately; it stays far shorter than the
+        /// seven-day upgrade window, so re-downloading a series deleted last week is still
+        /// announced as new.
+        /// </summary>
+        private const int MovedFolderWindowHours = 6;
+
         // Upgrade kind constants. Stored in NotificationItem.UpgradeKind and read by the
         // client to render a precise sub-label next to the UPD/MAJ badge.
         // We deliberately surface only three kinds; anything that doesn't match one of
@@ -378,6 +387,63 @@ namespace NotifySync
         /// can compare the new file against the path of the file that was just deleted.
         /// </summary>
         /// <summary>
+        /// True when the new file sits under a folder that was removed from somewhere else a
+        /// moment ago — i.e. it did not arrive, it moved.
+        /// <para>
+        /// Jellyfin identifies items by path, so relocating a series produces a removal for the
+        /// series FOLDER (never for its episodes) and then a fresh add per episode, with no
+        /// series name and no season/episode numbers yet. Nothing in that pair can be matched on
+        /// metadata. What does survive the move is the folder's own name, present on both sides.
+        /// </para>
+        /// </summary>
+        /// <param name="filePath">The new file's path.</param>
+        /// <param name="deletedFolders">Folder paths removed recently, fetched once per batch.</param>
+        /// <param name="matched">The folder that matched, for logging.</param>
+        /// <returns><c>true</c> when this add is the tail of a move.</returns>
+        private static bool CameFromDeletedFolder(string? filePath, IReadOnlyList<string> deletedFolders, out string matched)
+        {
+            matched = string.Empty;
+            if (string.IsNullOrEmpty(filePath) || deletedFolders.Count == 0)
+            {
+                return false;
+            }
+
+            var segments = filePath.Split('/', '\\');
+
+            // The last segment is the file itself; only its ancestors can be the moved folder.
+            for (int i = 0; i < segments.Length - 1; i++)
+            {
+                if (string.IsNullOrEmpty(segments[i]))
+                {
+                    continue;
+                }
+
+                foreach (var folder in deletedFolders)
+                {
+                    string trimmed = folder.TrimEnd('/', '\\');
+                    string folderName = trimmed.Split('/', '\\').LastOrDefault() ?? string.Empty;
+                    if (folderName.Length == 0 || !string.Equals(folderName, segments[i], StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
+
+                    // Same name rebuilt at the same absolute location means the series never
+                    // went anywhere — a refresh that dropped and re-created it in place.
+                    string rebuilt = string.Join('/', segments.Take(i + 1));
+                    if (string.Equals(rebuilt, trimmed.Replace('\\', '/'), StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
+
+                    matched = folder;
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
         /// True when two copies of a title are byte-for-byte the same size — the signature of
         /// a file that was moved or renamed rather than replaced. A genuine re-encode always
         /// changes the size, so this never masks a real upgrade.
@@ -651,7 +717,16 @@ namespace NotifySync
             // return an incomplete list. Filtering at this point breaks upgrade detection for the
             // delete+re-import scenario (scenario 2) where the new file lands with a different ID.
             var config = Plugin.Instance?.Configuration;
-            if (config != null && config.EnableDeletedTracking && !e.Item.IsFolder && !(e.Item is Folder))
+
+            // Folders used to be skipped outright. They cannot be: when a series is moved to
+            // another library, Jellyfin announces the SERIES FOLDER and never its episodes —
+            // measured on a live server, one removal for the folder, none for the four episodes
+            // that then arrived as adds. The folder's own path is the only trace left of where
+            // those files came from, and its last segment survives the move unchanged.
+            // Folders without a path (Jellyfin also emits phantom "Saison inconnue" seasons)
+            // carry nothing usable, so they stay out.
+            bool isFolderItem = e.Item.IsFolder || e.Item is Folder;
+            if (config != null && config.EnableDeletedTracking && (!isFolderItem || !string.IsNullOrEmpty(e.Item.Path)))
             {
                 try
                 {
@@ -720,6 +795,13 @@ namespace NotifySync
                 // guard would work about one migration in two.
                 bool trackMoves = config != null && config.EnableDeletedTracking;
 
+                // A folder leaving is the only announcement Jellyfin makes when a series is
+                // relocated. If its episodes were re-added first, their notifications already
+                // exist and this is the last chance to recognise them.
+                var goneFolder = trackMoves && isFolderItem && !string.IsNullOrEmpty(e.Item.Path)
+                    ? new[] { e.Item.Path! }
+                    : Array.Empty<string>();
+
                 foreach (var n in _notifications)
                 {
                     if (n.Id == itemId || n.RealItemId == itemId)
@@ -732,6 +814,14 @@ namespace NotifySync
                             "NotifySync Move Detected: {Name} | already re-added elsewhere with an identical size ({Size} bytes) — dropping its notification.",
                             n.Name,
                             n.Size);
+                        removedIds.Add(n.Id);
+                    }
+                    else if (CameFromDeletedFolder(n.FilePath, goneFolder, out var leftFolder))
+                    {
+                        _logger.LogWarning(
+                            "NotifySync Move Detected: {Name} — already re-added elsewhere before \"{From}\" was reported gone; dropping its notification.",
+                            n.Name,
+                            leftFolder);
                         removedIds.Add(n.Id);
                     }
                 }
@@ -972,6 +1062,13 @@ namespace NotifySync
             try
             {
                 var newItems = new List<NotificationItem>();
+
+                // Fetched once for the whole batch: a scan can hand us hundreds of adds and
+                // this list changes only when a folder disappears.
+                var deletedFolders = Plugin.Instance?.Configuration?.EnableDeletedTracking == true
+                    ? _db.GetRecentlyDeletedFolderPaths(MovedFolderWindowHours)
+                    : Array.Empty<string>();
+
                 while (_eventBuffer.TryDequeue(out var item))
                 {
                     if (item == null)
@@ -1004,6 +1101,15 @@ namespace NotifySync
                             _logger.LogDebug(
                                 "NotifySync ProcessBuffer: skipping existing item {Name}",
                                 notif.Name);
+                            continue;
+                        }
+
+                        if (CameFromDeletedFolder(notif.FilePath, deletedFolders, out var movedFrom))
+                        {
+                            _logger.LogWarning(
+                                "NotifySync Move Detected: {Name} — its folder left \"{From}\" moments ago; no notification created.",
+                                notif.Name,
+                                movedFrom);
                             continue;
                         }
 

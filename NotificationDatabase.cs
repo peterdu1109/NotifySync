@@ -960,6 +960,50 @@ namespace NotifySync
         }
 
         /// <summary>
+        /// Returns the paths of container items — series and season folders — removed within
+        /// the given window.
+        /// <para>
+        /// When a series is moved to another library, Jellyfin announces the removal of the
+        /// SERIES FOLDER and never of its episodes; the episodes simply reappear as adds. The
+        /// folder's path is therefore the only trace of where those files came from, and its
+        /// last segment is unchanged by the move — which makes it the one link between the two
+        /// halves of the operation that needs no metadata at all.
+        /// </para>
+        /// </summary>
+        /// <param name="withinHours">How far back to look.</param>
+        /// <returns>The recorded folder paths.</returns>
+        public IReadOnlyList<string> GetRecentlyDeletedFolderPaths(int withinHours)
+        {
+            var result = new List<string>();
+            try
+            {
+                using var connection = new SqliteConnection(_connectionString);
+                connection.Open();
+                using var cmd = connection.CreateCommand();
+                cmd.CommandText = @"
+                    SELECT FilePath FROM DeletedItems
+                    WHERE FilePath IS NOT NULL AND FilePath <> ''
+                      AND Type IN ('Series', 'Season', 'Folder')
+                      AND DeletedAt > @Cutoff";
+                cmd.Parameters.AddWithValue("@Cutoff", DateTime.UtcNow.AddHours(-withinHours).ToString("O"));
+                using var reader = cmd.ExecuteReader();
+                while (reader.Read())
+                {
+                    if (!reader.IsDBNull(0))
+                    {
+                        result.Add(reader.GetString(0));
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "NotifySync: Error reading recently deleted folders.");
+            }
+
+            return result;
+        }
+
+        /// <summary>
         /// Retrieves deleted items with pagination, ordered by most recent first.
         /// </summary>
         /// <param name="limit">Maximum number of records to return.</param>
@@ -973,7 +1017,13 @@ namespace NotifySync
                 using var connection = new SqliteConnection(_connectionString);
                 connection.Open();
                 using var cmd = connection.CreateCommand();
-                cmd.CommandText = "SELECT Id, ItemId, Name, Type, SeriesName, ProductionYear, IndexNumber, ParentIndexNumber, DeletedAt, FilePath, MatchedNotificationId FROM DeletedItems ORDER BY DeletedAt DESC LIMIT @Limit OFFSET @Offset";
+                // Container rows (series/season folders) are bookkeeping for move detection,
+                // not media the user deleted — they would only clutter the admin tab.
+                cmd.CommandText = @"
+                    SELECT Id, ItemId, Name, Type, SeriesName, ProductionYear, IndexNumber, ParentIndexNumber, DeletedAt, FilePath, MatchedNotificationId
+                    FROM DeletedItems
+                    WHERE Type NOT IN ('Series', 'Season', 'Folder')
+                    ORDER BY DeletedAt DESC LIMIT @Limit OFFSET @Offset";
                 cmd.Parameters.AddWithValue("@Limit", limit > 0 ? limit : 200);
                 cmd.Parameters.AddWithValue("@Offset", offset >= 0 ? offset : 0);
                 using var reader = cmd.ExecuteReader();

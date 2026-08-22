@@ -622,6 +622,21 @@ namespace NotifySync
                 return;
             }
 
+            // DIAGNOSTIC BUILD ONLY — logs every removal Jellyfin hands us, before any filter.
+            // On a live server, moving a library folder produced no deletion record at all while
+            // deleting one episode by hand produced one instantly, and nothing in this code
+            // explains the difference. This says what actually arrives.
+            _logger.LogInformation(
+                "NotifySync DIAG Removal: name={Name} | type={Type} | isFolder={IsFolder} | series={Series} | S{Season}E{Episode} | size={Size} | path={Path}",
+                e.Item.Name ?? "NULL",
+                e.Item.GetType().Name,
+                e.Item.IsFolder,
+                (e.Item as Episode)?.SeriesName ?? "NULL",
+                e.Item.ParentIndexNumber,
+                e.Item.IndexNumber,
+                e.Item.Size,
+                e.Item.Path ?? "NULL");
+
             // Live TV recordings/programs cycle naturally (recording ends, viewer dismisses, etc.)
             // and they don't carry a meaningful file path nor any "upgrade" semantics — tracking
             // their deletions just pollutes the admin Deletions tab without serving any purpose.
@@ -651,6 +666,16 @@ namespace NotifySync
 
                     _db.SaveDeletedItem(item.Id.ToString(), item.Name ?? "Unknown", type, seriesName, year, indexNum, parentIndexNum, filePath, size);
 
+                    // DIAGNOSTIC BUILD ONLY — confirms the row was written and with what.
+                    _logger.LogInformation(
+                        "NotifySync DIAG Tracked: name={Name} | type={Type} | series={Series} | S{Season}E{Episode} | size={Size}",
+                        item.Name ?? "NULL",
+                        type,
+                        seriesName ?? "NULL",
+                        parentIndexNum,
+                        indexNum,
+                        size);
+
                     // Purge at most once per day to avoid unnecessary DB writes
                     var nowTicks = DateTime.UtcNow.Ticks;
                     var lastPurge = Interlocked.Read(ref _lastPurgeTicks);
@@ -664,6 +689,17 @@ namespace NotifySync
                 {
                     _logger.LogError(ex, "NotifySync: Error tracking deletion of {Name}.", e.Item.Name);
                 }
+            }
+            else
+            {
+                // DIAGNOSTIC BUILD ONLY — says which filter dropped this removal.
+                _logger.LogInformation(
+                    "NotifySync DIAG Skipped: name={Name} | configNull={NoConfig} | tracking={Tracking} | isFolder={IsFolder} | isFolderType={IsFolderType}",
+                    e.Item.Name ?? "NULL",
+                    config == null,
+                    config?.EnableDeletedTracking,
+                    e.Item.IsFolder,
+                    e.Item is Folder);
             }
 
             var itemId = e.Item.Id.ToString();
@@ -982,11 +1018,16 @@ namespace NotifySync
                             notif.IndexNumber,
                             notif.ParentIndexNumber);
 
-                        _logger.LogDebug(
-                            "NotifySync ProcessBuffer: {Name} Type={Type} Year={Year} | deletedMatch={Match}",
+                        // DIAGNOSTIC BUILD ONLY — raised from Debug so it shows at the default
+                        // log level, next to the removal lines it needs to be read against.
+                        _logger.LogInformation(
+                            "NotifySync DIAG Add: {Name} | type={Type} | series={Series} | S{Season}E{Episode} | size={Size} | deletedMatch={Match}",
                             notif.Name,
                             notif.Type,
-                            notif.ProductionYear,
+                            notif.SeriesName ?? "NULL",
+                            notif.ParentIndexNumber,
+                            notif.IndexNumber,
+                            notif.Size,
                             deletedRecord != null);
 
                         if (!notif.IsUpgrade && deletedRecord != null)

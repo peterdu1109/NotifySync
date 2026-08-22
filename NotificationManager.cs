@@ -735,6 +735,7 @@ namespace NotifySync
             bool dbNeedsUpdate = false;
             NotificationItem? updatedNotif = null;
             bool isGhostItemRescue = false;
+            bool movedElsewhere = false;
 
             try
             {
@@ -816,6 +817,20 @@ namespace NotifySync
                                         updatedNotif.Name,
                                         kind);
                                 }
+                                else if (IsSameFileBackAgain(deletedRecord.Size, updatedNotif.Size))
+                                {
+                                    // Same recovery, for the move guard. At ItemAdded time an
+                                    // episode has no SeriesName yet — Jellyfin links it to its
+                                    // series afterwards — so the lookup in ProcessBuffer finds
+                                    // nothing and the notification gets created as brand new.
+                                    // Now that the metadata is complete the deletion matches,
+                                    // and an identical size means the file merely moved.
+                                    movedElsewhere = true;
+                                    _logger.LogInformation(
+                                        "NotifySync Move Detected (recovered on metadata refresh): {Name} | identical size ({Size} bytes) as a recently deleted copy — dropping its notification.",
+                                        updatedNotif.Name,
+                                        updatedNotif.Size);
+                                }
                                 else
                                 {
                                     updatedNotif.DateCreated = existing.DateCreated;
@@ -837,7 +852,18 @@ namespace NotifySync
                             updatedNotif.UpgradeKind = existing.UpgradeKind;
                         }
 
-                        _notifications[existingIndex] = updatedNotif;
+                        if (movedElsewhere)
+                        {
+                            // Leaving updatedNotif null makes the persistence step below
+                            // delete the row instead of saving it.
+                            _notifications.RemoveAt(existingIndex);
+                            updatedNotif = null;
+                        }
+                        else
+                        {
+                            _notifications[existingIndex] = updatedNotif;
+                        }
+
                         dbNeedsUpdate = true;
                         Interlocked.Increment(ref _versionCounter);
                     }
@@ -890,7 +916,12 @@ namespace NotifySync
                 }
                 else
                 {
-                    _db.DeleteNotifications(new[] { e.Item.Id.ToString() });
+                    var goneId = e.Item.Id.ToString();
+                    _db.DeleteNotifications(new[] { goneId });
+
+                    // Drop the per-user read/dismissed rows too, otherwise a stale "already
+                    // read" state would silently apply if this id ever came back.
+                    _db.DeleteStatesForNotification(goneId);
                 }
             }
         }

@@ -970,9 +970,9 @@ namespace NotifySync
         /// halves of the operation that needs no metadata at all.
         /// </para>
         /// </summary>
-        /// <param name="withinHours">How far back to look.</param>
+        /// <param name="withinMinutes">How far back to look.</param>
         /// <returns>The recorded folder paths.</returns>
-        public IReadOnlyList<string> GetRecentlyDeletedFolderPaths(int withinHours)
+        public IReadOnlyList<string> GetRecentlyDeletedFolderPaths(int withinMinutes)
         {
             var result = new List<string>();
             try
@@ -985,7 +985,7 @@ namespace NotifySync
                     WHERE FilePath IS NOT NULL AND FilePath <> ''
                       AND Type IN ('Series', 'Season', 'Folder')
                       AND DeletedAt > @Cutoff";
-                cmd.Parameters.AddWithValue("@Cutoff", DateTime.UtcNow.AddHours(-withinHours).ToString("O"));
+                cmd.Parameters.AddWithValue("@Cutoff", DateTime.UtcNow.AddMinutes(-withinMinutes).ToString("O"));
                 using var reader = cmd.ExecuteReader();
                 while (reader.Read())
                 {

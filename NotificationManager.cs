@@ -31,16 +31,21 @@ namespace NotifySync
         /// <summary>
         /// How long a removed folder stays a candidate for move detection.
         /// <para>
-        /// This only covers the order where the source library is scanned FIRST: the folder has
+        /// It only covers the order where the source library is scanned FIRST — the folder has
         /// to still be on record when the episodes reappear. Measured on a live server those two
-        /// moments were six seconds apart — the same scan — so an hour is six hundred times the
+        /// moments were six seconds apart, the same scan, so five minutes is fifty times the
         /// observed gap. The opposite order needs no window at all: the removal-side mirror
         /// matches against notifications still in the bell, however long afterwards it arrives.
-        /// Kept deliberately short so that re-downloading a series deleted earlier today is
-        /// still announced as new.
+        /// </para>
+        /// <para>
+        /// Deliberately short, because the two failure modes are not equally bad. Missing a move
+        /// shows one card too many — visible, and it ages out. Overreaching swallows a genuine
+        /// addition in silence, which is the one thing a notification plugin must never do: a
+        /// series deleted and re-downloaded elsewhere would go unannounced. Five minutes is far
+        /// too short for that to happen by accident.
         /// </para>
         /// </summary>
-        private const int MovedFolderWindowHours = 1;
+        private const int MovedFolderWindowMinutes = 5;
 
         // Upgrade kind constants. Stored in NotificationItem.UpgradeKind and read by the
         // client to render a precise sub-label next to the UPD/MAJ badge.
@@ -1071,7 +1076,7 @@ namespace NotifySync
                 // Fetched once for the whole batch: a scan can hand us hundreds of adds and
                 // this list changes only when a folder disappears.
                 var deletedFolders = Plugin.Instance?.Configuration?.EnableDeletedTracking == true
-                    ? _db.GetRecentlyDeletedFolderPaths(MovedFolderWindowHours)
+                    ? _db.GetRecentlyDeletedFolderPaths(MovedFolderWindowMinutes)
                     : Array.Empty<string>();
 
                 while (_eventBuffer.TryDequeue(out var item))

@@ -466,7 +466,20 @@
 
             const res = await fetch(`/NotifySync/Data?userId=${userId}`, { headers: headers });
 
-            if (res.status === 304) {
+            if (res.status === 304 && currentData.length === 0) {
+                // "Nothing changed" only means something if we still hold what it refers to.
+                // After a restart the list starts empty, and an event-driven fetch — a
+                // reconnect, the app coming back to the foreground — can land before the
+                // cached copy is restored, or the cache can expire moments later and be
+                // wiped. Believing the 304 then paints "You're all caught up" over a bell
+                // that simply never loaded, and nothing asks again for five minutes.
+                // Reported after an app crash, and this is the only path that produces it.
+                localStorage.removeItem(nsKey('etag'));
+                lastFetchTime = 0;
+                if (pollTimeout) clearTimeout(pollTimeout);
+                pollTimeout = setTimeout(fetchData, 50); // isFetching clears in finally first
+            }
+            else if (res.status === 304) {
                 // Data unchanged, recalculate with existing state
                 firstLoadDone = true;
                 recalculateNewStatus();
@@ -478,9 +491,12 @@
                 const hasNewItems = json.some(i => !previousDataIds.has(i.Id));
 
                 currentData = json;
+                // Data before the ETag, never the reverse: the ETag is a claim about what we
+                // have stored, so storing it first leaves a window where it vouches for data
+                // that was never written.
+                localStorage.setItem(nsKey('data'), JSON.stringify(currentData)); localStorage.setItem(nsKey('data-ts'), Date.now().toString());
                 const newEtag = res.headers.get('ETag');
                 if (newEtag) localStorage.setItem(nsKey('etag'), newEtag);
-                localStorage.setItem(nsKey('data'), JSON.stringify(currentData)); localStorage.setItem(nsKey('data-ts'), Date.now().toString());
 
                 // Server already filters out played items in GetData().
                 firstLoadDone = true;
@@ -549,6 +565,10 @@
                     previousDataIds = new Set(currentData.map(i => i.Id));
                     recalculateNewStatus();
                 } catch (pe) { localStorage.removeItem(nsKey('data')); localStorage.removeItem(nsKey('etag')); localStorage.removeItem(nsKey('data-ts')); }
+            } else {
+                // Same invariant as everywhere else: an ETag with no stored list vouches for
+                // nothing, and would earn a 304 that leaves the bell empty.
+                localStorage.removeItem(nsKey('etag'));
             }
             // Migrate legacy etag if present
             getWithLegacy('etag');

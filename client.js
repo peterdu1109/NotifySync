@@ -1,4 +1,4 @@
-/* NOTIFYSYNC V5.7.19.0 (Jellyfin 12 preview) */
+/* NOTIFYSYNC V5.8.0.0 (Jellyfin 12 preview) */
 (function () {
     let currentData = [];
     let groupedData = [];
@@ -13,6 +13,12 @@
     let lastPulseTime = 0;
     let previousDataIds = new Set();
     let lazyImageObserver = null;
+    // The HTML we last drew into the list. updateList used to compare against
+    // container.innerHTML read back from the DOM, which never matches what was written:
+    // the browser normalises it on the way out — measured, "&bull;" comes back as "•", and
+    // every card carries that separator. So the guard never held and the list was rebuilt
+    // on every refresh, recreating every <img> with it, several times an hour.
+    let lastRenderedHtml = null;
 
     const markReadOnServer = async (itemIds) => {
         const userId = getUserId();
@@ -387,6 +393,34 @@
         if (drop) updateList(drop);
     };
 
+    // Takes one card out of the open list without rebuilding it. A full re-render rewrites
+    // the container's innerHTML, which destroys and recreates every <img> and re-arms the
+    // lazy loader — on a phone that reads as the whole panel reloading for a second.
+    // Returns false when the surrounding structure would break, and the caller falls back
+    // to a real re-render: a section heading left with nothing under it, or an emptied list.
+    const removeCardInPlace = (itemId) => {
+        const el = document.querySelector(`.dropdown-item[data-item-id="${CSS.escape(itemId)}"]`);
+        if (!el || !el.parentElement) return false;
+
+        const container = el.parentElement;
+        const before = el.previousElementSibling;
+        const after = el.nextElementSibling;
+
+        // Last card of its section: the heading above goes with it, in the same breath.
+        // Leaving it for the re-render to clean up showed "Today" hanging over an empty
+        // gap for the length of the animation.
+        const orphanedHeading = before && before.classList.contains('ns-section')
+            && (!after || !after.classList.contains('dropdown-item'))
+            ? before
+            : null;
+
+        el.remove();
+        if (orphanedHeading) orphanedHeading.remove();
+
+        // Nothing left: let the caller re-render so the empty state is drawn properly.
+        return !!container.querySelector('.dropdown-item');
+    };
+
     const recalculateNewStatus = () => {
         // IsNew = unread; drives the red bell counter (cleared on open). The NEW/UPD
         // pill itself no longer fades on a timer — recency is carried by the
@@ -437,7 +471,20 @@
 
             const res = await fetch(`/NotifySync/Data?userId=${userId}`, { headers: headers });
 
-            if (res.status === 304) {
+            if (res.status === 304 && currentData.length === 0) {
+                // "Nothing changed" only means something if we still hold what it refers to.
+                // After a restart the list starts empty, and an event-driven fetch — a
+                // reconnect, the app coming back to the foreground — can land before the
+                // cached copy is restored, or the cache can expire moments later and be
+                // wiped. Believing the 304 then paints "You're all caught up" over a bell
+                // that simply never loaded, and nothing asks again for five minutes.
+                // Reported after an app crash, and this is the only path that produces it.
+                localStorage.removeItem(nsKey('etag'));
+                lastFetchTime = 0;
+                if (pollTimeout) clearTimeout(pollTimeout);
+                pollTimeout = setTimeout(fetchData, 50); // isFetching clears in finally first
+            }
+            else if (res.status === 304) {
                 // Data unchanged, recalculate with existing state
                 firstLoadDone = true;
                 recalculateNewStatus();
@@ -449,9 +496,12 @@
                 const hasNewItems = json.some(i => !previousDataIds.has(i.Id));
 
                 currentData = json;
+                // Data before the ETag, never the reverse: the ETag is a claim about what we
+                // have stored, so storing it first leaves a window where it vouches for data
+                // that was never written.
+                localStorage.setItem(nsKey('data'), JSON.stringify(currentData)); localStorage.setItem(nsKey('data-ts'), Date.now().toString());
                 const newEtag = res.headers.get('ETag');
                 if (newEtag) localStorage.setItem(nsKey('etag'), newEtag);
-                localStorage.setItem(nsKey('data'), JSON.stringify(currentData)); localStorage.setItem(nsKey('data-ts'), Date.now().toString());
 
                 // Server already filters out played items in GetData().
                 firstLoadDone = true;
@@ -520,6 +570,10 @@
                     previousDataIds = new Set(currentData.map(i => i.Id));
                     recalculateNewStatus();
                 } catch (pe) { localStorage.removeItem(nsKey('data')); localStorage.removeItem(nsKey('etag')); localStorage.removeItem(nsKey('data-ts')); }
+            } else {
+                // Same invariant as everywhere else: an ETag with no stored list vouches for
+                // nothing, and would earn a 304 that leaves the bell empty.
+                localStorage.removeItem(nsKey('etag'));
             }
             // Migrate legacy etag if present
             getWithLegacy('etag');
@@ -569,7 +623,10 @@
         return se ? `${se} - ${item.Name}` : item.Name;
     };
 
-    const updateList = (drop) => {
+    // syncOnly: recompute and record what the list *should* look like without touching the
+    // DOM. Used after a card is taken out in place, so the next refresh recognises the DOM
+    // as current instead of rebuilding it.
+    const updateList = (drop, syncOnly) => {
         if (!drop) return;
         const container = drop.querySelector('.list-container');
         let filtered = groupedData || [];
@@ -600,7 +657,18 @@
             pill.onclick = () => document.dispatchEvent(new CustomEvent('ns-filter', { detail: pill.dataset.category }));
         });
 
-        if (filtered.length === 0) { container.innerHTML = `<div style="padding:60px 20px;text-align:center;color:#666;font-style:italic;">${firstLoadDone ? T.empty : T.loading}</div>`; return; }
+        if (filtered.length === 0) {
+            const emptyHtml = `<div style="padding:60px 20px;text-align:center;color:#666;font-style:italic;">${firstLoadDone ? T.empty : T.loading}</div>`;
+            if (syncOnly) { lastRenderedHtml = emptyHtml; return; }
+            // A leftover card in the DOM means it is not showing the empty state at all,
+            // whatever we last recorded — draw it.
+            if (lastRenderedHtml !== emptyHtml || container.querySelector('.dropdown-item')) {
+                container.innerHTML = emptyHtml;
+                lastRenderedHtml = emptyHtml;
+            }
+
+            return;
+        }
 
         const htmlParts = [];
         const client = window.ApiClient;
@@ -653,8 +721,20 @@
             htmlParts.push(`<div class="footer-tools" data-action="clearcat" data-category="${escapeHtml(activeFilter)}">${T.clearCat} ${catLabel}</div>`);
         }
         const finalHtml = htmlParts.join('');
-        if (container.innerHTML !== finalHtml) {
+
+        // The DOM is left alone only when it is provably still what we drew: same HTML, and
+        // the same number of cards actually present. That second check is what makes a
+        // desync self-healing — anything that edited the list behind our back forces a real
+        // render on the next pass, rather than freezing the bell on stale content.
+        const expectedCards = finalHtml.split('class="dropdown-item').length - 1;
+        const upToDate = lastRenderedHtml === finalHtml
+            && container.querySelectorAll('.dropdown-item').length === expectedCards;
+
+        if (syncOnly) {
+            lastRenderedHtml = finalHtml;
+        } else if (!upToDate) {
             container.innerHTML = finalHtml;
+            lastRenderedHtml = finalHtml;
             if (lazyImageObserver) lazyImageObserver.disconnect();
             lazyImageObserver = new IntersectionObserver((entries, o) => { entries.forEach(e => { if (e.isIntersecting) { const i = e.target; i.onload = () => i.classList.add('loaded'); i.src = i.dataset.src; o.unobserve(i); } }); });
             container.querySelectorAll('img[data-src]').forEach(i => lazyImageObserver.observe(i));
@@ -795,33 +875,62 @@
                     const el = document.querySelector(`.dropdown-item[data-item-id="${CSS.escape(itemId)}"]`);
                     if (el) el.classList.add('dismissing');
 
+                    // Drop it from local state now instead of after the round-trip, so the
+                    // list settles at the speed of the animation rather than the network's.
+                    // The previous state is kept to put the card back if the server refuses:
+                    // a card that vanishes here but survives on the server would come back
+                    // on the next poll, which is more confusing than a card that never left.
+                    const previousData = currentData;
+                    currentData = currentData.filter(i => !(i.Id === itemId || i.SeriesId === itemId));
+                    recalculateNewStatus();
+
+                    setTimeout(() => {
+                        const d = document.getElementById('notification-dropdown');
+                        if (removeCardInPlace(itemId)) {
+                            // The DOM is now one card ahead of what we recorded. Bring the
+                            // record in line without redrawing, so the next refresh sees the
+                            // list as current instead of rebuilding it.
+                            if (d) updateList(d, true);
+                            return;
+                        }
+
+                        if (d) updateList(d);
+                    }, 300); // Wait for animation to finish
+
                     const success = await dismissOnServer(itemId);
                     if (success) {
-                        // Remove from local data (by Id OR by SeriesId for group dismiss)
-                        currentData = currentData.filter(i => !(i.Id === itemId || i.SeriesId === itemId));
                         localStorage.setItem(nsKey('data'), JSON.stringify(currentData)); localStorage.setItem(nsKey('data-ts'), Date.now().toString());
                         localStorage.removeItem(nsKey('etag')); // Force fresh fetch next time
-                        recalculateNewStatus();
-                        setTimeout(() => {
-                            const d = document.getElementById('notification-dropdown');
-                            if (d) updateList(d);
-                        }, 300); // Wait for animation to finish
                     } else {
-                        // Revert animation on failure
+                        currentData = previousData;
+                        recalculateNewStatus();
                         if (el) el.classList.remove('dismissing');
+                        const d = document.getElementById('notification-dropdown');
+                        if (d) updateList(d);
                     }
                 });
                 eventsRegistered = true;
             }
 
             drop.innerHTML = `<div class="dropdown-header"><span class="header-title">${T.header}</span></div><div class="filter-bar"></div><div class="list-container"></div>`;
+            lastRenderedHtml = null; // the list container is brand new — nothing drawn yet
         }
         if (!backdrop) { const b = document.createElement('div'); b.id = 'notify-backdrop'; b.onclick = closeDropdown; document.body.appendChild(b); }
 
         if (drop.style.display !== 'flex') {
+            // Opening is the one moment the user is certainly looking: redraw from scratch
+            // rather than trust the record. It also bounds any desync to a single session
+            // of the panel being open.
+            lastRenderedHtml = null;
             lastFetchTime = 0; // Bypass throttle on explicit user click
             retryDelay = 1000; // Explicit open = "load now": keep the auth retry snappy
                                // instead of letting the click grow the backoff.
+            // Draw before asking the server, not after. The panel used to appear and stay
+            // blank for as long as the request took — with a cached copy already in hand,
+            // which it simply did not show. Now the list is there at once, or "Loading…"
+            // when there is genuinely nothing yet, and the response only redraws if it
+            // actually differs.
+            updateList(drop);
             fetchData().then(() => {
                 updateList(drop);
                 markVisibleAsRead();

@@ -10,68 +10,12 @@
     "imageUrl": "https://raw.githubusercontent.com/peterdu1109/NotifySync/main/icon.svg",
     "versions": [
       {
-        "version": "5.8.0.1",
-        "changelog": "<a style='color:white;text-decoration:none' href=\"https://github.com/peterdu1109/NotifySync/releases/tag/v5.8.0.1-beta\">🧪 <span style='text-decoration:underline'>Beta — Release Notes</span></a>",
+        "version": "5.8.0.2",
+        "changelog": "<a style='color:white;text-decoration:none' href=\"https://github.com/peterdu1109/NotifySync/releases/tag/v5.8.0.2-beta\">🧪 <span style='text-decoration:underline'>Beta — Release Notes</span></a>",
         "targetAbi": "10.11.0.0",
-        "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/v5.8.0.1-beta/NotifySync.zip",
-        "checksum": "4D3872A51B98811F38D08BA70C5A3E89",
-        "timestamp": "2026-08-23T01:00:00Z"
-      },
-      {
-        "version": "5.7.22.8",
-        "changelog": "<a style='color:white;text-decoration:none' href=\"https://github.com/peterdu1109/NotifySync/releases/tag/v5.7.22.8-beta\">🧪 <span style='text-decoration:underline'>Beta — Release Notes</span></a>",
-        "targetAbi": "10.11.0.0",
-        "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/v5.7.22.8-beta/NotifySync.zip",
-        "checksum": "D5EC01943F60AF1C46C03915BAE84591",
-        "timestamp": "2026-08-22T10:00:00Z"
-      },
-      {
-        "version": "5.7.22.7",
-        "changelog": "<a style='color:white;text-decoration:none' href=\"https://github.com/peterdu1109/NotifySync/releases/tag/v5.7.22.7-beta\">🧪 <span style='text-decoration:underline'>Beta — Release Notes</span></a>",
-        "targetAbi": "10.11.0.0",
-        "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/v5.7.22.7-beta/NotifySync.zip",
-        "checksum": "4488C11DEBC25B594038BE0B577CADBA",
-        "timestamp": "2026-08-22T09:00:00Z"
-      },
-      {
-        "version": "5.7.22.6",
-        "changelog": "<a style='color:white;text-decoration:none' href=\"https://github.com/peterdu1109/NotifySync/releases/tag/v5.7.22.6-beta\">🧪 <span style='text-decoration:underline'>Beta — Release Notes</span></a>",
-        "targetAbi": "10.11.0.0",
-        "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/v5.7.22.6-beta/NotifySync.zip",
-        "checksum": "D74F2462230EAFD47FE38B77F9CB15AB",
-        "timestamp": "2026-08-22T08:00:00Z"
-      },
-      {
-        "version": "5.7.22.5",
-        "changelog": "<a style='color:white;text-decoration:none' href=\"https://github.com/peterdu1109/NotifySync/releases/tag/v5.7.22.5-beta\">🧪 <span style='text-decoration:underline'>Beta — Release Notes</span></a>",
-        "targetAbi": "10.11.0.0",
-        "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/v5.7.22.5-beta/NotifySync.zip",
-        "checksum": "70E0D9E08E253D9BD1D8EE70B113897D",
-        "timestamp": "2026-08-22T07:00:00Z"
-      },
-      {
-        "version": "5.7.22.4",
-        "changelog": "<a style='color:white;text-decoration:none' href=\"https://github.com/peterdu1109/NotifySync/releases/tag/v5.7.22.4-beta\">🧪 <span style='text-decoration:underline'>Beta — Release Notes</span></a>",
-        "targetAbi": "10.11.0.0",
-        "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/v5.7.22.4-beta/NotifySync.zip",
-        "checksum": "39251C8A7F5649B8FD015C9A1D3AAA54",
-        "timestamp": "2026-08-22T06:00:00Z"
-      },
-      {
-        "version": "5.7.22.3",
-        "changelog": "<a style='color:white;text-decoration:none' href=\"https://github.com/peterdu1109/NotifySync/releases/tag/v5.7.22.3-beta\">🧪 <span style='text-decoration:underline'>Beta — Release Notes</span></a>",
-        "targetAbi": "10.11.0.0",
-        "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/v5.7.22.3-beta/NotifySync.zip",
-        "checksum": "4AD7AE1D16B3CA50F1E7857071C70E79",
-        "timestamp": "2026-08-22T05:00:00Z"
-      },
-      {
-        "version": "5.7.22.2",
-        "changelog": "<a style='color:white;text-decoration:none' href=\"https://github.com/peterdu1109/NotifySync/releases/tag/v5.7.22.2-beta\">🧪 <span style='text-decoration:underline'>Beta — Release Notes</span></a>",
-        "targetAbi": "10.11.0.0",
-        "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/v5.7.22.2-beta/NotifySync.zip",
-        "checksum": "9B9BAF7EB574A624038D08E33D373CFD",
-        "timestamp": "2026-08-22T04:00:00Z"
+        "sourceUrl": "https://github.com/peterdu1109/NotifySync/releases/download/v5.8.0.2-beta/NotifySync.zip",
+        "checksum": "62E8CC03197856A1721E82006F36C868",
+        "timestamp": "2026-08-23T02:00:00Z"
       }
     ]
   }

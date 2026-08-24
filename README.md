@@ -64,13 +64,14 @@ That's it. The bell appears in the top-right header and starts populating as new
 *   **Deletion history** — Admins get a log of recently deleted media, with configurable retention.
 *   **Synced across devices** — Read and cleared states live on the server: phone, desktop, and TV browser always agree.
 *   **Respects permissions** — Every user only ever sees content from libraries they can access, with strict per-user isolation.
-*   **Bilingual & responsive** — French / English following your Jellyfin language, on desktop, tablet, and mobile (*not supported on TV apps*).
+*   **Bilingual & responsive** — French / English following your Jellyfin language, on desktop, tablet, and mobile.
 
 ## 📦 Installation
 
 > [!IMPORTANT]
 > **Prerequisites:**
 > * Jellyfin **10.11.X**
+> * A web client — browser on desktop, tablet or phone, or the mobile app. TV apps render natively and cannot display the bell.
 
 ### Steps
 1.  Open your Jellyfin dashboard > **Plugins** > **Repositories**.
@@ -109,7 +110,7 @@ A preview build of NotifySync runs on **Jellyfin 12.0** (from the `jellyfin-12` 
 
 > [!IMPORTANT]
 > - Requires Jellyfin **12.0 rc3** or newer — do **not** add this on a 10.11 server.
-> - This is a **preview** — not for production, and expect rough edges.
+> - Automatic bell injection is the one piece still missing — see step 3.
 
 ### Steps
 1.  In Jellyfin: **Dashboard → Plugins → Repositories** → add the preview channel:
@@ -152,7 +153,7 @@ Go to **Dashboard > Plugins > NotifySync**.
 | **Content missing** | Ensure the library is checked in "Monitored Libraries". |
 | **New TV episode missing** | Make sure the **Series-type library** containing the episode is checked in "Monitored Libraries". |
 | **Replaced file shows NEW instead of UPD** | Enable **Deleted Items Tracking** in config — required for the delete+re-import detection path. |
-| **A renamed file shows a false UPD badge** | UPD detection is **filename-based**. A plain rename of the same file is now suppressed automatically (identical file size). A false UPD can only slip through if the rename also changes the file's content/size, or for items added before v5.7.9 (no stored size) — just dismiss it. |
+| **A renamed file shows a false UPD badge** | Renaming alone is recognised and stays silent. A badge can still slip through if the rename changed the file itself — dismiss it, and it will not come back. |
 | **A moved series still shows as NEW** | Move detection needs **Deleted Items Tracking** enabled, and it only recognises a folder that kept its name — moving *and* renaming in one go is indistinguishable from a deletion followed by an addition. Whole **music albums** are not covered yet. |
 | **A new title takes a minute to appear** | Deliberate: a title is held back until Jellyfin has identified it, so it never shows up named after its folder or without artwork. Released after five minutes regardless. |
 | **Unauthorized content visible** | Plugin respects Jellyfin permissions — check user restrictions in the dashboard. |
@@ -224,13 +225,14 @@ C'est tout. La cloche apparaît en haut à droite de l'interface et se remplit a
 *   **Historique des suppressions** — Les admins disposent d'un journal des médias récemment supprimés, avec rétention paramétrable.
 *   **Synchronisé entre appareils** — États lu / vidé stockés côté serveur : téléphone, bureau et navigateur TV toujours d'accord.
 *   **Respecte les permissions** — Chaque utilisateur ne voit que le contenu des bibliothèques auxquelles il a accès, avec une isolation stricte par utilisateur.
-*   **Bilingue & responsive** — Français / Anglais selon la langue de votre Jellyfin, sur bureau, tablette et mobile (*non supporté sur les apps TV*).
+*   **Bilingue & responsive** — Français / Anglais selon la langue de votre Jellyfin, sur bureau, tablette et mobile.
 
 ## 📦 Installation
 
 > [!IMPORTANT]
 > **Pré-requis :**
 > * Jellyfin **10.11.X**
+> * Un client web — navigateur sur ordinateur, tablette ou téléphone, ou l'application mobile. Les applications TV ont un rendu natif et ne peuvent pas afficher la cloche.
 
 ### Étapes
 1.  Tableau de bord Jellyfin > **Extensions** > **Dépôts**.
@@ -268,7 +270,7 @@ Une version aperçu de NotifySync tourne sur **Jellyfin 12.0** (branche `jellyfi
 
 > [!IMPORTANT]
 > - Nécessite Jellyfin **12.0 rc3** ou plus récent — ne l'ajoutez **pas** sur un serveur 10.11.
-> - C'est un **aperçu** — pas pour la production, quelques aspérités à prévoir.
+> - L'injection automatique de la cloche est la seule pièce encore manquante — voir l'étape 3.
 
 ### Étapes
 1.  Dans Jellyfin : **Tableau de bord → Extensions → Dépôts** → ajoutez le canal aperçu :
@@ -311,7 +313,7 @@ Allez dans **Tableau de bord > Extensions > NotifySync**.
 | **Contenu manquant** | Vérifiez que la bibliothèque est cochée dans "Bibliothèques Surveillées". |
 | **Nouvel épisode TV manquant** | Vérifiez que la **bibliothèque de type Série** contenant l'épisode est cochée dans "Bibliothèques Surveillées". |
 | **Fichier remplacé apparaît en NOUVEAU au lieu de MAJ** | Activez le **Suivi des Suppressions** dans la config — nécessaire pour la détection du scénario delete+ré-import. |
-| **Un fichier renommé affiche un faux badge MAJ** | La détection MAJ est **basée sur le nom de fichier**. Un simple renommage du même fichier est maintenant supprimé automatiquement (taille identique). Un faux MAJ ne peut subsister que si le renommage change aussi le contenu/la taille, ou pour les éléments ajoutés avant la v5.7.9 (taille non stockée) — retirez la notification. |
+| **Un fichier renommé affiche un faux badge MAJ** | Un simple renommage est reconnu et reste silencieux. Un badge ne peut subsister que si le renommage a aussi modifié le fichier — retirez la notification, elle ne reviendra pas. |
 | **Une série déplacée apparaît quand même en NOUVEAU** | La détection nécessite le **Suivi des Suppressions** activé, et elle ne reconnaît qu'un dossier ayant conservé son nom — déplacer *et* renommer en une fois est indistinguable d'une suppression suivie d'un ajout. Les **albums musicaux** entiers ne sont pas encore couverts. |
 | **Un nouveau titre met une minute à apparaître** | C'est voulu : un titre est retenu tant que Jellyfin ne l'a pas identifié, pour ne jamais s'afficher sous le nom de son dossier ni sans affiche. Libéré au bout de cinq minutes quoi qu'il arrive. |
 | **Contenu non autorisé visible** | Le plugin respecte les permissions Jellyfin — vérifiez les restrictions utilisateur. |

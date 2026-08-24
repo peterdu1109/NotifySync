@@ -1,7 +1,7 @@
 <h1 align="center">🔔 NotifySync</h1>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-5.7.19.0-blue" alt="Version">
+  <img src="https://img.shields.io/badge/version-5.8.0.0-blue" alt="Version">
   <img src="https://img.shields.io/badge/.NET-9.0-purple" alt=".NET Framework">
   <img src="https://img.shields.io/badge/Jellyfin-10.11.X-blueviolet" alt="Jellyfin">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="License">
@@ -56,6 +56,8 @@ That's it. The bell appears in the top-right header and starts populating as new
 *   **Organized by recency** — The list is split into **Today**, **This week**, and **Earlier** sections, newest first.
 *   **Smart grouping** — Episodes grouped by series and labeled with the exact range that landed (`Season 4 • Ep. 1-12`, or `Ep. 1, 8` for a partial batch); tracks grouped by album.
 *   **Upgrade detection** — Replace a media file and the notification comes back with a blue **UPD** badge telling you *what* changed: **Quality**, **Codec**, **Audio**, or a combination. Subtitle additions and metadata refreshes stay silent.
+*   **Moves are not news** — Reorganising your libraries stays out of the bell. Jellyfin sees a move as a deletion followed by an unrelated add, which used to announce every relocated title as brand new; NotifySync recognises it and stays quiet.
+*   **Nothing half-drawn** — A title only appears once Jellyfin has identified it. No cards named after their folder, no missing artwork, no episodes waiting to be grouped.
 *   **Favorites filter** — Favorite a series in Jellyfin and filter the bell down to just the content you care about.
 *   **Filters & dismiss** — Quick category pills, dismiss per item or per group, swipe-left on mobile. Clearing the list never marks anything as "Played".
 *   **Collections** — Monitored Jellyfin collections (BoxSets) notify you on new additions.
@@ -212,6 +214,8 @@ C'est tout. La cloche apparaît en haut à droite de l'interface et se remplit a
 *   **Organisé par fraîcheur** — La liste est découpée en sections **Aujourd'hui**, **Cette semaine** et **Plus ancien**, du plus récent au plus ancien.
 *   **Regroupement intelligent** — Épisodes groupés par série avec la plage exacte qui est arrivée (`Saison 4 • Ép. 1-12`, ou `Ép. 1, 8` pour un lot partiel) ; pistes groupées par album.
 *   **Détection des mises à jour** — Remplacez un fichier média et la notification revient avec un badge bleu **MAJ** qui indique *ce qui* a changé : **Qualité**, **Codec**, **Audio**, ou une combinaison. Les ajouts de sous-titres et rafraîchissements de métadonnées restent silencieux.
+*   **Un déplacement n'est pas une nouveauté** — Réorganiser vos bibliothèques ne remplit plus la cloche. Jellyfin voit un déplacement comme une suppression suivie d'un ajout sans rapport, ce qui annonçait chaque titre déplacé comme neuf ; NotifySync le reconnaît et se tait.
+*   **Rien d'à moitié affiché** — Un titre n'apparaît qu'une fois identifié par Jellyfin. Plus de carte portant le nom de son dossier, plus d'affiche manquante, plus d'épisodes en attente de regroupement.
 *   **Filtre Favoris** — Mettez une série en favori dans Jellyfin et filtrez la cloche sur les seuls contenus qui vous intéressent.
 *   **Filtres & suppression** — Pills de catégories, suppression à l'unité ou par groupe, swipe gauche sur mobile. Vider la liste ne marque jamais rien comme « Vu ».
 *   **Collections** — Les collections Jellyfin surveillées (BoxSets) vous notifient des nouveaux ajouts.

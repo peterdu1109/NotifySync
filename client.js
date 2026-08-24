@@ -1,4 +1,4 @@
-/* NOTIFYSYNC V5.8.0.2 */
+/* NOTIFYSYNC V5.8.0.3 */
 (function () {
     let currentData = [];
     let groupedData = [];

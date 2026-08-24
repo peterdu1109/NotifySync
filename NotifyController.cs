@@ -260,7 +260,6 @@ namespace NotifySync
             {
                 var normalizedId = NormalizeId(userId);
                 var hash = NotificationManager.Instance.GetVersionHash(normalizedId);
-                var allNotifs = NotificationManager.Instance.GetRecentNotifications();
 
                 // Holding an item back until Jellyfin has identified it is a time-based decision
                 // and the cache key is not: without this the view would stay frozen in the hidden
@@ -268,14 +267,9 @@ namespace NotifySync
                 // release it would never fire. Deliberately coarser than the real test — which
                 // needs the live item — because a key that rotates too often costs one render,
                 // while one that rotates too rarely would keep a title out of the bell for good.
-                var youngest = DateTime.UtcNow.AddMinutes(-ResolveGraceMinutes);
-                foreach (var pending in allNotifs)
+                if (NotificationManager.Instance.HasNotificationNewerThan(DateTime.UtcNow.AddMinutes(-ResolveGraceMinutes)))
                 {
-                    if (pending.DateCreated.ToUniversalTime() > youngest)
-                    {
-                        hash += "-w" + (DateTime.UtcNow.Ticks / TimeSpan.TicksPerMinute).ToString(CultureInfo.InvariantCulture);
-                        break;
-                    }
+                    hash += "-w" + (DateTime.UtcNow.Ticks / TimeSpan.TicksPerMinute).ToString(CultureInfo.InvariantCulture);
                 }
 
                 // ETag 304 support: if client already has this version, skip serialization
@@ -293,6 +287,7 @@ namespace NotifySync
                     return new FileContentResult(cachedData, "application/json");
                 }
 
+                var allNotifs = NotificationManager.Instance.GetRecentNotifications();
                 var user = _userManager.GetUserById(Guid.Parse(userId));
                 if (user == null)
                 {

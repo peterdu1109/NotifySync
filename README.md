@@ -155,7 +155,6 @@ Go to **Dashboard > Plugins > NotifySync**.
 | **Replaced file shows NEW instead of UPD** | Enable **Deleted Items Tracking** in config — required for the delete+re-import detection path. |
 | **A renamed file shows a false UPD badge** | Renaming alone is recognised and stays silent. A badge can still slip through if the rename changed the file itself — dismiss it, and it will not come back. |
 | **A moved series still shows as NEW** | Move detection needs **Deleted Items Tracking** enabled, and it only recognises a folder that kept its name — moving *and* renaming in one go is indistinguishable from a deletion followed by an addition. Whole **music albums** are not covered yet. |
-| **A new title takes a minute to appear** | Deliberate: a title is held back until Jellyfin has identified it, so it never shows up named after its folder or without artwork. Released after five minutes regardless. |
 | **Unauthorized content visible** | Plugin respects Jellyfin permissions — check user restrictions in the dashboard. |
 | **429 Error** | Wait 30 seconds between "Regenerate history" clicks (anti-spam). |
 | **Incompatible** | Ensure you are running Jellyfin **10.11.X**. |
@@ -315,7 +314,6 @@ Allez dans **Tableau de bord > Extensions > NotifySync**.
 | **Fichier remplacé apparaît en NOUVEAU au lieu de MAJ** | Activez le **Suivi des Suppressions** dans la config — nécessaire pour la détection du scénario delete+ré-import. |
 | **Un fichier renommé affiche un faux badge MAJ** | Un simple renommage est reconnu et reste silencieux. Un badge ne peut subsister que si le renommage a aussi modifié le fichier — retirez la notification, elle ne reviendra pas. |
 | **Une série déplacée apparaît quand même en NOUVEAU** | La détection nécessite le **Suivi des Suppressions** activé, et elle ne reconnaît qu'un dossier ayant conservé son nom — déplacer *et* renommer en une fois est indistinguable d'une suppression suivie d'un ajout. Les **albums musicaux** entiers ne sont pas encore couverts. |
-| **Un nouveau titre met une minute à apparaître** | C'est voulu : un titre est retenu tant que Jellyfin ne l'a pas identifié, pour ne jamais s'afficher sous le nom de son dossier ni sans affiche. Libéré au bout de cinq minutes quoi qu'il arrive. |
 | **Contenu non autorisé visible** | Le plugin respecte les permissions Jellyfin — vérifiez les restrictions utilisateur. |
 | **Erreur 429** | Attendez 30 secondes entre chaque clic sur "Régénérer l'historique" (anti-spam). |
 | **Incompatible** | Vérifiez que vous utilisez Jellyfin **10.11.X**. |

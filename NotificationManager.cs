@@ -472,10 +472,14 @@ namespace NotifySync
                 string trimmed = folder.Path.TrimEnd('/', '\\');
                 var folderSegments = trimmed.Split('/', '\\');
 
-                // How much of the removed path has to be recognised. A series folder carries its
-                // own title, so its last segment identifies it. A season folder is called the
-                // same thing under every series, so it only means something with its parent.
-                int depth = string.Equals(folder.Type, "Season", StringComparison.Ordinal) && folderSegments.Length >= 2 ? 2 : 1;
+                // How much of the removed path has to be recognised. A series or artist folder
+                // carries its own title, so its last segment identifies it. A season is called
+                // the same thing under every series, and album folders named "Greatest Hits" or
+                // "Live" are shared by dozens of artists — those only mean something with their
+                // parent, or they would silence new content belonging to someone else entirely.
+                bool needsParent = string.Equals(folder.Type, "Season", StringComparison.Ordinal)
+                    || string.Equals(folder.Type, "MusicAlbum", StringComparison.Ordinal);
+                int depth = needsParent && folderSegments.Length >= 2 ? 2 : 1;
                 if (folderSegments.Length < depth)
                 {
                     continue;

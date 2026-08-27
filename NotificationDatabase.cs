@@ -960,8 +960,8 @@ namespace NotifySync
         }
 
         /// <summary>
-        /// Returns the paths of container items — series and season folders — removed within
-        /// the given window.
+        /// Returns the paths of container items — series, season, artist and album folders —
+        /// removed within the given window.
         /// <para>
         /// When a series is moved to another library, Jellyfin announces the removal of the
         /// SERIES FOLDER and never of its episodes; the episodes simply reappear as adds. The
@@ -983,7 +983,7 @@ namespace NotifySync
                 cmd.CommandText = @"
                     SELECT FilePath, Type FROM DeletedItems
                     WHERE FilePath IS NOT NULL AND FilePath <> ''
-                      AND Type IN ('Series', 'Season', 'Folder')
+                      AND Type IN ('Series', 'Season', 'Folder', 'MusicAlbum', 'MusicArtist')
                       AND DeletedAt > @Cutoff";
                 cmd.Parameters.AddWithValue("@Cutoff", cutoffUtc.ToString("O"));
                 using var reader = cmd.ExecuteReader();

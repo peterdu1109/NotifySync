@@ -31,11 +31,31 @@ namespace NotifySync
     public class NotifyController : ControllerBase
     {
         /// <summary>
-        /// How long an episode may stay hidden while it waits to be attached to its series.
-        /// A ceiling, not a delay: the moment Jellyfin attaches the series the notification
-        /// appears on the next refresh, typically within a minute.
+        /// How long a notification may stay hidden while Jellyfin is still identifying the item.
+        /// A ceiling, not a delay: the moment the metadata lands the notification appears on the
+        /// next refresh. Past it the item is shown whatever state it is in — being told late
+        /// beats never being told.
+        /// <para>
+        /// Five minutes, from two sequences measured on a live server the same evening: one
+        /// metadata pass landed about a minute after the items were created, another only
+        /// thirteen minutes later because it rode on a subsequent scan. Too short releases items
+        /// while they are still raw, which is the very thing this avoids; too long delays a title
+        /// Jellyfin will never identify. Nothing is lost either way, only postponed.
+        /// </para>
         /// </summary>
-        private const int SeriesLinkGraceMinutes = 10;
+        private const int ResolveGraceMinutes = 5;
+
+        /// <summary>
+        /// Fragments Jellyfin leaves in a title while the item is still named after its folder.
+        /// Their presence means the metadata has not been applied yet.
+        /// </summary>
+        private static readonly string[] UnresolvedNameMarkers =
+        {
+            "{tmdb-", "{tmdbid-", "[tmdb-", "[tmdbid-",
+            "{tvdb-", "{tvdbid-", "[tvdb-", "[tvdbid-",
+            "{imdb-", "{imdbid-", "[imdb-", "[imdbid-",
+            "{anidb-", "[anidb-"
+        };
 
         private static readonly ConcurrentDictionary<string, byte[]> UserViewCache = new ();
         private static readonly ConcurrentDictionary<string, long> UserActionThrottle = new ();
@@ -240,20 +260,16 @@ namespace NotifySync
             {
                 var normalizedId = NormalizeId(userId);
                 var hash = NotificationManager.Instance.GetVersionHash(normalizedId);
-                var allNotifs = NotificationManager.Instance.GetRecentNotifications();
 
-                // Holding an episode back until its series is attached is a time-based decision,
-                // and the cache key is not: without this the view would be frozen in the hidden
-                // state until something else in the library changed, and the grace period that is
-                // supposed to release it would never fire. While any episode is waiting, fold the
-                // current minute into the key so the view is rebuilt until they clear.
-                foreach (var pending in allNotifs)
+                // Holding an item back until Jellyfin has identified it is a time-based decision
+                // and the cache key is not: without this the view would stay frozen in the hidden
+                // state until something else in the library changed, and the ceiling meant to
+                // release it would never fire. Deliberately coarser than the real test — which
+                // needs the live item — because a key that rotates too often costs one render,
+                // while one that rotates too rarely would keep a title out of the bell for good.
+                if (NotificationManager.Instance.HasNotificationNewerThan(DateTime.UtcNow.AddMinutes(-ResolveGraceMinutes)))
                 {
-                    if (IsAwaitingSeriesLink(pending))
-                    {
-                        hash += "-w" + (DateTime.UtcNow.Ticks / TimeSpan.TicksPerMinute).ToString(CultureInfo.InvariantCulture);
-                        break;
-                    }
+                    hash += "-w" + (DateTime.UtcNow.Ticks / TimeSpan.TicksPerMinute).ToString(CultureInfo.InvariantCulture);
                 }
 
                 // ETag 304 support: if client already has this version, skip serialization
@@ -271,6 +287,7 @@ namespace NotifySync
                     return new FileContentResult(cachedData, "application/json");
                 }
 
+                var allNotifs = NotificationManager.Instance.GetRecentNotifications();
                 var user = _userManager.GetUserById(Guid.Parse(userId));
                 if (user == null)
                 {
@@ -296,11 +313,6 @@ namespace NotifySync
                     }
 
                     if (n.DateCreated.ToUniversalTime().Ticks <= clearedUntil)
-                    {
-                        continue;
-                    }
-
-                    if (IsAwaitingSeriesLink(n))
                     {
                         continue;
                     }
@@ -340,6 +352,11 @@ namespace NotifySync
                     if (!item.IsVisible(user))
                     {
                         filteredNotVisible++;
+                        continue;
+                    }
+
+                    if (IsStillResolving(n, item))
+                    {
                         continue;
                     }
 
@@ -729,27 +746,81 @@ namespace NotifySync
             => !string.IsNullOrEmpty(id) && Guid.TryParse(id, out var g) && g != Guid.Empty;
 
         /// <summary>
-        /// True while an episode is still waiting to be attached to its series, and recent enough
-        /// that the attachment is plausibly still coming.
+        /// True while Jellyfin is still working out what an item is, and recent enough that the
+        /// answer is plausibly still coming.
         /// <para>
-        /// Jellyfin creates episodes before linking them to their series — measured at about a
-        /// minute apart on a live scan. In that gap the bell has nothing to group them by and no
-        /// artwork to show, so a season arrives as a row of bare cards that then collapse into
-        /// one. Nothing is lost by waiting: the notification exists throughout, it is only held
-        /// back from display, and the grace period releases it anyway if the link never comes —
-        /// being told late beats never being told.
+        /// A scan creates items before it identifies them. An episode arrives before it is linked
+        /// to its series — measured at about a minute apart — so the bell has nothing to group it
+        /// by. A film arrives named after its folder, "… (2002) {tmdb-672}", with no poster. Both
+        /// look broken for a moment and then fix themselves.
+        /// </para>
+        /// <para>
+        /// Nothing is lost by waiting: the notification exists throughout, it is only held back
+        /// from display, and the ceiling releases it even if the metadata never lands.
         /// </para>
         /// </summary>
         /// <param name="n">The notification to test.</param>
+        /// <param name="item">The live Jellyfin item, already resolved for the visibility check.</param>
         /// <returns><c>true</c> while it should stay out of the bell.</returns>
-        private static bool IsAwaitingSeriesLink(NotificationItem n)
+        private static bool IsStillResolving(NotificationItem n, BaseItem item)
         {
-            if (!string.Equals(n.Type, "Episode", StringComparison.Ordinal) || !string.IsNullOrEmpty(n.SeriesId))
+            // Past the ceiling nothing is held back any longer, whatever state it is in.
+            if (DateTime.UtcNow - n.DateCreated.ToUniversalTime() >= TimeSpan.FromMinutes(ResolveGraceMinutes))
             {
                 return false;
             }
 
-            return DateTime.UtcNow - n.DateCreated.ToUniversalTime() < TimeSpan.FromMinutes(SeriesLinkGraceMinutes);
+            // An episode with no series yet cannot be grouped and has no artwork to show.
+            if (string.Equals(n.Type, "Episode", StringComparison.Ordinal))
+            {
+                return string.IsNullOrEmpty(n.SeriesId);
+            }
+
+            // No external id means Jellyfin has not matched this against a provider yet — the
+            // authoritative signal, except where the id is written into the folder name, which
+            // Jellyfin reads at once and where the next test takes over. Films only: music is
+            // matched by a provider only when one is configured for it, which many libraries
+            // never do, and requiring an id there would delay every track to the ceiling.
+            if (string.Equals(n.Type, "Movie", StringComparison.Ordinal)
+                && (item.ProviderIds == null || item.ProviderIds.Count == 0))
+            {
+                return true;
+            }
+
+            // A title still named after its folder — "Harry Potter and the Chamber of Secrets
+            // (2002) {tmdb-672}" — is one Jellyfin has not applied metadata to. Showing it spells
+            // a provider id out to every user and is replaced by the real title minutes later.
+            if (LooksLikeAnUnresolvedFolderName(n.Name))
+            {
+                return true;
+            }
+
+            // No artwork yet: the card would be a grey placeholder that fills in shortly.
+            return !item.ImageInfos.Any(i => i.Type == ImageType.Primary);
+        }
+
+        /// <summary>
+        /// True when a title still carries the provider id its folder is named with, which
+        /// Jellyfin drops once it has identified the item.
+        /// </summary>
+        /// <param name="name">The title as it currently stands.</param>
+        /// <returns><c>true</c> when the name is still the raw folder name.</returns>
+        private static bool LooksLikeAnUnresolvedFolderName(string? name)
+        {
+            if (string.IsNullOrEmpty(name))
+            {
+                return false;
+            }
+
+            foreach (var marker in UnresolvedNameMarkers)
+            {
+                if (name.Contains(marker, StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         /// <summary>

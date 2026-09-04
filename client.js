@@ -1,5 +1,10 @@
 /* NOTIFYSYNC V5.8.2.0 (Jellyfin 12 preview) */
 (function () {
+    // Single source for the version this file reports. It used to be spelled out a
+    // second time inside the Authorization header, where it silently stayed at
+    // 5.7.15.0 across a dozen releases — a literal nobody thinks to update is a
+    // literal that lies. Bump it with the header comment above, in one place.
+    const NS_VERSION = '5.8.2.0';
     let currentData = [];
     let groupedData = [];
     let firstLoadDone = false;
@@ -137,7 +142,7 @@
             // Jellyfin 12 disabled the deprecated X-Emby-Token header auth. The
             // MediaBrowser Authorization scheme is accepted by 10.x and 12 alike;
             // the legacy header is kept as a harmless fallback for older servers.
-            'Authorization': 'MediaBrowser Client="NotifySync", Device="Web", DeviceId="notifysync-client", Version="5.7.15.0", Token="' + token + '"',
+            'Authorization': 'MediaBrowser Client="NotifySync", Device="Web", DeviceId="notifysync-client", Version="' + NS_VERSION + '", Token="' + token + '"',
             'X-Emby-Token': token
         };
     };

@@ -328,8 +328,12 @@
                 if (!upgradesByKind.has(kind)) upgradesByKind.set(kind, []);
                 upgradesByKind.get(kind).push(e);
             });
-            const subsets = [newEps, ...upgradesByKind.values()];
-            subsets.forEach(subset => {
+            // Keyed subsets: a series can occupy several cards at once (its new episodes,
+            // plus one per upgrade reason). Each card needs an identity of its own — they
+            // used to share the series id, so removing one took the others down with it and
+            // only one of them left the screen.
+            const subsets = [['new', newEps], ...Array.from(upgradesByKind.entries())];
+            subsets.forEach(([subsetKey, subset]) => {
                 if (subset.length === 0) return;
                 const latest = subset[0];
                 const hasNew = subset.some(e => e.IsNew);
@@ -338,7 +342,11 @@
                     // member is current and the count == the group size.
                     const seasons = subset.map(e => e.ParentIndexNumber);
                     const episodes = subset.map(e => e.IndexNumber);
-                    result.push({ ...latest, IsGroup: true, GroupCount: subset.length, Name: latest.SeriesName || latest.Name, Id: latest.SeriesId || latest.Id, IsNew: hasNew, Seasons: seasons, Episodes: episodes, IsFavorite: subset.some(e => e.IsFavorite) });
+                    const seriesKey = latest.SeriesId || latest.Id;
+                    // Id stays the series id — it is what navigation opens. CardId addresses
+                    // this card alone, and MemberIds says exactly what it stands for, so a
+                    // dismissal never reaches beyond it.
+                    result.push({ ...latest, IsGroup: true, GroupCount: subset.length, Name: latest.SeriesName || latest.Name, Id: seriesKey, CardId: seriesKey + '#' + subsetKey, MemberIds: subset.map(e => e.Id), IsNew: hasNew, Seasons: seasons, Episodes: episodes, IsFavorite: subset.some(e => e.IsFavorite) });
                 } else { result.push(latest); }
             });
         });
@@ -689,7 +697,7 @@
                 heroSub = groupSubtitle(hero);
             }
 
-            const safeHeroId = escapeHtml(hero.Id);
+            const safeHeroId = escapeHtml(hero.CardId || hero.Id);
             const heroNavId = escapeHtml(hero.RealItemId || hero.Id);
             const heroFallbackImg = client.getUrl(`Items/${encodeURIComponent(hero.SeriesId || hero.Id)}/Images/Primary?quality=70&fillWidth=380&fillHeight=160&format=webp`);
             htmlParts.push(`<div class="hero-section" onclick="document.dispatchEvent(new CustomEvent('ns-navigate', {detail: '${heroNavId}'}))"><div class="hero-bg"><img src="${escapeHtml(heroImg)}" alt="" style="width:100%;height:100%;object-fit:cover;" onerror="if(this.dataset.fb){this.src=this.dataset.fb;this.removeAttribute('data-fb')}else{this.style.display='none'}" data-fb="${escapeHtml(heroFallbackImg)}"></div><div class="hero-overlay"></div><button class="dismiss-btn" title="${T.dismiss}" aria-label="${T.dismiss}" onclick="event.stopPropagation(); document.dispatchEvent(new CustomEvent('ns-dismiss', {detail: '${safeHeroId}'}))">close</button><div class="hero-content">${hero.IsUpgrade ? `<span class="hero-badge-upgrade">${escapeHtml(upgradeBadgeText(hero))}</span>` : `<span class="hero-badge">${T.badgeNew}</span>`}<div style="font-size:18px;font-weight:700;text-shadow:0 2px 4px #000;line-height:1.2;">${heroTitle}${hero.IsFavorite ? ' <span class="ns-fav">★</span>' : ''}</div><div style="font-size:12px;opacity:0.8;margin-top:4px">${timeAgo(hero.DateCreated)} &bull; ${heroSub}</div></div></div>`);
@@ -708,7 +716,7 @@
             if (!isGroup && item.Type === 'Episode') { title = escapeHtml(formatEpisodeTitle(item)); sub = escapeHtml(item.SeriesName); }
             if (isGroup) { sub = groupSubtitle(item); }
 
-            const safeId = escapeHtml(item.Id);
+            const safeId = escapeHtml(item.CardId || item.Id);
             const navId = escapeHtml(item.RealItemId || item.Id);
             const badgeHtml = `<span class="item-badge">${escapeHtml(upgradeBadgeText(item))}</span>`;
             htmlParts.push(`<div class="dropdown-item ${item.IsUpgrade ? 'style-upgrade' : 'style-new'}" data-item-id="${safeId}" onclick="document.dispatchEvent(new CustomEvent('ns-navigate', {detail: '${navId}'}))"><button class="dismiss-btn" title="${T.dismiss}" aria-label="${T.dismiss}" onclick="event.stopPropagation(); document.dispatchEvent(new CustomEvent('ns-dismiss', {detail: '${safeId}'}))">close</button><div class="swipe-delete">${T.dismiss}</div><div class="thumb-wrapper"><img data-src="${imgUrl}" decoding="async" class="dropdown-thumb ${isMusic ? 'music' : ''}" loading="lazy" onerror="if(this.dataset.fallback){this.src=this.dataset.fallback;this.removeAttribute('data-fallback')}else{this.style.display='none'}" data-fallback="${fallbackUrl}"><span class="material-icons" style="color:#555;font-size:24px;">${isMusic ? 'album' : 'movie'}</span></div><div class="dropdown-info">${badgeHtml}<div class="dropdown-title" title="${title}">${title}${item.IsFavorite ? ' <span class="ns-fav">★</span>' : ''}</div><div class="dropdown-subtitle" title="${sub}"><span class="sub-time">${timeAgo(item.DateCreated)} &bull;</span><span class="sub-text">${sub}</span></div></div></div>`);
@@ -870,10 +878,18 @@
                     }
                 });
                 document.addEventListener('ns-dismiss', async (e) => {
-                    const itemId = e.detail;
+                    const cardId = e.detail;
                     // Optimistic UI: animate out immediately
-                    const el = document.querySelector(`.dropdown-item[data-item-id="${CSS.escape(itemId)}"]`);
+                    const el = document.querySelector(`.dropdown-item[data-item-id="${CSS.escape(cardId)}"]`);
                     if (el) el.classList.add('dismissing');
+
+                    // What this card actually stands for. A group carries its members; a
+                    // single card is its own member. Removing by series id instead — which
+                    // is what this did — also removed the OTHER cards of the same series,
+                    // on the server as well: dismissing a batch of new episodes silently
+                    // took away the upgrade card the user had deliberately left alone.
+                    const card = (groupedData || []).find(c => (c.CardId || c.Id) === cardId);
+                    const memberIds = (card && card.MemberIds && card.MemberIds.length) ? card.MemberIds : [cardId];
 
                     // Drop it from local state now instead of after the round-trip, so the
                     // list settles at the speed of the animation rather than the network's.
@@ -881,12 +897,12 @@
                     // a card that vanishes here but survives on the server would come back
                     // on the next poll, which is more confusing than a card that never left.
                     const previousData = currentData;
-                    currentData = currentData.filter(i => !(i.Id === itemId || i.SeriesId === itemId));
+                    currentData = currentData.filter(i => memberIds.indexOf(i.Id) === -1);
                     recalculateNewStatus();
 
                     setTimeout(() => {
                         const d = document.getElementById('notification-dropdown');
-                        if (removeCardInPlace(itemId)) {
+                        if (removeCardInPlace(cardId)) {
                             // The DOM is now one card ahead of what we recorded. Bring the
                             // record in line without redrawing, so the next refresh sees the
                             // list as current instead of rebuilding it.
@@ -897,7 +913,12 @@
                         if (d) updateList(d);
                     }, 300); // Wait for animation to finish
 
-                    const success = await dismissOnServer(itemId);
+                    // Send the members themselves, never the series id: the server expands a
+                    // series id to every episode it holds, which is the over-reach this fix
+                    // exists to stop. Each episode id resolves to itself.
+                    const success = memberIds.length > 1
+                        ? await bulkDismissOnServer(memberIds)
+                        : await dismissOnServer(memberIds[0]);
                     if (success) {
                         localStorage.setItem(nsKey('data'), JSON.stringify(currentData)); localStorage.setItem(nsKey('data-ts'), Date.now().toString());
                         localStorage.removeItem(nsKey('etag')); // Force fresh fetch next time

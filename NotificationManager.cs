@@ -271,12 +271,6 @@ namespace NotifySync
             => (!string.IsNullOrEmpty(id) && Guid.TryParse(id, out var g) && g != Guid.Empty) ? id : null;
 
         /// <summary>
-        /// Returns the most recent matching deleted record (or null) when DeletedItems
-        /// tracking is enabled. Used by both <see cref="ProcessBuffer"/> (new-item path)
-        /// and <see cref="OnItemUpdated"/> (metadata-refresh recovery) so ClassifyUpgrade
-        /// can compare the new file against the path of the file that was just deleted.
-        /// </summary>
-        /// <summary>
         /// Called by <see cref="LibraryScanCompletedTask"/> when Jellyfin has finished validating
         /// the media library. Everything removed before this point belongs to a finished scan and
         /// stops being a move candidate, except for the few minutes of grace that cover libraries
@@ -314,6 +308,12 @@ namespace NotifySync
             return cutoff < cap ? cap : cutoff;
         }
 
+        /// <summary>
+        /// Returns the most recent matching deleted record (or null) when DeletedItems
+        /// tracking is enabled. Used by both <see cref="ProcessBuffer"/> (new-item path)
+        /// and <see cref="OnItemUpdated"/> (metadata-refresh recovery) so ClassifyUpgrade
+        /// can compare the new file against the path of the file that was just deleted.
+        /// </summary>
         private DeletedItemRecord? TryGetDeletedMatchRecord(string name, string type, int? year, string? seriesName, int? indexNumber, int? parentIndexNumber)
         {
             if (Plugin.Instance?.Configuration?.EnableDeletedTracking != true)
@@ -1526,6 +1526,55 @@ namespace NotifySync
         /// Creates a notification from an item found in a monitored collection.
         /// Unlike <see cref="CreateNotificationFromItem"/>, this does NOT check library membership.
         /// </summary>
+        /// <summary>
+        /// True for the material neither path should ever announce: declared extras, and the
+        /// openings, endings and theme tracks Jellyfin files as season-zero episodes or as
+        /// audio named after the show.
+        /// <para>
+        /// Shared because it used to live only in <see cref="CreateNotificationFromItem"/>.
+        /// The collection path was a near-copy that had drifted, so a monitored collection
+        /// would announce a generic as a new episode — invisible until 5.8.2 made collection
+        /// notifications work at all.
+        /// </para>
+        /// </summary>
+        /// <param name="item">The library item under consideration.</param>
+        /// <returns><c>true</c> when it must never produce a notification.</returns>
+        private static bool IsFillerContent(BaseItem item)
+        {
+            if (item.ExtraType.HasValue)
+            {
+                return true;
+            }
+
+            // Openings and endings Jellyfin could not classify: they land as season 0, or
+            // episode 0, and carry the giveaway in their title.
+            if (item is Episode ep && (ep.ParentIndexNumber == 0 || ep.IndexNumber == 0))
+            {
+                string itemName = ep.Name ?? string.Empty;
+                if (itemName.Contains("opening", StringComparison.OrdinalIgnoreCase) || itemName.Contains("ending", StringComparison.OrdinalIgnoreCase) ||
+                    itemName.Contains("ncop", StringComparison.OrdinalIgnoreCase) || itemName.Contains("nced", StringComparison.OrdinalIgnoreCase) ||
+                    itemName.StartsWith("op ", StringComparison.OrdinalIgnoreCase) || itemName.StartsWith("ed ", StringComparison.OrdinalIgnoreCase) ||
+                    itemName.Equals("op", StringComparison.OrdinalIgnoreCase) || itemName.Equals("ed", StringComparison.OrdinalIgnoreCase) ||
+                    itemName.Contains("theme", StringComparison.OrdinalIgnoreCase) || itemName.Contains("thème", StringComparison.OrdinalIgnoreCase) ||
+                    itemName.Contains("credit", StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+
+            // Audio tracks used as a series' or film's theme (often Theme.mp3).
+            if (item is MediaBrowser.Controller.Entities.Audio.Audio && item.Name != null)
+            {
+                string itemName = item.Name;
+                if (itemName.Equals("theme", StringComparison.OrdinalIgnoreCase) || itemName.Equals("thème", StringComparison.OrdinalIgnoreCase) || itemName.Contains("theme song", StringComparison.OrdinalIgnoreCase) || itemName.Contains("main theme", StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         private NotificationItem? CreateNotificationFromCollectionItem(BaseItem item, string collectionName, Guid collectionId)
         {
             // Ignorer les dossiers
@@ -1534,8 +1583,7 @@ namespace NotifySync
                 return null;
             }
 
-            // Ignorer les Extras
-            if (item.ExtraType.HasValue)
+            if (IsFillerContent(item))
             {
                 return null;
             }
@@ -1590,36 +1638,9 @@ namespace NotifySync
                 return null;
             }
 
-            // Ignore Extras (Openings, Endings, ThemeVideos, etc.)
-            if (item.ExtraType.HasValue)
+            if (IsFillerContent(item))
             {
                 return null;
-            }
-
-            // Heuristic to ignore themes and opening/ending sequences
-            // Filter out short VOD items, theme songs, and misclassified openings/endings
-            if (item is Episode ep && (ep.ParentIndexNumber == 0 || ep.IndexNumber == 0))
-            {
-                string itemName = ep.Name ?? string.Empty;
-                if (itemName.Contains("opening", StringComparison.OrdinalIgnoreCase) || itemName.Contains("ending", StringComparison.OrdinalIgnoreCase) ||
-                    itemName.Contains("ncop", StringComparison.OrdinalIgnoreCase) || itemName.Contains("nced", StringComparison.OrdinalIgnoreCase) ||
-                    itemName.StartsWith("op ", StringComparison.OrdinalIgnoreCase) || itemName.StartsWith("ed ", StringComparison.OrdinalIgnoreCase) ||
-                    itemName.Equals("op", StringComparison.OrdinalIgnoreCase) || itemName.Equals("ed", StringComparison.OrdinalIgnoreCase) ||
-                    itemName.Contains("theme", StringComparison.OrdinalIgnoreCase) || itemName.Contains("thème", StringComparison.OrdinalIgnoreCase) ||
-                    itemName.Contains("credit", StringComparison.OrdinalIgnoreCase))
-                {
-                    return null;
-                }
-            }
-
-            // Exclude audio tracks used as themes for series/movies (often Theme.mp3)
-            if (item is MediaBrowser.Controller.Entities.Audio.Audio && item.Name != null)
-            {
-                string itemName = item.Name;
-                if (itemName.Equals("theme", StringComparison.OrdinalIgnoreCase) || itemName.Equals("thème", StringComparison.OrdinalIgnoreCase) || itemName.Contains("theme song", StringComparison.OrdinalIgnoreCase) || itemName.Contains("main theme", StringComparison.OrdinalIgnoreCase))
-                {
-                    return null;
-                }
             }
 
             try

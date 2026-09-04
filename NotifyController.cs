@@ -330,12 +330,21 @@ namespace NotifySync
                 // Phase 2: library lookups only on remaining candidates
                 foreach (var n in candidates)
                 {
-                    var item = _libraryManager.GetItemById(n.Id);
-                    if (item == null && !string.IsNullOrEmpty(n.RealItemId))
+                    // A collection notification carries a synthetic id — "col:{collection}:{item}" —
+                    // and the real Jellyfin item in RealItemId. The string overload of GetItemById
+                    // is `GetItemById(new Guid(id))`, so handing it the synthetic id threw
+                    // FormatException and the catch below turned the WHOLE response into a 500:
+                    // one monitored collection was enough to take the bell down for every user,
+                    // permanently, because the row survives restarts. Never call it with an id
+                    // that is not a GUID.
+                    BaseItem? item = null;
+                    if (IsResolvableId(n.RealItemId))
                     {
-                        // Synthetic ID (e.g. collection notification) — resolve the real Jellyfin item
-                        // so we can enforce visibility and played-status checks.
                         item = _libraryManager.GetItemById(n.RealItemId);
+                    }
+                    else if (IsResolvableId(n.Id))
+                    {
+                        item = _libraryManager.GetItemById(n.Id);
                     }
 
                     if (item == null)

@@ -74,6 +74,7 @@ namespace NotifySync
                             Category TEXT NOT NULL,
                             SeriesName TEXT,
                             SeriesId TEXT,
+                            SeasonId TEXT,
                             DateCreated TEXT NOT NULL,
                             Type TEXT NOT NULL,
                             RunTimeTicks INTEGER,
@@ -141,6 +142,7 @@ namespace NotifySync
 
                 // Migration: add columns for existing databases (pre-5.5.7.x → present).
                 MigrateAddColumn(connection, "Notifications", "RealItemId", "TEXT");
+                MigrateAddColumn(connection, "Notifications", "SeasonId", "TEXT");
                 MigrateAddColumn(connection, "Notifications", "IsUpgrade", "INTEGER NOT NULL DEFAULT 0");
                 MigrateAddColumn(connection, "Notifications", "FilePath", "TEXT");
                 MigrateAddColumn(connection, "Notifications", "UpgradeKind", "TEXT");
@@ -303,12 +305,12 @@ namespace NotifySync
             cmd.Transaction = transaction;
             cmd.CommandText = @"
                 INSERT OR REPLACE INTO Notifications (
-                    Id, RealItemId, Name, Category, SeriesName, SeriesId, DateCreated,
+                    Id, RealItemId, Name, Category, SeriesName, SeriesId, SeasonId, DateCreated,
                     Type, RunTimeTicks, ProductionYear, BackdropImageTags,
                     PrimaryImageTag, IndexNumber, ParentIndexNumber,
                     IsUpgrade, FilePath, UpgradeKind, Size
                 ) VALUES (
-                    @Id, @RealItemId, @Name, @Category, @SeriesName, @SeriesId, @DateCreated,
+                    @Id, @RealItemId, @Name, @Category, @SeriesName, @SeriesId, @SeasonId, @DateCreated,
                     @Type, @RunTimeTicks, @ProductionYear, @Backdrop,
                     @Primary, @Index, @ParentIndex,
                     @IsUpgrade, @FilePath, @UpgradeKind, @Size
@@ -320,6 +322,7 @@ namespace NotifySync
             var pCat = cmd.Parameters.Add("@Category", SqliteType.Text);
             var pSName = cmd.Parameters.Add("@SeriesName", SqliteType.Text);
             var pSId = cmd.Parameters.Add("@SeriesId", SqliteType.Text);
+            var pSeasonId = cmd.Parameters.Add("@SeasonId", SqliteType.Text);
             var pDate = cmd.Parameters.Add("@DateCreated", SqliteType.Text);
             var pType = cmd.Parameters.Add("@Type", SqliteType.Text);
             var pRun = cmd.Parameters.Add("@RunTimeTicks", SqliteType.Integer);
@@ -341,6 +344,7 @@ namespace NotifySync
                 pCat.Value = item.Category ?? string.Empty;
                 pSName.Value = (object?)item.SeriesName ?? DBNull.Value;
                 pSId.Value = (object?)item.SeriesId ?? DBNull.Value;
+                pSeasonId.Value = (object?)item.SeasonId ?? DBNull.Value;
                 pDate.Value = item.DateCreated.ToString("O");
                 pType.Value = item.Type ?? string.Empty;
                 pRun.Value = (object?)item.RunTimeTicks ?? DBNull.Value;
@@ -581,6 +585,7 @@ namespace NotifySync
                 int oUpgradeKind = TryGetOrdinal(reader, "UpgradeKind");
                 int oSize = TryGetOrdinal(reader, "Size");
                 int oRealItemId = TryGetOrdinal(reader, "RealItemId");
+                int oSeasonId = TryGetOrdinal(reader, "SeasonId");
 
                 while (reader.Read())
                 {
@@ -592,6 +597,7 @@ namespace NotifySync
                         Category = reader.GetString(oCategory),
                         SeriesName = reader.IsDBNull(oSeriesName) ? null : reader.GetString(oSeriesName),
                         SeriesId = reader.IsDBNull(oSeriesId) ? null : reader.GetString(oSeriesId),
+                        SeasonId = (oSeasonId < 0 || reader.IsDBNull(oSeasonId)) ? null : reader.GetString(oSeasonId),
                         DateCreated = DateTime.Parse(reader.GetString(oDateCreated), CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.RoundtripKind),
                         Type = reader.GetString(oType),
                         RunTimeTicks = reader.IsDBNull(oRunTimeTicks) ? null : reader.GetInt64(oRunTimeTicks),

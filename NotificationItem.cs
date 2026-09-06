@@ -35,6 +35,18 @@ namespace NotifySync
         public string? SeriesId { get; set; }
 
         /// <summary>
+        /// Gets or sets the season identifier, for episodes only.
+        /// <para>
+        /// Used for navigation, never for grouping — grouping stays keyed on the series so a
+        /// batch spanning two seasons still lands in one card. A card whose episodes all belong
+        /// to the same season opens that season rather than the series, which is what the card
+        /// announced ("Season 4 • Ep. 1-12"); music already worked this way, since a track's
+        /// container is its album.
+        /// </para>
+        /// </summary>
+        public string? SeasonId { get; set; }
+
+        /// <summary>
         /// Gets or sets the date the item was created.
         /// </summary>
         public DateTime DateCreated { get; set; }
